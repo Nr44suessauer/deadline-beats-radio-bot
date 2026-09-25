@@ -36,7 +36,7 @@ The complete step-by-step rebuild guide is **`NACHBAU/README.md`**.
 | **Bot** | n8n (LXC 103), **four** workflows `DDD-Webseite-…` | test entry `/webhook/ddd-webseite-test` |
 | **API key** | restricted role `Demo-Bot` (station 2 only) | `zugangsdaten/api_key.txt`; the earlier admin key is kept as `api_key.txt.bak-2026-09-25` |
 | Voice | `aqua` via the voice service (CT 111) | fallback: `de_thorsten` (also speaks English text) |
-| Streamer accounts | `aqua` (display name “Aqua”) + `marc` | passwords in `zugangsdaten/` |
+| Streamer accounts | `aqua` (display name “Axis KI”) + `marc` (display name “Marc”) | passwords in `zugangsdaten/` |
 
 **One bot instead of two:** 10 workflows (5 DE + 5 EN) became **5**, two services
 (ports 8882 and 8883) became **one**, and two Telegram entries became **one**.
