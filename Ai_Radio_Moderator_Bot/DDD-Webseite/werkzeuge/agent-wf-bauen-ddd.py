@@ -147,7 +147,7 @@ SUCHTEXT = ("={{ String($('Eingang').first().json.suchtext || '')"
             ".replace(/\\s+/g, ' ').trim() }}")
 
 PROJEKT = "rQ6DFC63JlNQbiar"
-ORDNER = "vEDODlq4jIKCUDmf"
+ORDNER = "RWEPQ3wEjcfpTacL"          # Ordner "Sender 2: DDD-Webseite"
 
 # Ein einziger Werkzeug-Arbeitsablauf fuer alles: Titel suchen, Richtung, Status.
 #

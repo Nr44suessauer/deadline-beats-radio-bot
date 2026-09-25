@@ -84,7 +84,7 @@ demo station — now behave identically in German and English.
 | `werkzeuge/agent-wf-bauen-ddd.py` | workflow generator (fork of `../werkzeuge/agent-wf-bauen.py`) |
 | `werkzeuge/bauen.sh` | builds the five workflows into `/tmp/ddd-webseite-*.json` |
 | `werkzeuge/pruefen.sh` | layout + code + contracts (IDs, language plumbing, texts) |
-| `werkzeuge/einspielen.sh` | imports the five workflows, **removes the old ten**, activates them, restarts n8n |
+| `werkzeuge/einspielen.sh` | imports the five workflows, **removes the old ten**, activates them, puts them into the n8n folder **Sender 2: DDD-Webseite**, restarts n8n |
 | `werkzeuge/dienst-einspielen.sh` | deploys `dienst/` to LXC 103, removes the old instances, starts the container |
 | `werkzeuge/ausfuehrung-lesen.js` | reads the last execution of a workflow from the n8n database |
 | `chat-fenster.html` | the **chat window** (browser page): sends commands to the REST input and shows the answer — replaces the Telegram input (open locally, enter the test key once) |
@@ -209,6 +209,7 @@ a German announcement of 9.8 s.
 | REST input: service way “welche Wiedergabelisten gibt es” | playlist list as JSON (`default`, `Rotation`) |
 | Chat window (`chat-fenster.html`, file://) | message in, answer bubble out — full loop verified in a browser |
 | After n8n restart | REST webhook re-registers (answer again within seconds) |
+| n8n organization (2026-09-25) | the five workflows sit in the folder **Sender 2: DDD-Webseite**; the private bot sits in **Sender 1: Deadline Beats** (scripts set this after every import) |
 
 Importing restarts n8n **once** (~1 minute downtime for all bots); the main bot’s
 workflows are unchanged.

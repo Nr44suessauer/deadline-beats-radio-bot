@@ -211,7 +211,10 @@ bash einspielen.sh   # import + activate (restarts n8n, ~1 minute)
   config `…/proxmox-ssh/config`, the host alias `ai-server` and an n8n
   project id. Adapt these for your environment. It removes the older
   `-DE`/`-EN` workflows from the n8n database (SQLite + restart, because n8n
-  has no delete command), so only the five bilingual ones remain.
+  has no delete command), so only the five bilingual ones remain. It also keeps
+  the five workflows in the n8n folder **Sender 2: DDD-Webseite** (the private
+  bot lives in **Sender 1: Deadline Beats**); `n8n import:workflow` itself
+  carries no folder assignment.
 * **The main bot’s workflows are not touched.** The n8n restart pauses all
   bots for about a minute.
 
