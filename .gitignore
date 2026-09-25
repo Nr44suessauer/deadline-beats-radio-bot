@@ -1,8 +1,6 @@
 # Eigene Werte, Stimmen und Laufzeit bleiben lokal
 NACHBAU/zugangsdaten/
-!NACHBAU/zugangsdaten/UEBERSICHT.md
 EN/NACHBAU/zugangsdaten/
-!EN/NACHBAU/zugangsdaten/UEBERSICHT.md
 dienst/geheim.env
 EN/dienst/geheim.env
 __pycache__/
@@ -10,3 +8,5 @@ __pycache__/
 *.wav
 *.mp3
 *.onnx
+*.pth
+*.safetensors

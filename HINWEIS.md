@@ -38,9 +38,24 @@ keine Trainingsausschnitte, keine Hörproben). Der Dienst spricht zunächst mit 
 freien Standardstimme. Wie du deine **eigene Wunschstimme** einbindest, steht in
 `DOKU/STIMME.md` und in der Vorlage `NACHBAU/eigene-stimme/`.
 
+## Was zusätzlich entfernt wurde
+
+Ganz entfernt wurden: die Dateien des Ordners `NACHBAU/zugangsdaten/`, die
+Umgebungsdatei `dienst/geheim.env` und alle Audio- und Modelldateien (`.wav`,
+`.mp3`, `.onnx`, `.pth`, `.safetensors`). Wie du **deine eigenen Zugangswerte**
+anlegst, steht in `NACHBAU/zugangsdaten.md`; die Vorlage für die Umgebungsdatei
+liegt als `dienst/geheim.env.vorlage` bei.
+
 ## Voice
 
 This edition contains **no third-party voice and no voice data** (no model, no
 training clips, no samples). Out of the box the service speaks with a free standard
 voice. How to integrate **your own desired voice** is described in `DOKU/STIMME.md`
 and in the template `NACHBAU/eigene-stimme/`.
+
+## Also removed
+
+Removed entirely: the files of `NACHBAU/zugangsdaten/`, the environment file
+`dienst/geheim.env`, and all audio and model files (`.wav`, `.mp3`, `.onnx`,
+`.pth`, `.safetensors`). See `NACHBAU/zugangsdaten.md` for how to create **your
+own credentials**; the environment template ships as `dienst/geheim.env.vorlage`.
