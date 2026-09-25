@@ -926,9 +926,9 @@ function sprache_raten(text) {
 // "mit meiner Stimme", "von DEINE-STIMME gesprochen". Ergebnis: 'deine-stimme' oder ''.
 function stimme_wunsch(text) {
   const t = String(text || '').toLowerCase();
-  if (/deine-stimme[\s-]*stimme/.test(t)) return 'deine-stimme';
-  if (/\b(als|von|mit)\s+deine-stimme\b/.test(t)) return 'deine-stimme';
-  if (/mit\s+deine-stimmes\s+stimme/.test(t)) return 'deine-stimme';
+  if (/(deine[rmn]?|eigene[rmn]?|meine[rmn]?)[\s-]*stimme/.test(t)) return 'deine-stimme';
+  if (/\b(als|von|mit)\s+(deiner|eigener|meiner)\s+stimme/.test(t)) return 'deine-stimme';
+  if (/mit\s+(deiner|eigener|meiner)\s+stimme/.test(t)) return 'deine-stimme';
   return '';
 }
 """
