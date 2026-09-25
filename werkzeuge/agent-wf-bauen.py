@@ -921,9 +921,9 @@ function sprache_raten(text) {
   return en > de ? 'en' : 'de';
 }
 
-// Wunsch nach der eigene Stimme - in beliebiger Formulierung erkennen.
-// Beispiele: "mit eigener Stimme", "in der eigenen Stimme", "in eigener Stimme",
-// "mit meiner Stimme", "von DEINE-STIMME gesprochen". Ergebnis: 'deine-stimme' oder ''.
+// Wunsch nach der eigenen Stimme - in beliebiger Formulierung erkennen.
+// Beispiele: "mit eigener Stimme", "mit deiner Stimme", "meine Stimme",
+// "in der eigenen Stimme". Ergebnis: 'deine-stimme' oder ''.
 function stimme_wunsch(text) {
   const t = String(text || '').toLowerCase();
   if (/(deine[rmn]?|eigene[rmn]?|meine[rmn]?)[\s-]*stimme/.test(t)) return 'deine-stimme';
@@ -1794,7 +1794,7 @@ was_laeuft) bekommen immer das Feld sprache (de oder en) mit.
 STIMME
 Ohne Wunsch spricht der Bot mit der Standardstimme - dann bleibt das Feld
 stimme leer. Verlangt der Betreiber ausdruecklich die eigene Stimme ("mit
-eigener Stimme", "in der eigenen Stimme", "in eigener Stimme", "mit meiner Stimme"), setze
+eigener Stimme", "in der eigenen Stimme", "mit deiner Stimme", "mit meiner Stimme"), setze
 beim Werkzeug stimme=deine-stimme. Die Wendung gehoert NUR ins Feld stimme und wird
 NIE vorgelesen oder bestaetigt. Steht im Befehl das Feld stimme, uebernimm es
 unveraendert in den Werkzeugaufruf.

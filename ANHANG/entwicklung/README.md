@@ -978,7 +978,7 @@ Meldung beginnt mit **`DBeats: `**.
 
 ### Voice Lines: so spricht DEINE-STIMME (2026-09-25 abends)
 
-Der Wunsch: **DEINE-STIMMEs gesprochene Zeilen** sollen den Charakter der Figur tragen — die
+Der Wunsch: **deine gesprochenen Zeilen** sollen den Charakter der Figur tragen — die
 Telegram-Nachrichten aber nicht. Beim Nachsehen fiel auf, dass der Planer freie Ansagen
 bisher gar nicht formulierte, sondern die Anweisung wörtlich vorlas: „sag eine kurze
 Begrüßung für die Hörer an" wurde tatsächlich als *„eine kurze Begrüßung für die
@@ -994,7 +994,7 @@ Hörer"* gesprochen (Ausführungen 4785/4791). Drei Änderungen:
   nur noch `aufgaben.ausfuehren` + `/no_think` — die Telegram-Antworten bleiben sachlich,
   auch wenn die Figur lebhaft ist.
 * **Die festen Zeilen des Dienstes** (`VORSPANN`/`NACHSPANN` in `dienst/meldungen.py`)
-  sind auf DEINE-STIMMEs Ton umgeschrieben — z. B. „Und nun der Blick zum Himmel - ich habe für
+  sind auf deinen Ton umgeschrieben — z. B. „Und nun der Blick zum Himmel - ich habe für
   euch nachgesehen." statt „Und nun der Blick aufs Wetter." (`19-meldungen-test.py` und
   `werkzeuge/meldungen/README.md` mitgezogen).
 
@@ -1090,7 +1090,7 @@ und Protokollzeile `Stimme: …`). Live über den REST-Eingang geprüft: ohne Wu
 (gemessen: Werkzeugwerte `stimme: ""` in den Läufen 4869/4889) — die Wahl hing allein
 am Sprachmodell, das „in eigener Stimme" nicht als Stimmenwunsch las. **Neu, vier Stufen:**
 (1) der Eingang erkennt den Wunsch **fest** (`stimme_wunsch`: „mit eigener Stimme",
-„in der eigenen Stimme", „in eigener Stimme", „mit meiner Stimme", „von DEINE-STIMME"); (2) **„Befehle
+„in der eigenen Stimme", „mit eigener Stimme", „mit deiner Stimme", „mit meiner Stimme"); (2) **„Befehle
 lesen"** schreibt ihn in jeden Sprech-Befehl (`ansage`/`recherche` → `b.stimme`);
 (3) die Ausführung gibt das Feld unverändert an das Werkzeug weiter; (4) der Dienst
 zählt jede Schreibweise mit „DEINE-STIMME" in eigener Stimme-Wunsch. Live geprüft (beide Bots):
