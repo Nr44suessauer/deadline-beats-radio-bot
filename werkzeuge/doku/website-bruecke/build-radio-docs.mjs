@@ -388,8 +388,8 @@ function saeubereVeroeffentlichung(markdown, lang) {
     // dort steht stattdessen das Projekt-Repository (Gegenstück zur README im Repository).
     .replace(/\*\*(?:Webseite|Website):\*\*\s*<https:\/\/www\.deadlinedriven\.dev\/?>/i,
       ent
-        ? '**Project repository:** <https://github.com/Nr44suessauer/ai-radio-moderator-bot/tree/en>'
-        : '**Projekt-Repository:** <https://github.com/Nr44suessauer/ai-radio-moderator-bot/tree/de>')
+        ? '**Project repository:** <https://github.com/Nr44suessauer/deadline-beats-radio-bot>'
+        : '**Projekt-Repository:** <https://github.com/Nr44suessauer/deadline-beats-radio-bot>')
     // Datumsangaben mit Monatsnamen — „(19./20. September 2026)“, „19.–23. September 2026“
     .replace(new RegExp(`\\s*\\([^()\\n]*(?:${DE_MONATE}|${EN_MONATE})\\s+20\\d{2}[^()\\n]*\\)`, 'gi'), '')
     .replace(new RegExp(`\\b(?:am|vom|from|on)?[ \\t]*\\d{1,2}\\.\\/?\\d{0,2}\\.?\\s*[–—-]?\\s*(?:\\d{1,2}\\.?[ \\t]+)?(?:${DE_MONATE}|${EN_MONATE})[ \\t]+20\\d{2}\\b`, 'gi'), '')
@@ -1043,7 +1043,7 @@ const MUSTER = [
   [/\bhf_[A-Za-z0-9]{20,}\b/, 'HuggingFace-Token'],
   [/\bsk-[A-Za-z0-9_-]{20,}\b/, 'API-Schlüssel (sk-)'],
   // Personenbezug: Name, Anschrift, eigene Adressen (nicht die Beispiele).
-  [/\bNauendorf\b/, 'Name des Autors'],
+  [/\bDEIN-NACHNAME\b/, 'Name des Autors'],
   [/\bmarc\b/i, 'Vorname des Betreibers'],
   [/deadlinedriven\.(?:dev|de)/i, 'eigene Adresse (Domain)'],
   // Kennungen der eigenen n8n-Instanz

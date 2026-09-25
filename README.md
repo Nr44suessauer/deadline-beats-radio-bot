@@ -24,6 +24,8 @@ holen kann.
 >
 > **Webseite:** <https://www.deadlinedriven.dev/>
 >
+> **Projekt-Repository:** <https://github.com/Nr44suessauer/deadline-beats-radio-bot>
+>
 > **Englische Fassung:** dieselbe Doku gibt es in `EN/` — Anleitung, Bilder und
 > englische Ablauf-Kopien (die deutschen Abläufe bleiben die im Betrieb).
 >

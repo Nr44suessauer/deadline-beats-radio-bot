@@ -21,6 +21,8 @@ Complete documentation of the bot that controls the internet radio station **Dea
 >
 > **Website:** <https://www.deadlinedriven.dev/>
 >
+> **Project repository:** <https://github.com/Nr44suessauer/deadline-beats-radio-bot>
+>
 > **English edition:** this folder is the English version of the documentation. The
 > German original lives in the parent folder, and the German workflows are the ones in
 > operation.
