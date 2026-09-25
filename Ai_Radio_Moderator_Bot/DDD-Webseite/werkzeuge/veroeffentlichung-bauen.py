@@ -22,7 +22,7 @@ QUELLE = Path(__file__).resolve().parent.parent            # DDD-Webseite
 ZIEL_STANDARD = QUELLE / "DocOfficial"
 ZUG = QUELLE / "zugangsdaten"
 GEHEIM_ENV = QUELLE / "dienst" / "geheim.env"
-PRUEFTOOLS = QUELLE.parent / "NACHBAU" / "werkzeuge"       # Prüfwerkzeuge des Projekts
+PRUEFTOOLS = QUELLE.parent / "werkzeuge"                    # Prüfwerkzeuge des Projekts
 LIZENZ = QUELLE.parent / "LICENSE"
 
 PH = {
