@@ -1,7 +1,7 @@
 # Catalogue service (`ddd-radio`) — sources and operation
 
 > **In this edition** the service runs as container `ddd-radio` on **port 8882**
-> (station 2, “DDD-Webseite Demo”); its source lives here in
+> (station 2, “Axis Church Radio”); its source lives here in
 > `DDD-Webseite/dienst/`. The main bot keeps using `radio-tts` on port 8881 —
 > the same code.
 

@@ -2,7 +2,7 @@
 """Erzeugt den DDD-Webseite-Bot als AI-Agent mit Werkzeugen.
 
 ABLEGER von ../../werkzeuge/agent-wf-bauen.py fuer die Webseiten-Fassung.
-Unterschiede: Sender 2 (AzuraCast "DDD-Webseite Demo"), Ablauf-Kennungen und
+Unterschiede: Sender 2 (AzuraCast "Axis Church Radio"), Ablauf-Kennungen und
 -Namen mit dem Praefix "DDD-Webseite", ein eigener Testeingang, eigene
 Telegram-Anmeldedaten; Ausgaben nach /tmp/ddd-webseite-*.json.
 
@@ -1544,7 +1544,7 @@ return [{ json: { nr: nr, fertig: true } }];
 # ======================================================== Stufe 2: Ausfuehrung
 
 AUSFUEHREN_SYSTEM = """Du fuehrst genau EINEN Befehl des Betreibers am Internetradio
-"DDD-Webseite Demo" aus. Der Betreiber ist der einzige Nutzer.
+"Axis Church Radio" aus. Der Betreiber ist der einzige Nutzer.
 
 SPRACHE
 Der Betreiber schreibt deutsch oder englisch. Verstehe beides. Antworte in der Sprache
@@ -2695,7 +2695,7 @@ Ansagen im laufenden Programm. Verwalten kann der Bot nichts: der Schluessel dar
 zuhoeren, springen und Wuensche annehmen (siehe zugangsdaten/api_key.txt).
 Alles kommt aus Telegram und geht dorthin zurueck - oder per REST- oder Testeingang
 als JSON ({"text": "..."} plus Schluessel; Antwort {ok, antwort, tastatur, sprache}).
-Gespielt wird auf dem Sender "DDD-Webseite Demo" (Sender 2).
+Gespielt wird auf dem Sender "Axis Church Radio" (Sender 2).
 
 Der Weg einer Nachricht: Eingang -> Stufe 0/1 Analyse -> Stufe 2 Ausfuehrung ->
 Stufe 3 Pruefung -> Antwort. Sprachnachrichten laufen oben durch Whisper,

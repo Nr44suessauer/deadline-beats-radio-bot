@@ -14,7 +14,7 @@ The short overview (what is running where, how the bilingual chat works) is in
 
 | Part | Reference | Job |
 | --- | --- | --- |
-| Station “DDD-Webseite Demo” | AzuraCast, station number **2**, shortcode `ddd_webseite` | plays **only** the playlist “GEMA-frei”, accepts requests (from that playlist), carries the announcements |
+| Station “Axis Church Radio” | AzuraCast, station number **2**, shortcode `ddd_webseite` | plays **only** the playlist “GEMA-frei”, accepts requests (from that playlist), carries the announcements |
 | Service `ddd-radio` | LXC 103 (192.168.178.53), port **8882** | catalogue search, playlist tasks, mailbox, research, speech output |
 | Bot (four workflows) | n8n (LXC 103), ids `DDD-Webseite-…` | listens, skips, takes playlist-bound wishes, speaks announcements — **no administration** (see §3.1) |
 | Telegram | one bot token | the one chat window for both languages |
@@ -172,7 +172,7 @@ Wikipedia, topic overview). It is a FastAPI container built from
    | `LIVE_MOUNT` | mount point (`/`) |
    | `LIVE_USER` | streamer account (`aqua`) |
    | `LIVE_PASSWORD` | password of that streamer account |
-   | `LIVE_NAME` | name sent when connecting (`DDD-Webseite Demo Moderation`) |
+   | `LIVE_NAME` | name sent when connecting (`Axis Church Radio Moderation`) |
    | `TTS_HOCHPASS_HZ` | speech high-pass (`50`) |
    | `TTS_KOMPRESSOR_SCHWELLE_DB` | compressor threshold (`-18`) |
    | `TTS_KOMPRESSOR_VERHAELTNIS` | compressor ratio (`2.0`) |

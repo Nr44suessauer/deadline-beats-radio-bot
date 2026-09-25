@@ -5,7 +5,7 @@ into **one** bot). This edition was built **on top of** the existing bot: the
 running bot (`RadioAgentBot`, station “Deadline Beats”) was **not touched** —
 none of its workflows, its station, or its services.
 
-Goal: a **second, dedicated station** (“DDD-Webseite Demo”) with **one bot** you
+Goal: a **second, dedicated station** (“Axis Church Radio”) with **one bot** you
 can write to in **German or English in the same chat window** — music, status and
 announcements work in both languages. Later the station will run as a demo on the
 website.
@@ -30,7 +30,7 @@ The complete step-by-step rebuild guide is **`NACHBAU/README.md`**.
 
 | Part | Where | Address / ID |
 | --- | --- | --- |
-| **Station** “DDD-Webseite Demo” | AzuraCast (LXC 106, 192.168.178.33), **station number 2** | Listeners: `http://192.168.178.33/listen/ddd_webseite/radio.mp3` (or `:8010/radio.mp3`); harbour (DJ): port **8015**; shortcode `ddd_webseite` |
+| **Station** “Axis Church Radio” | AzuraCast (LXC 106, 192.168.178.33), **station number 2** | Listeners: `http://192.168.178.33/listen/ddd_webseite/radio.mp3` (or `:8010/radio.mp3`); harbour (DJ): port **8015**; shortcode `ddd_webseite` |
 | Music | playlist **“GEMA-frei”** (the only enabled list) | **4 tracks** (Mozart, Beethoven, Vivaldi) — replaceable at any time; the older “Rotation” (245 tracks) stays in the library but is switched off |
 | **Service** `ddd-radio` | LXC 103 (192.168.178.53) | port **8882** (catalogue, mailbox, announcements) |
 | **Bot** | n8n (LXC 103), **four** workflows `DDD-Webseite-…` | test entry `/webhook/ddd-webseite-test` |

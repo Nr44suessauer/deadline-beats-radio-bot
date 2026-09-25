@@ -118,7 +118,7 @@ print(" -- Sprachanweisungen der Modelle --")
 muss(alles, "DEUTSCH ODER ENGLISCH", 1)
 muss(alles, "Antworte in der Sprache", 1)
 muss(alles, "Sprache des Betreibers")
-muss(alles, "DDD-Webseite Demo")
+muss(alles, "Axis Church Radio")
 muss(alles, "'ansage'", 1)
 darf_nicht(alles, "Deadline Beats")
 
