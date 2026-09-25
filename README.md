@@ -133,11 +133,11 @@ flowchart LR
 | **Dienst `radio-tts`** | LXC 103, Port **8881** | Sprachausgabe (eigene Stimme `deine-stimme`, Piper wählbar), Live-Ansage, Katalogsuche, Wiedergabelisten, Postfach, Recherche |
 | **AzuraCast** 0.23.4 | LXC 106 auf `192.168.178.163`, Web `http://192.168.178.33` | der Sender: Icecast + Liquidsoap + AutoDJ |
 | **Ollama** | LXC 105 auf `192.168.178.187:11434` | Sprachmodell `qwen3.6:27b` für Planen, Ausführen, Prüfen |
-| **whisper.cpp** large-v3 (Vulkan) | LXC 112 auf `ai-server`, `192.168.178.188:8000` | Sprachnachrichten in Text (GPU, MI50; seit 2026-09-23). Der frühere Dienst in LXC 105 (`:18790`) ist abgeschaltet — Ersatzweg auf Handbetrieb |
+| **whisper.cpp** large-v3 (Vulkan) | LXC 112 auf `ai-server`, `192.168.178.188:8000` | Sprachnachrichten in Text (GPU, MI50) |
 
-**Eigene Sprecherstimme:** Seit 2026-09-23 gibt es eine eigene
+**Eigene Sprecherstimme:** Es gibt eine eigene
 Moderationsstimme (Wandlungsstimme „DEINE-STIMME", Dienst **`sprechdienst`** auf der GPU-Maschine,
-CT 111, Port **10205**). Seit **2026-09-25** spricht der Bot standardmäßig mit der
+CT 111, Port **10205**). Standardmäßig spricht der Bot mit der
 stabilen Piper-Stimme (`TTS_DEFAULT_VOICE=de_thorsten`); die **eigene Stimme** wird nur
 auf ausdrücklichen Wunsch verwendet („… mit eigener Stimme"). Ist der Stimmendienst
 nicht erreichbar, spricht der Bot mit der Standardstimme weiter — eine Ansage fällt

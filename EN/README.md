@@ -4,7 +4,7 @@
 
 Complete documentation of the bot that controls the internet radio station **Deadline Beats** via Telegram, moderates the ongoing program, and can fetch content from the internet.
 
-**Bilingual (as of 2026-09-25):** the bot understands **German and English** messages in one chat and answers in the language of the request — shortcuts, tool lists, model replies and announcements. Content (news, weather) remains German.
+**Bilingual:** the bot understands **German and English** messages in one chat and answers in the language of the request — shortcuts, tool lists, model replies and announcements. Content (news, weather) remains German.
 
 > **Date:** 2026-09-25 · The station and bot are running continuously.
 > **Everything lives in this folder** — documentation, service sources
@@ -121,9 +121,9 @@ flowchart LR
 | **Service `radio-tts`** | LXC 103, Port **8881** | speech output (own voice `deine-stimme`, Piper selectable), live announcements, catalog search, playlists, mailbox, research |
 | **AzuraCast** 0.23.4 | LXC 106 on `192.168.178.163`, Web `http://192.168.178.33` | the station: Icecast + Liquidsoap + AutoDJ |
 | **Ollama** | LXC 105 on `192.168.178.187:11434` | speech model `qwen3.6:27b` for planning, execution, verification |
-| **whisper.cpp** large-v3 (Vulkan) | LXC 112 on `ai-server`, `192.168.178.188:8000` | speech-to-text (GPU, MI50; since 2026-09-23). The earlier service in LXC 105 (`:18790`) is shut off — alternative path on manual operation |
+| **whisper.cpp** large-v3 (Vulkan) | LXC 112 on `ai-server`, `192.168.178.188:8000` | speech-to-text (GPU, MI50) |
 
-**Own announcer's voice:** Since 2026-09-23, there is an own moderation voice (transformation voice "YOUR-VOICE", service **`sprechdienst`** on the GPU machine, CT 111, Port **10205**). Since **2026-09-25**, the bot speaks with the stable Piper voice by default (`TTS_DEFAULT_VOICE=de_thorsten`); the **your voice** is used only on explicit request ("… with your own voice"). If the voice service is unreachable, the bot continues with the default voice — no announcement falls out. **In the station, it appears as the streamer "YOUR-VOICE"** (own bot account `deine-stimme`, so the operator's name is not displayed). Origin, values, and replication: `DOKU/STIMME.md` + `NACHBAU/eigene-stimme/`; the general guide for each series: `DOKU/STIMME.md`.
+**Own announcer's voice:** There is an own moderation voice (transformation voice "YOUR-VOICE", service **`sprechdienst`** on the GPU machine, CT 111, Port **10205**). By default, the bot speaks with the stable Piper voice (`TTS_DEFAULT_VOICE=de_thorsten`); the **your voice** is used only on explicit request ("… with your own voice"). If the voice service is unreachable, the bot continues with the default voice — no announcement falls out. **In the station, it appears as the streamer "YOUR-VOICE"** (own bot account `deine-stimme`, so the operator's name is not displayed). Origin, values, and replication: `DOKU/STIMME.md` + `NACHBAU/eigene-stimme/`; the general guide for each series: `DOKU/STIMME.md`.
 
 **Station:** *Deadline Beats*, station identifier `deadline_beats`, stream `http://192.168.178.33/listen/deadline_beats`, rotation = playlist "List A" (72 titles), wish pool = the entire archive.
 
