@@ -452,6 +452,7 @@ After a rebuild, run through this list:
 | `../werkzeuge/{bauen,pruefen,einspielen,dienst-einspielen}.sh` | build, check, deploy |
 | `../werkzeuge/ausfuehrung-lesen.js` | read the last workflow execution from n8n |
 | `../chat-fenster.html` | browser chat window for the REST input (replaces the Telegram input) |
+| `../INTEGRATION.md` | integration guide for the own website: player, “now playing”, a chat line for visitors, reverse proxy examples, check list (German) |
 | `../dienst/` | service sources (`app/`, Dockerfile, compose, `geheim.env`; `geheim.env.vorlage` is the template — copy it and fill in your values) |
 | `../../werkzeuge/{anordnung-pruefen,code-pruefen,anordnung-uebersicht}.py` | helper scripts for `pruefen.sh` and the canvas overview (`ANORDNUNG.md`) — they ship with the branch next to the edition |
 | `../../LICENSE` | MIT license (ships in the branch and in the published package) |

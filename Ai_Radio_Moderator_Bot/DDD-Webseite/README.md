@@ -201,6 +201,9 @@ short.
 * The station is **not publicly reachable yet** — a reverse proxy entry is
   missing (same as the main station; `…:8010` is LAN-only). Then just swap the
   `src`.
+* **Full integration guide** — player, “now playing”, a chat line for visitors,
+  reverse proxy examples and a check list — is the German operator document
+  **`INTEGRATION.md`** (next to this file).
 * **Rights note**: the demo station plays **only GEMA-free music** from the fixed
   playlist “GEMA-frei” (4 tracks; extend or replace at any time — upload, assign
   to the playlist, rebuild the catalogue; see `NACHBAU/README.md` §3.1). Public
