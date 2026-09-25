@@ -1,4 +1,4 @@
-# AI Radio Moderator Bot — Station 1 "Deadline Beats"
+# AI Radio Moderator Bot — "Deadline Beats"
 
 <img src="https://media1.giphy.com/media/v1.Y2lkPTc5MGI3NjExdzc2ejN4OGF5bjhxd2R5dTM3ZzRydXdvdGIxZngwbWZvaWRsb3o3YiZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/gZDLCqO7dPIzHmRrTh/giphy.gif" align="right" class="glfm-float-right" width="280" alt="AI Radio Moderator Bot (GIF)">
 
@@ -7,17 +7,11 @@ Complete documentation of the bot that controls the internet radio station **Dea
 **Bilingual (as of 2026-09-25):** the bot understands **German and English** messages in one chat and answers in the language of the request — shortcuts, tool lists, model replies and announcements. Content (news, weather) remains German.
 
 > **Date:** 2026-09-25 · The station and bot are running continuously.
-> **Everything about this bot (station 1) lives in this folder** — documentation,
-> service sources (`dienst/`), tools (`werkzeuge/`) and the rebuild guide
-> (`NACHBAU/`). The **second bot** lives in the neighbour folder; the guide over
-> both is `../../README.md`.
+> **Everything lives in this folder** — documentation, service sources
+> (`dienst/`), tools (`werkzeuge/`) and the rebuild guide (`NACHBAU/`).
 >
-> **Website edition:** the **second edition** is station 2 "Axis Church Radio"
-> (`../../Sender-2-Axis-Church-Radio/`) — bilingual bot, documented in English.
->
-> **Publication edition:** the standalone copy of station 1 with placeholders
-> (German and English, **without any third-party voice or voice data**) lives in
-> branch `webseite` — built with `werkzeuge/doku/veroeffentlichung-webseite.py`.
+> **Edition for sharing:** all credentials are placeholders (German and English,
+> **without any third-party voice or voice data**).
 >
 > **Website:** <https://www.deadlinedriven.dev/>
 >
@@ -48,7 +42,6 @@ This project is organised so that for the rebuild you only need to follow **one 
 | **`dienst/`** | the speech service `radio-tts`: all modules, Dockerfile, Compose, `whisper/` and `whisper-amd/` |
 | **`werkzeuge/`** | the bot's workshop: build and import workflows, checks, images and documentation (`werkzeuge/doku/`), plus `playlist/`, `meldungen/`, `tempo/`, `aufraeumen/` |
 | **`EN/`** | this English edition (same structure) |
-| **`../../Sender-2-Axis-Church-Radio/`** | the second edition: station 2 "Axis Church Radio", bilingual bot, documented in English (lives in the same branch `Privat`) |
 
 **Rebuild in 8 steps** (each step detailed in `NACHBAU/README.md`):
 
@@ -150,7 +143,6 @@ flowchart LR
 | `ANHANG/` | appendix: n8n booklet, canvas, images and the development documents (`ANHANG/entwicklung/`) |
 | **`NACHBAU/`** | the **rebuild guide** with setup documents and the credentials overview |
 | `dienst/` · `werkzeuge/` | service sources and workshop (see above) |
-| **`../../Sender-2-Axis-Church-Radio/`** | the website edition (station 2, English documentation, its own service and tools) |
 
 ---
 

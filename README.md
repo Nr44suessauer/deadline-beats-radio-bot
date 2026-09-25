@@ -1,4 +1,4 @@
-# KI-Radio-Moderator-Bot — Sender 1 „Deadline Beats“
+# KI-Radio-Moderator-Bot — „Deadline Beats“
 
 <img src="https://media1.giphy.com/media/v1.Y2lkPTc5MGI3NjExdzc2ejN4OGF5bjhxd2R5dTM3ZzRydXdvdGIxZngwbWZvaWRsb3o3YiZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/gZDLCqO7dPIzHmRrTh/giphy.gif" align="right" class="glfm-float-right" width="280" alt="KI-Radio-Moderator-Bot (GIF)">
 
@@ -7,19 +7,13 @@ per Telegram steuert, im laufenden Programm moderiert und sich Inhalte aus dem N
 holen kann.
 
 > **Stand:** 2026-09-25 · Sender und Bot laufen im Dauerbetrieb.
-> **Alles zu diesem Bot (Sender 1) liegt in diesem Ordner** — Dokumentation,
-> Dienstquellen (`dienst/`), Werkzeuge (`werkzeuge/`) und Nachbau-Anleitung
-> (`NACHBAU/`). Der **Zweitbot** liegt im Nachbarordner; der Einstieg über beide
-> Bots steht im Wegweiser `../README.md`.
+> **Alles liegt in diesem Ordner** — Dokumentation, Dienstquellen (`dienst/`),
+> Werkzeuge (`werkzeuge/`) und die Nachbau-Anleitung (`NACHBAU/`).
 >
-> **Webseiten-Fassung:** die **zweite Fassung** ist Sender 2 „Axis Church Radio“
-> (`../Sender-2-Axis-Church-Radio/`) — bilingualer Bot, englisch dokumentiert.
+> **Fassung zum Weitergeben:** alle Zugangswerte sind Platzhalter (deutsch und
+> englisch, **ohne fremde Stimme und ohne Stimmdaten**).
 >
-> **Veröffentlichungsfassung:** die Einzel-Ausgabe von Sender 1 mit Platzhaltern
-> (deutsch und englisch, **ohne fremde Stimme und ohne Stimmdaten**) liegt im
-> Zweig `webseite` — gebaut mit `werkzeuge/doku/veroeffentlichung-webseite.py`.
->
-> **Zweisprachig:** beide Bots verstehen **deutsche und englische** Nachrichten in
+> **Zweisprachig:** der Bot versteht **deutsche und englische** Nachrichten in
 > einem Chat und antworten in der Sprache der Frage.
 >
 > **Webseite:** <https://www.deadlinedriven.dev/>
@@ -48,7 +42,6 @@ Dieses Projekt ist so sortiert, dass du für den Nachbau **nur einem Ordner** fo
 | **`DOKU/`** | die vier Bände: `DOKU/HANDBUCH.md` (alles Technische), `DOKU/BETRIEB.md` (Alltag, Störungen, Tests), `DOKU/BAU.md` (Baugeschichte, Fassungen), `DOKU/STIMME.md` (Stimme „DEINE-STIMME“ und Klonen) |
 | **`ANHANG/`** | Beilagen: n8n-Oberfläche als HTML-Heft, Zeichenflächen-Anordnung, Bilder, Entwicklungsdokumente (`ANHANG/entwicklung/`) |
 | **`EN/`** | dieselbe Sammlung auf Englisch (gleicher Aufbau) |
-| **`../Sender-2-Axis-Church-Radio/`** | die zweite Fassung: Sender 2 „Axis Church Radio“, bilingualer Bot, englisch dokumentiert (liegt im selben Zweig `Privat`) |
 
 **Nachbau in 8 Schritten** (jeder Schritt ausführlich in `NACHBAU/README.md`):
 
@@ -173,7 +166,6 @@ Serie: `DOKU/STIMME.md`.
 | `ANHANG/` | Beilagen: n8n-Heft, Zeichenfläche, Bilder und die Entwicklungsdokumente (`ANHANG/entwicklung/`) |
 | **`NACHBAU/`** | die **Anleitung zum Nachbauen** samt Einrichtungs-Dokumenten und Zugangsdaten-Übersicht |
 | `dienst/` · `werkzeuge/` | Dienstquellen und Werkstatt (siehe oben) |
-| **`../Sender-2-Axis-Church-Radio/`** | die Webseiten-Fassung (Sender 2, englische Doku, eigener Dienst und eigene Werkzeuge) |
 
 ---
 
