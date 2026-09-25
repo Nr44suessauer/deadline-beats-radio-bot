@@ -15,6 +15,10 @@ holen kann.
 > **Webseiten-Fassung:** die **zweite Fassung** ist Sender 2 „Axis Church Radio“
 > (`../Sender-2-Axis-Church-Radio/`) — bilingualer Bot, englisch dokumentiert.
 >
+> **Veröffentlichungsfassung:** die Einzel-Ausgabe von Sender 1 mit Platzhaltern
+> (deutsch und englisch, **ohne fremde Stimme und ohne Stimmdaten**) liegt im
+> Zweig `webseite` — gebaut mit `werkzeuge/doku/veroeffentlichung-webseite.py`.
+>
 > **Zweisprachig:** beide Bots verstehen **deutsche und englische** Nachrichten in
 > einem Chat und antworten in der Sprache der Frage.
 >
@@ -42,7 +46,7 @@ Dieses Projekt ist so sortiert, dass du für den Nachbau **nur einem Ordner** fo
 | **`DOKU/`** | die vier Bände: `DOKU/HANDBUCH.md` (alles Technische), `DOKU/BETRIEB.md` (Alltag, Störungen, Tests), `DOKU/BAU.md` (Baugeschichte, Fassungen), `DOKU/STIMME.md` (Stimme „DEINE-STIMME“ und Klonen) |
 | **`ANHANG/`** | Beilagen: n8n-Oberfläche als HTML-Heft, Zeichenflächen-Anordnung, Bilder, Entwicklungsdokumente (`ANHANG/entwicklung/`) |
 | **`EN/`** | dieselbe Sammlung auf Englisch (gleicher Aufbau) |
-| **`../Sender-2-Axis-Church-Radio/`** | die zweite Fassung: Sender 2 „Axis Church Radio“, bilingualer Bot, englisch dokumentiert (liegt im selben Zweig; Einzel-Ausgabe im Zweig `webseite`) |
+| **`../Sender-2-Axis-Church-Radio/`** | die zweite Fassung: Sender 2 „Axis Church Radio“, bilingualer Bot, englisch dokumentiert (liegt im selben Zweig `Privat`) |
 
 **Nachbau in 8 Schritten** (jeder Schritt ausführlich in `NACHBAU/README.md`):
 

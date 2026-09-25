@@ -38,7 +38,7 @@ neu. Vor jeder Änderung `fassung-sichern.sh` laufen lassen — es sichert nach
 
 | Ordner | Inhalt |
 | --- | --- |
-| `doku/` | die Werkstatt dieser **Dokumentations-Sammlung**: `n8n-doku-bauen.py` (HTML-Heft), `doku-pruefen.py` (Prüfung), `doc-official-bauen.py` (Veröffentlichungsfassung mit Platzhaltern), `website-bruecke/` (versorgt die Website), `code-uebersetzen-en.py` (englische Code-Fassung) |
+| `doku/` | die Werkstatt dieser **Dokumentations-Sammlung**: `n8n-doku-bauen.py` (HTML-Heft), `doku-pruefen.py` (Prüfung), `doc-official-bauen.py` (Veröffentlichungsfassung mit Platzhaltern), `veroeffentlichung-webseite.py` (Fassung für den Zweig `webseite`: Platzhalter, entschärfte Stimme) samt `zweig-webseite-sichern.sh` (spielt sie in den Zweig ein), `website-bruecke/` (versorgt die Website), `code-uebersetzen-en.py` (englische Code-Fassung) |
 | `playlist/` | Wiedergabelisten-Aufgaben und ihre Prüfläufe |
 | `meldungen/` | Postfach, Ansagen und Spracherkennung prüfen (`19-meldungen-test.py`, `21-bot-meldungen-test.py`, `23-lautstaerke-test.py`, `24-live-pegel.py`) |
 | `tempo/` | die Tempo-Änderung (163 s → 1,7 s) mit ihren Messungen |

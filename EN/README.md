@@ -15,6 +15,10 @@ Complete documentation of the bot that controls the internet radio station **Dea
 > **Website edition:** the **second edition** is station 2 "Axis Church Radio"
 > (`../../Sender-2-Axis-Church-Radio/`) — bilingual bot, documented in English.
 >
+> **Publication edition:** the standalone copy of station 1 with placeholders
+> (German and English, **without any third-party voice or voice data**) lives in
+> branch `webseite` — built with `werkzeuge/doku/veroeffentlichung-webseite.py`.
+>
 > **Website:** <https://www.deadlinedriven.dev/>
 >
 > **English edition:** this folder is the English version of the documentation. The
@@ -42,7 +46,7 @@ This project is organised so that for the rebuild you only need to follow **one 
 | **`dienst/`** | the speech service `radio-tts`: all modules, Dockerfile, Compose, `whisper/` and `whisper-amd/` |
 | **`werkzeuge/`** | the bot's workshop: build and import workflows, checks, images and documentation (`werkzeuge/doku/`), plus `playlist/`, `meldungen/`, `tempo/`, `aufraeumen/` |
 | **`EN/`** | this English edition (same structure) |
-| **`../../Sender-2-Axis-Church-Radio/`** | the second edition: station 2 "Axis Church Radio", bilingual bot, documented in English (now in the same branch; standalone edition in branch `webseite`) |
+| **`../../Sender-2-Axis-Church-Radio/`** | the second edition: station 2 "Axis Church Radio", bilingual bot, documented in English (lives in the same branch `Privat`) |
 
 **Rebuild in 8 steps** (each step detailed in `NACHBAU/README.md`):
 

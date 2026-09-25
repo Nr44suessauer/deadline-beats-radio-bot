@@ -37,7 +37,7 @@ every change, run `fassung-sichern.sh` - it stores to
 
 | Folder | Content |
 | --- | --- |
-| `doku/` | the workshop of this **documentation collection**: `n8n-doku-bauen.py` (HTML booklet), `doku-pruefen.py` (check), `doc-official-bauen.py` (publication copy with placeholders), `website-bruecke/` (feeds the website), `code-uebersetzen-en.py` (English code edition) |
+| `doku/` | the workshop of this **documentation collection**: `n8n-doku-bauen.py` (HTML booklet), `doku-pruefen.py` (check), `doc-official-bauen.py` (publication copy with placeholders), `veroeffentlichung-webseite.py` (edition for branch `webseite`: placeholders, defused voice) plus `zweig-webseite-sichern.sh` (mirrors it into the branch), `website-bruecke/` (feeds the website), `code-uebersetzen-en.py` (English code edition) |
 | `playlist/` | playlist tasks and their checks |
 | `meldungen/` | check mailbox, announcements and speech recognition (`19-meldungen-test.py`, `21-bot-meldungen-test.py`, `23-lautstaerke-test.py`, `24-live-pegel.py`) |
 | `tempo/` | the tempo change (163 s -> 1.7 s) with its measurements |
