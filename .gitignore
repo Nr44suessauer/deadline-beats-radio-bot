@@ -1,0 +1,16 @@
+# In diesem Zweig wird nur die Webseiten-Fassung (Sender 2) gefuehrt.
+/*
+!/.gitignore
+!/Ai_Radio_Moderator_Bot/
+/Ai_Radio_Moderator_Bot/*
+!/Ai_Radio_Moderator_Bot/DDD-Webseite/
+
+# Zugangswerte und Bau-Ausgaben bleiben lokal
+/Ai_Radio_Moderator_Bot/DDD-Webseite/zugangsdaten/
+/Ai_Radio_Moderator_Bot/DDD-Webseite/dienst/geheim.env
+/Ai_Radio_Moderator_Bot/DDD-Webseite/DocOfficial/
+/Ai_Radio_Moderator_Bot/DDD-Webseite/altfassungen/
+/Ai_Radio_Moderator_Bot/DDD-Webseite/ablaeufe-gebaut/
+__pycache__/
+*.pyc
+*~
