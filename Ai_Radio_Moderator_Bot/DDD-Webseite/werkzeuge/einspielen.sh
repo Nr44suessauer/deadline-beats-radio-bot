@@ -7,7 +7,7 @@
 #   1. die vier neuen Ablaeufe importieren
 #   2. die alten zehn Ablaeufe (Fassungen mit -DE/-EN) aus n8n entfernen und den
 #      entfallenen Ablauf "DDD-Webseite-AzuraCast" (Verwaltung, gibt es nicht mehr)
-#   3. die vier neuen einschalten und in den Ordner "Sender 2: DDD-Webseite"
+#   3. die vier neuen einschalten und in den Ordner "Sender 2: Axis Church Radio"
 #      legen, dann n8n neu starten (Webhooks anmelden)
 #   4. Gesundheit, Testeingang, REST-Eingang und Ablaufliste pruefen
 #
@@ -54,7 +54,7 @@ db.close(() => {
 });
 JS
 
-# Kleines Hilfsprogramm: legt den Ordner "Sender 2: DDD-Webseite" an (falls er
+# Kleines Hilfsprogramm: legt den Ordner "Sender 2: Axis Church Radio" an (falls er
 # fehlt) und ordnet die vier Ablaeufe zu. `n8n import:workflow` uebernimmt die
 # Ordner-Zuordnung NICHT - ohne diesen Schritt liegen die Ablaeufe zuoberst
 # ohne Ordner (der private Bot liegt in "Sender 1: Deadline Beats").
@@ -62,7 +62,7 @@ cat > /tmp/ddd-ordner.js <<'JS'
 const sqlite3 = require("/usr/local/lib/node_modules/n8n/node_modules/.pnpm/sqlite3@5.1.7/node_modules/sqlite3");
 const db = new sqlite3.Database("/home/node/.n8n/database.sqlite");
 const ORDNER = "RWEPQ3wEjcfpTacL";
-const NAME = "Sender 2: DDD-Webseite";
+const NAME = "Sender 2: Axis Church Radio";
 const PROJEKT = "rQ6DFC63JlNQbiar";
 const IDS = ["DDD-Webseite-Konfiguration", "DDD-Webseite-Radio",
              "DDD-Webseite-Meldungen", "DDD-Webseite-Bot"];

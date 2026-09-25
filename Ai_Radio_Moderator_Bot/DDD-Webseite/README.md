@@ -94,7 +94,7 @@ demo station — now behave identically in German and English.
 | `werkzeuge/agent-wf-bauen-ddd.py` | workflow generator (fork of `../werkzeuge/agent-wf-bauen.py`) |
 | `werkzeuge/bauen.sh` | builds the **four** workflows into `/tmp/ddd-webseite-*.json` |
 | `werkzeuge/pruefen.sh` | layout + code + contracts (IDs, language plumbing, texts, demo rights) |
-| `werkzeuge/einspielen.sh` | imports the four workflows, **removes the old ten and the former `DDD-Webseite-AzuraCast`**, activates them, puts them into the n8n folder **Sender 2: DDD-Webseite**, restarts n8n |
+| `werkzeuge/einspielen.sh` | imports the four workflows, **removes the old ten and the former `DDD-Webseite-AzuraCast`**, activates them, puts them into the n8n folder **Sender 2: Axis Church Radio**, restarts n8n |
 | `werkzeuge/dienst-einspielen.sh` | deploys `dienst/` to LXC 103, removes the old instances, starts the container |
 | `werkzeuge/ausfuehrung-lesen.js` | reads the last execution of a workflow from the n8n database |
 | `chat-fenster.html` | the **chat window** (browser page): sends commands to the REST input and shows the answer — replaces the Telegram input (open locally, enter the test key once) |
@@ -177,8 +177,8 @@ end to end on 2026-09-25 (German, English and wrong key).
 The service uses the dedicated voice **`aqua`** (`TTS_DEFAULT_VOICE`), with the
 same loudness chain as the main bot (variant 3). If the voice service is down,
 `de_thorsten` takes over — also for English text. Verified: English
-announcements of 9.8 s and 10.2 s (on air as streamer **“Aqua”**, `live: true`),
-a German announcement of 9.8 s.
+announcements of 9.8 s and 10.2 s (on air as streamer **“Axis KI”** — the
+account is `aqua`, `live: true`), a German announcement of 9.8 s.
 
 **Demo limits (2026-09-25):** free text announcements are capped at **240
 characters** (`demo.ansage_max`); the same text is **not repeated within 90
@@ -233,7 +233,7 @@ short.
 | REST input: service way “welche Wiedergabelisten gibt es” | playlist list as JSON — `GEMA-frei` enabled, `default`/`Rotation` switched off |
 | Chat window (`chat-fenster.html`, file://) | message in, answer bubble out — full loop verified in a browser |
 | After n8n restart | REST webhook re-registers (answer again within seconds) |
-| n8n organization (2026-09-25) | the four workflows sit in the folder **Sender 2: DDD-Webseite**; the private bot sits in **Sender 1: Deadline Beats** (scripts set this after every import) |
+| n8n organization (2026-09-25) | the four workflows sit in the folder **Sender 2: Axis Church Radio**; the private bot sits in **Sender 1: Deadline Beats** (scripts set this after every import) |
 
 Importing restarts n8n **once** (~1 minute downtime for all bots); the main bot’s
 workflows are unchanged.

@@ -277,7 +277,7 @@ bash einspielen.sh   # import + activate (restarts n8n, ~1 minute)
   project id. Adapt these for your environment. It removes the older
   `-DE`/`-EN` workflows from the n8n database (SQLite + restart, because n8n
   has no delete command), so only the four current ones remain. It also keeps
-  the four workflows in the n8n folder **Sender 2: DDD-Webseite** (the private
+  the four workflows in the n8n folder **Sender 2: Axis Church Radio** (the private
   bot lives in **Sender 1: Deadline Beats**); `n8n import:workflow` itself
   carries no folder assignment.
 * **The main bot’s workflows are not touched.** The n8n restart pauses all
@@ -369,7 +369,7 @@ change, update `../zugangsdaten/` (or the generator) and rebuild.
   “variant 3” used on air.
 * Announcements go through `POST /ansage/text` or `POST /live` in the
   service. While speaking, the station shows the streamer account **`aqua`**
-  (display name “Aqua”).
+  (display name “Axis KI”).
 * Verified in the reference installation: German announcement 9.8 s,
   English announcements 10.2 s and 9.8 s — each `live: true` in the station.
 * Bot-side limits (demo): free text ≤ **240 characters**, at most **one**
