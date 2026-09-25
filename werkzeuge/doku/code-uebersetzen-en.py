@@ -40,8 +40,121 @@ SPEICHER = PROJEKT / "werkzeuge" / "doku" / "uebersetzungen-code-en.json"
 # sie stehen teils nackt in Skripten (ohne Anführungszeichen) und werden
 # deshalb am Ende auf jede erzeugte Datei angewandt.
 ROHTAUSCH_DATEI = PROJEKT / "werkzeuge" / "doku" / "rohtausch.json"
-ENDUNGEN = (".py", ".sh", ".js", ".service", ".vorlage", ".yml")
+ENDUNGEN = (".py", ".sh", ".js", ".service", ".vorlage", ".template", ".yml")
 UEBERSPRINGEN = {"EN", "DocOfficial", ".git", "__pycache__", "node_modules", "ANHANG"}
+
+# Englische Namen der EN-Fassung (Umstellung vom 2026-09-26):
+# deutscher Ordnername/Dateiname im Projekt -> englischer Name unter EN/.
+EN_ORDNER = {
+    "dienst": "service", "werkzeuge": "tools", "DOKU": "DOCS",
+    "NACHBAU": "REBUILD", "ANHANG": "APPENDIX", "doku": "docs",
+    "meldungen": "news", "ablaeufe-laufend": "running-workflows",
+    "eigene-stimme": "own-voice", "verworfen": "discarded",
+    "zugangsdaten": "credentials", "bilder": "images",
+}
+EN_DATEIEN = {
+    "ANORDNUNG.md": "LAYOUT.md", "n8n-oberflaeche.html": "n8n-interface.html",
+    "gesamt-konfiguration-alle-werte.png": "overall-configuration-all-values.png",
+    "gesamt-radio-ai-moderator.png": "overall-radio-ai-moderator.png",
+    "gesamt-radio-telegram-agent.png": "overall-radio-telegram-agent.png",
+    "gesamt-DEIN-WEBHOOK-PFAD.png": "overall-voices-from-films.png",
+    "gesamt-werkzeug-azuracast.png": "overall-tool-azuracast.png",
+    "gesamt-werkzeug-meldungen.png": "overall-tool-news.png",
+    "gesamt-werkzeug-radio.png": "overall-tool-radio.png",
+    "modulplan.json": "moduleplan.json", "startmassstaebe.json": "startscales.json",
+    "BAU.md": "BUILD.md", "BETRIEB.md": "OPERATIONS.md",
+    "HANDBUCH.md": "MANUAL.md", "STIMME.md": "VOICE.md",
+    "searxng-einrichten.md": "searxng-setup.md", "sender-einrichten.md": "station-setup.md",
+    "stimmen-holen.sh": "fetch-voices.sh", "stimmen-und-modelle.md": "voices-and-models.md",
+    "umgebung.md": "environment.md", "vorlage.md": "template.md",
+    "zugangsdaten.md": "credentials.md", "UEBERSICHT.md": "OVERVIEW.md",
+    "AzuraWerkzeug.json": "AzuraTool.json", "MeldungenWerkzeug.json": "NewsTool.json",
+    "RadioWerkzeug.json": "RadioTool.json", "StimmenBot.json": "VoiceBot.json",
+    "sprechdienst.service": "speech-service.service",
+    "stimme_pruefen.py": "check-voice.py", "stimme_sammeln.py": "collect-voice.py",
+    "stimme_erweitern.py": "extend-voice.py", "sprechdienst.py": "speech-service.py",
+    "cluster-proben.sh": "cluster-samples.sh",
+    "einrichten-stimmen-dienst.sh": "setup-voice-service.sh",
+    "rvc-trainieren.sh": "rvc-train.sh", "stimmen_dienst.py": "voice-service.py",
+    "tg-sprachnachricht.sh": "tg-voice-message.sh",
+    "warten-und-proben.sh": "wait-and-sample.sh", "xtts-klon.py": "xtts-clone.py",
+    "geheim.env.vorlage": "secret.env.template",
+    "katalog.py": "catalog.py", "meldungen.py": "news.py", "suche.py": "search.py",
+    "agent-einspielen-nur.sh": "agent-import-only.sh",
+    "agent-einspielen.sh": "agent-import.sh",
+    "agent-nachbereiten.py": "agent-postprocess.py",
+    "agent-patchen.py": "agent-patch.py", "agent-patchen.sh": "agent-patch.sh",
+    "agent-wf-bauen-v2-dreistufig.py": "agent-wf-build-v2-threestage.py",
+    "agent-wf-bauen.py": "agent-wf-build.py",
+    "altfassungen-notieren.py": "note-old-versions.py",
+    "anordnung-doku.sh": "layout-docs.sh", "anordnung-pruefen.py": "layout-check.py",
+    "anordnung-uebersicht.py": "layout-overview.py",
+    "antwort-test.js": "answer-test.js", "antwort-test.sh": "answer-test.sh",
+    "antworten.js": "answers.js",
+    "archiv-anlegen.py": "create-archive.py", "archiv-rahmen.py": "archive-frame.py",
+    "auswertung.py": "evaluation.py",
+    "bilder-stitch.py": "image-stitch.py", "bilder-zuschnitt.py": "image-crop.py",
+    "bildplan.py": "imageplan.py",
+    "bot-ausfuehrung.js": "bot-execution.js", "bot-daten-setzen.py": "bot-data-set.py",
+    "bot-letzte.js": "bot-last.js",
+    "daten-setzen.py": "data-set.py", "deutsch-texte.py": "german-texts.py",
+    "dienst-einspielen.sh": "service-import.sh", "doku-notiz.py": "docs-note.py",
+    "code-uebersetzen-en.py": "code-translate-en.py",
+    "doc-official-bauen.py": "doc-official-build.py",
+    "doku-pruefen.py": "docs-check.py", "n8n-doku-bauen.py": "n8n-docs-build.py",
+    "uebersetzungen-en.json": "translations-en.json",
+    "durchlauf.sh": "full-run.sh", "eine.js": "one.js", "einspielen.sh": "import.sh",
+    "fassung-sichern.sh": "version-save.sh", "formen.sh": "shapes.sh",
+    "frage.sh": "ask.sh", "gif-aufnahme.js": "gif-capture.js", "gif-bauen.py": "gif-build.py",
+    "hol-testerschluessel.js": "fetch-testkeys.js",
+    "import-agent-vorbereiten.py": "import-agent-prepare.py",
+    "import-vorbereiten.py": "import-prepare.py", "js-holen.py": "fetch-js.py",
+    "katalog-test.sh": "catalog-test.sh",
+    "keine-ablehnung-test.sh": "no-rejection-test.sh",
+    "konfiguration-einspielen.sh": "config-import.sh",
+    "konfiguration-pruefen.py": "config-check.py",
+    "kontext-test.sh": "context-test.sh", "kontext2-test.sh": "context2-test.sh",
+    "kurz-test.js": "short-test.js", "kurz-test.sh": "short-test.sh",
+    "moderator-zurechtmachen.py": "moderator-prepare.py",
+    "modulbilder-massstaebe.py": "module-images-scales.py",
+    "modulbilder-plan.py": "module-images-plan.py",
+    "schlagwort-anlegen.py": "create-tag.py",
+    "sofort-bot-test.sh": "instant-bot-test.sh", "sofort-jetzt.sh": "instant-now.sh",
+    "sofort-knopf-test.sh": "instant-button-test.sh",
+    "sperrfrist-aus.sh": "cooldown-off.sh",
+    "sprache-test.sh": "speech-test.sh", "sprache2-test.sh": "speech2-test.sh",
+    "statische-daten-patchen.py": "static-data-patch.py",
+    "stimme-pruefen.sh": "voice-check.sh",
+    "telegram-menue.sh": "telegram-menu.sh", "telegram-wf-bauen.py": "telegram-wf-build.py",
+    "url-test-bauen.py": "url-test-build.py", "vorschau.py": "preview.py",
+    "18-live-zugang-setzen.sh": "18-live-access-set.sh",
+    "19-meldungen-test.py": "19-news-test.py", "21-bot-meldungen-test.py": "21-bot-news-test.py",
+    "22-suchbot-beispiel.py": "22-searchbot-example.py",
+    "23-lautstaerke-test.py": "23-volume-test.py", "24-live-pegel.py": "24-live-level.py",
+    "05-listenwege-test.sh": "05-playlist-paths-test.sh",
+    "06-leeren-umbenennen-test.sh": "06-clear-rename-test.sh",
+    "07-umbenennen-test.sh": "07-rename-test.sh",
+    "08-dienst-einspielen.sh": "08-service-import.sh",
+    "09-dienst-test.sh": "09-service-test.sh", "10-zerlegen-test.py": "10-split-test.py",
+    "11-dienst-art-test.js": "11-service-type-test.js",
+    "11-dienst-art-test.sh": "11-service-type-test.sh",
+    "12-neubau-vergleich.py": "12-rebuild-compare.py",
+    "13-listen-patchen.py": "13-playlists-patch.py",
+    "13-listen-patchen.sh": "13-playlists-patch.sh",
+    "14-listen-einspielen.sh": "14-playlists-import.sh",
+    "15-bot-listen-test.py": "15-bot-playlists-test.py",
+    "16-ausfuehrungen.sh": "16-executions.sh",
+    "02-kurz-test.js": "02-short-test.js", "03-tempo-patchen.py": "03-tempo-patch.py",
+    "04-einspielen.sh": "04-import.sh",
+}
+
+
+def en_pfad(rel: Path) -> Path:
+    """Deutscher Projektpfad -> englischer Pfad der EN-Fassung."""
+    teile = [EN_ORDNER.get(t, t) for t in rel.parts]
+    if teile:
+        teile[-1] = EN_DATEIEN.get(teile[-1], teile[-1])
+    return Path(*teile)
 
 # Wörter, an denen deutscher Text erkannt wird
 DEUTSCH = re.compile(
@@ -550,7 +663,7 @@ def dateien(wurzel: Path) -> list[Path]:
 def uebersetze_datei(pfad: Path, speicher_datei: dict[str, str], nur_pruefen: bool,
                      ohne_modell: bool = False) -> str:
     rel = pfad.relative_to(PROJEKT)
-    ziel = PROJEKT / "EN" / rel
+    ziel = PROJEKT / "EN" / en_pfad(rel)
     zeilen = pfad.read_text(encoding="utf-8").splitlines()
     if not ist_deutsche_datei("\n".join(zeilen)):
         return f"– {rel}: kein deutscher Text"

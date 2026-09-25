@@ -50,12 +50,12 @@ liegt als `dienst/geheim.env.vorlage` bei.
 
 This edition contains **no third-party voice and no voice data** (no model, no
 training clips, no samples). Out of the box the service speaks with a free standard
-voice. How to integrate **your own desired voice** is described in `DOKU/STIMME.md`
-and in the template `NACHBAU/eigene-stimme/`.
+voice. How to integrate **your own desired voice** is described in `DOCS/VOICE.md`
+and in the template `REBUILD/own-voice/`.
 
 ## Also removed
 
-Removed entirely: the files of `NACHBAU/zugangsdaten/`, the environment file
-`dienst/geheim.env`, and all audio and model files (`.wav`, `.mp3`, `.onnx`,
-`.pth`, `.safetensors`). See `NACHBAU/zugangsdaten.md` for how to create **your
-own credentials**; the environment template ships as `dienst/geheim.env.vorlage`.
+Removed entirely: the files of `REBUILD/credentials/`, the environment file
+`service/secret.env`, and all audio and model files (`.wav`, `.mp3`, `.onnx`,
+`.pth`, `.safetensors`). See `REBUILD/credentials.md` for how to create **your
+own credentials**; the environment template ships as `service/secret.env.template`.

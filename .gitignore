@@ -1,8 +1,8 @@
 # Eigene Werte, Stimmen und Laufzeit bleiben lokal
 NACHBAU/zugangsdaten/
-EN/NACHBAU/zugangsdaten/
+EN/REBUILD/credentials/
 dienst/geheim.env
-EN/dienst/geheim.env
+EN/service/secret.env
 __pycache__/
 *.pyc
 *.wav

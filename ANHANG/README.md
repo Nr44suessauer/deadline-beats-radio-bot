@@ -199,7 +199,7 @@ Die Dokumente der Werkzeuge und des Dienstes stehen direkt bei ihren Ordnern:
 
 ## Der Projektordner
 
-Seit dem 25.09.2026 liegt **alles in einem Ordner**:
+**Alles liegt in einem Ordner**:
 
 ```
 README.md                            Einstieg, Fähigkeiten, Systemüberblick

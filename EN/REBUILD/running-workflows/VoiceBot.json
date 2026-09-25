@@ -1,0 +1,852 @@
+[
+  {
+    "updatedAt": "2026-09-24T08:16:31.000Z",
+    "createdAt": "2026-09-23T11:39:14.000Z",
+    "id": "StimmenBotEN",
+    "name": "Voices from Films (EN)",
+    "description": "Startet die Stimmen-Extraktion (Film/Serie -> RVC-Dataset) und meldet per Telegram.",
+    "active": false,
+    "isArchived": false,
+    "nodes": [
+      {
+        "parameters": {
+          "content": "### Start\n\n**Form** (WEB) or **Webhook** (API).\nFields: series/film, dataset name, episodes, separate speakers.",
+          "height": 320,
+          "width": 420,
+          "color": 4
+        },
+        "id": "13c63cca-6313-4ac5-b506-b5dbebc154cd",
+        "name": "Note 214",
+        "type": "n8n-nodes-base.stickyNote",
+        "typeVersion": 1,
+        "position": [
+          -1160,
+          -420
+        ]
+      },
+      {
+        "parameters": {
+          "content": "### Search and start\n\n`/finden` searches the library; exactly one hit starts\n`/extrahieren` (cutting + Demucs + speaker clustering in the RVC container).",
+          "height": 320,
+          "width": 520,
+          "color": 5
+        },
+        "id": "927b1e85-fdbd-4bf9-8b77-f32a907cb838",
+        "name": "Note 566",
+        "type": "n8n-nodes-base.stickyNote",
+        "typeVersion": 1,
+        "position": [
+          -700,
+          -420
+        ]
+      },
+      {
+        "parameters": {
+          "content": "### Wait and report\n\nPoll `/job` every 45 s (max. 60 min), result via Telegram.\nThe RVC training itself then runs in Applio (WebUI).",
+          "height": 320,
+          "width": 620,
+          "color": 6
+        },
+        "id": "5aa9ca00-64c1-431b-8e63-4026fe6fbbe0",
+        "name": "Note 132",
+        "type": "n8n-nodes-base.stickyNote",
+        "typeVersion": 1,
+        "position": [
+          540,
+          -420
+        ]
+      },
+      {
+        "parameters": {
+          "formTitle": "Stimme aus Film/Serie extrahieren",
+          "formDescription": "Holt die Stimmen aus einer Serie oder einem Film (Demucs), schneidet Sprach-Schnipsel und trennt sie nach Sprecher. Ergebnis: Trainings-Dataset fuer RVC. Du bekommst eine Telegram-Nachricht, wenn es fertig ist.",
+          "formFields": {
+            "values": [
+              {
+                "fieldLabel": "Serie/Film (Name oder Pfad)",
+                "fieldName": "serie",
+                "fieldType": "text",
+                "requiredField": true
+              },
+              {
+                "fieldLabel": "Name fuer das Dataset (a-z, 0-9, ohne Leerzeichen)",
+                "fieldName": "name",
+                "fieldType": "text",
+                "requiredField": true
+              },
+              {
+                "fieldLabel": "Folgen (leer = 1 Folge; 0 = alle im Ordner; 5 = die ersten fuenf)",
+                "fieldName": "folgen",
+                "fieldType": "text"
+              },
+              {
+                "fieldLabel": "Sprecher automatisch trennen?",
+                "fieldName": "trennen",
+                "fieldType": "dropdown",
+                "fieldOptions": {
+                  "values": [
+                    {
+                      "option": "ja"
+                    },
+                    {
+                      "option": "nein"
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          "responseMode": "onReceived",
+          "path": "YOUR-WEBHOOK-PATH"
+        },
+        "id": "6726f804-6829-4163-83f1-4b1aa8862a8e",
+        "name": "Form",
+        "type": "n8n-nodes-base.formTrigger",
+        "typeVersion": 2.2,
+        "position": [
+          -1100,
+          -240
+        ],
+        "webhookId": "YOUR-WEBHOOK-PATH",
+        "notes": "WEB form to start."
+      },
+      {
+        "parameters": {
+          "httpMethod": "POST",
+          "path": "YOUR-WEBHOOK-PATH",
+          "responseMode": "onReceived",
+          "options": {}
+        },
+        "id": "e9df3286-7244-4fa2-af00-577f9c63549e",
+        "name": "Webhook",
+        "type": "n8n-nodes-base.webhook",
+        "typeVersion": 2,
+        "position": [
+          -1100,
+          -20
+        ],
+        "webhookId": "c927df2a-e808-4e91-816f-a31141cf2be6",
+        "notes": "API start (JSON: serie, name, folgen, trennen)."
+      },
+      {
+        "parameters": {
+          "jsCode": "\n// Formular- und Webhook-Eingaben vereinheitlichen (Feldnamen tolerant behandeln).\nconst roh = $input.first().json ?? {};\nconst b = Object.assign({}, roh, (roh.body && typeof roh.body === 'object') ? roh.body : {});\n// Achtung: Der Formular-Knoten (v2) liefert die Felder mit ihrer BESCHRIFTUNG als\n// Schluessel (\"Serie/Film (Name oder Pfad)\": \"Konosuba\"). Deshalb nach Stichworten\n// suchen - Stichwortreihenfolge hat Vorrang vor der Feldreihenfolge, damit z.B.\n// \"dataset\" nicht vom Wort \"Name\" in der Serien-Beschriftung ueberstimmt wird.\nconst hol = (teile, std) => {\n  for (const t of teile) {\n    for (const k of Object.keys(b)) {\n      const kk = String(k).toLowerCase();\n      if (kk.includes(t)) {\n        const w = b[k];\n        if (w !== undefined && w !== null && String(w).trim() !== '') return String(w).trim();\n      }\n    }\n  }\n  return std;\n};\nconst serie = hol(['serie', 'film', 'quelle', 'titel'], '');\nconst name = hol(['dataset', 'name fuer', 'name für', 'bezeichnung', 'projekt', 'name'], '');\nconst folgenZahl = parseInt(hol(['folgen', 'anzahl', 'limit'], '1'), 10);\nconst folgen = isNaN(folgenZahl) ? 1 : Math.max(0, folgenZahl);\nconst trennenRoh = hol(['trennen', 'sprecher'], 'ja').toLowerCase();\n// Webhook-Aufrufe muessen den Schluessel mitbringen (nur der API-Weg, das Formular nicht).\nif (roh.body) {\n  const s = (b['schluessel'] === undefined ? '' : String(b['schluessel'])).trim();\n  if (s !== 'JeQ5xcTTcJnzDW8HqbVmwxMW5NUh2Q') return [{ json: { fehler: 'schluessel' } }];\n}\nif (!serie || !name) {\n  return [{ json: { fehler: 'eingabe',\n    nachricht: 'Bitte Serie/Film UND einen Namen fuer das Dataset angeben.' } }];\n}\nreturn [{ json: { serie, name, folgen, trennen: ['ja', 'true', '1', 'yes', 'an'].includes(trennenRoh) } }];\n"
+        },
+        "id": "be6d1747-e18c-4e66-81e2-82aa2fc47c76",
+        "name": "Fields",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          -860,
+          -130
+        ],
+        "notes": "Normalise the inputs (webhook only with a key)."
+      },
+      {
+        "parameters": {
+          "conditions": {
+            "options": {
+              "caseSensitive": true,
+              "leftValue": "",
+              "typeValidation": "loose",
+              "version": 2
+            },
+            "combinator": "and",
+            "conditions": [
+              {
+                "id": "13b642ff-93a7-4ff9-ae8d-3247a9e08f21",
+                "leftValue": "={{ !$json.fehler }}",
+                "rightValue": "",
+                "operator": {
+                  "type": "boolean",
+                  "operation": "true",
+                  "singleValue": true
+                }
+              }
+            ]
+          },
+          "options": {}
+        },
+        "id": "13551f74-e842-4f20-b8a2-c1426d21cfe3",
+        "name": "Inputs ok?",
+        "type": "n8n-nodes-base.if",
+        "typeVersion": 2.2,
+        "position": [
+          -640,
+          -130
+        ],
+        "notes": "No = end silently (no form field / no key)."
+      },
+      {
+        "parameters": {
+          "method": "GET",
+          "url": "http://192.168.178.116:8890/finden",
+          "sendQuery": true,
+          "queryParameters": {
+            "parameters": [
+              {
+                "name": "wort",
+                "value": "={{ $json.serie }}"
+              },
+              {
+                "name": "schluessel",
+                "value": "JeQ5xcTTcJnzDW8HqbVmwxMW5NUh2Q"
+              }
+            ]
+          },
+          "options": {
+            "timeout": 30000
+          }
+        },
+        "id": "2adddac4-d5ea-4ee6-a391-e76bf53af583",
+        "name": "Find",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [
+          -420,
+          -130
+        ],
+        "notes": "Search the library for the series/film."
+      },
+      {
+        "parameters": {
+          "jsCode": "\n// Trefferlage bewerten: genau einer -> weiter, sonst Hinweis mit Liste.\nconst t = $json.treffer || [];\nconst serie = $('Fields').first().json.serie;\nif (!t.length) {\n  return [{ json: { gefunden: false,\n    nachricht: '\\u274c Nichts gefunden zu \\u00bb' + serie + '\\u00ab im Film-/Serienbestand.' } }];\n}\nif (t.length > 1) {\n  const liste = t.map(x => '\\u2022 ' + x.pfad + '  (' + x.videos + ' Videos)').join('\\n');\n  return [{ json: { gefunden: false,\n    nachricht: '\\u26a0\\ufe0f Mehrere Treffer zu \\u00bb' + serie + '\\u00ab \\u2014 bitte genauer angeben:\\n' + liste } }];\n}\nreturn [{ json: { gefunden: true, pfad: t[0].pfad, videos: t[0].videos } }];\n"
+        },
+        "id": "03bf72f2-29a2-4b2c-9ee4-013ac2dee785",
+        "name": "Hits",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          -200,
+          -130
+        ],
+        "notes": "Exactly one hit? Otherwise a notice."
+      },
+      {
+        "parameters": {
+          "conditions": {
+            "options": {
+              "caseSensitive": true,
+              "leftValue": "",
+              "typeValidation": "loose",
+              "version": 2
+            },
+            "combinator": "and",
+            "conditions": [
+              {
+                "id": "7b197911-5b7f-46e9-ad2d-ecc87178948f",
+                "leftValue": "={{ $json.gefunden }}",
+                "rightValue": "",
+                "operator": {
+                  "type": "boolean",
+                  "operation": "true",
+                  "singleValue": true
+                }
+              }
+            ]
+          },
+          "options": {}
+        },
+        "id": "bc11f5eb-ca9a-404d-b0a9-4293a476a401",
+        "name": "One hit?",
+        "type": "n8n-nodes-base.if",
+        "typeVersion": 2.2,
+        "position": [
+          20,
+          -130
+        ],
+        "notes": "Yes = continue to the job."
+      },
+      {
+        "parameters": {
+          "method": "POST",
+          "url": "http://192.168.178.116:8890/extrahieren",
+          "sendQuery": true,
+          "queryParameters": {
+            "parameters": [
+              {
+                "name": "schluessel",
+                "value": "JeQ5xcTTcJnzDW8HqbVmwxMW5NUh2Q"
+              }
+            ]
+          },
+          "sendBody": true,
+          "specifyBody": "json",
+          "jsonBody": "={{ JSON.stringify({serie: $('Hits').first().json.pfad, name: $('Fields').first().json.name, folgen: $('Fields').first().json.folgen, trennen: $('Fields').first().json.trennen}) }}",
+          "options": {
+            "timeout": 60000
+          }
+        },
+        "id": "74fd42ee-b353-4ac7-83f9-67d390769626",
+        "name": "Start",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [
+          240,
+          -240
+        ],
+        "onError": "continueRegularOutput",
+        "notes": "Start the job on the voices service."
+      },
+      {
+        "parameters": {
+          "jsCode": "\n// Antwort des Dienstes auf /extrahieren auswerten und den Rundenzaehler zuruecksetzen.\nconst a = $json || {};\nif (a.gestartet) {\n  const d = $getWorkflowStaticData('global');\n  d.zaehler = 0;\n  return [{ json: { laeuft: true, nachricht: '' } }];\n}\nlet text = '';\nif (a.error) text = a.error.message || a.error.description || JSON.stringify(a.error);\nelse if (typeof a.detail === 'string') text = a.detail;\nelse if (a.detail) text = JSON.stringify(a.detail);\nelse if (a.message) text = a.message;\nelse text = JSON.stringify(a).slice(0, 300);\nreturn [{ json: { laeuft: false, nachricht: '\\u26a0\\ufe0f Auftrag nicht gestartet: ' + text } }];\n"
+        },
+        "id": "8d5c2462-0527-46c7-8888-68eed98fa9b4",
+        "name": "Reply",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          460,
+          -240
+        ],
+        "notes": "Started? Round counter to 0."
+      },
+      {
+        "parameters": {
+          "conditions": {
+            "options": {
+              "caseSensitive": true,
+              "leftValue": "",
+              "typeValidation": "loose",
+              "version": 2
+            },
+            "combinator": "and",
+            "conditions": [
+              {
+                "id": "fa756487-0dfe-4f37-a884-225de924a2e0",
+                "leftValue": "={{ $json.laeuft }}",
+                "rightValue": "",
+                "operator": {
+                  "type": "boolean",
+                  "operation": "true",
+                  "singleValue": true
+                }
+              }
+            ]
+          },
+          "options": {}
+        },
+        "id": "7be3113d-a2f2-46d0-9d29-42f3b28b2169",
+        "name": "Running?",
+        "type": "n8n-nodes-base.if",
+        "typeVersion": 2.2,
+        "position": [
+          680,
+          -240
+        ],
+        "notes": "No = send a message."
+      },
+      {
+        "parameters": {
+          "amount": 45,
+          "unit": "seconds"
+        },
+        "id": "c2e60067-c7fe-4c38-8a89-8de9987ab194",
+        "name": "Wait",
+        "type": "n8n-nodes-base.wait",
+        "typeVersion": 1.1,
+        "position": [
+          900,
+          -240
+        ],
+        "notes": "Wait 45 seconds."
+      },
+      {
+        "parameters": {
+          "method": "GET",
+          "url": "http://192.168.178.116:8890/job",
+          "sendQuery": true,
+          "queryParameters": {
+            "parameters": [
+              {
+                "name": "schluessel",
+                "value": "JeQ5xcTTcJnzDW8HqbVmwxMW5NUh2Q"
+              }
+            ]
+          },
+          "options": {
+            "timeout": 30000
+          }
+        },
+        "id": "904b936f-58dc-41ab-bd35-df365e8dfebf",
+        "name": "Job",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [
+          1120,
+          -240
+        ],
+        "notes": "Fetch the job's state."
+      },
+      {
+        "parameters": {
+          "jsCode": "\n// Zustand des Auftrags in eine Nachricht giessen; Rundenzaehler hochsetzen.\nconst d = $getWorkflowStaticData('global');\nd.zaehler = (d.zaehler || 0) + 1;\nconst j = $json || {};\nconst f = j.fortschritt || {};\nconst cluster = Object.entries(f.cluster || {}).map(([k, v]) => k + '=' + v.segmente).join(', ');\nconst stand = (f.segmente !== undefined ? f.segmente + ' Segmente / ' + (f.minuten || 0) + ' Min' : '') +\n              (cluster ? ' \\u00b7 Cluster: ' + cluster : '');\nconst st = j.status || 'unbekannt';\nlet nachricht = '';\nif (st === 'fertig') {\n  const pfad = (j.ergebnis || {}).pfad || '';\n  nachricht = '\\u2705 Fertig: Dataset \\u00bb' + (j.name || '') + '\\u00ab\\n' + stand +\n              (pfad ? '\\nPfad: ' + pfad : '') +\n              '\\n\\nNaechster Schritt: Sprecher-Cluster anhoeren (tools/cluster-samples.sh) und den Charakter waehlen.';\n} else if (st === 'fehler' || st === 'abgebrochen') {\n  nachricht = (st === 'abgebrochen' ? '\\u26d4 Abgebrochen: ' : '\\u274c Fehler: ') + (j.meldung || '') +\n              '\\nLog: ' + (j.log || '');\n} else {\n  nachricht = '\\u23f3 laeuft: Schritt ' + (j.schritt || '?') + (stand ? ' \\u2014 ' + stand : '');\n}\nreturn [{ json: { status: st, zaehler: d.zaehler, nachricht } }];\n"
+        },
+        "id": "a97d1aa3-9014-420e-baa7-657da3b8dde7",
+        "name": "Status",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          1340,
+          -240
+        ],
+        "notes": "Build the message, count rounds."
+      },
+      {
+        "parameters": {
+          "conditions": {
+            "options": {
+              "caseSensitive": true,
+              "leftValue": "",
+              "typeValidation": "loose",
+              "version": 2
+            },
+            "combinator": "and",
+            "conditions": [
+              {
+                "id": "4ae6e06c-8d97-4a2f-9c84-7b564d064082",
+                "leftValue": "={{ $json.status !== 'laufend' }}",
+                "rightValue": "",
+                "operator": {
+                  "type": "boolean",
+                  "operation": "true",
+                  "singleValue": true
+                }
+              }
+            ]
+          },
+          "options": {}
+        },
+        "id": "b71d961a-2638-45cc-8f6c-1e3cd9aa4b9d",
+        "name": "Done?",
+        "type": "n8n-nodes-base.if",
+        "typeVersion": 2.2,
+        "position": [
+          1560,
+          -240
+        ],
+        "notes": "Yes = report the result."
+      },
+      {
+        "parameters": {
+          "conditions": {
+            "options": {
+              "caseSensitive": true,
+              "leftValue": "",
+              "typeValidation": "loose",
+              "version": 2
+            },
+            "combinator": "and",
+            "conditions": [
+              {
+                "id": "b4160908-b70e-4289-80b8-a49056cf6dd2",
+                "leftValue": "={{ $json.zaehler > 80 }}",
+                "rightValue": "",
+                "operator": {
+                  "type": "boolean",
+                  "operation": "true",
+                  "singleValue": true
+                }
+              }
+            ]
+          },
+          "options": {}
+        },
+        "id": "e09cf1ce-7c68-4abe-92ca-27f5c4ef16c0",
+        "name": "Abort?",
+        "type": "n8n-nodes-base.if",
+        "typeVersion": 2.2,
+        "position": [
+          1780,
+          -240
+        ],
+        "notes": "Yes = give up after 60 minutes."
+      },
+      {
+        "parameters": {
+          "chatId": "YOUR-CHAT-ID",
+          "text": "={{ $json.nachricht }}",
+          "additionalFields": {}
+        },
+        "id": "b4685cd2-b0f5-450a-a4c1-c2bc9ed1c714",
+        "name": "Telegram result",
+        "type": "n8n-nodes-base.telegram",
+        "typeVersion": 1.2,
+        "position": [
+          1780,
+          -440
+        ],
+        "credentials": {
+          "telegramApi": {
+            "id": "YOUR-TELEGRAM-CREDENTIAL-ID",
+            "name": "Telegram account 2"
+          }
+        },
+        "notes": "Result of the extraction."
+      },
+      {
+        "parameters": {
+          "chatId": "YOUR-CHAT-ID",
+          "text": "=⏱ Abgebrochen nach 60 Minuten. Der Auftrag laeuft im Container weiter — Zustand: http://192.168.178.116:8890/job (Schluessel noetig).",
+          "additionalFields": {}
+        },
+        "id": "e3dc5d9d-4026-41ff-a1af-05c0c0926ec4",
+        "name": "Telegram timeout",
+        "type": "n8n-nodes-base.telegram",
+        "typeVersion": 1.2,
+        "position": [
+          2000,
+          -240
+        ],
+        "credentials": {
+          "telegramApi": {
+            "id": "YOUR-TELEGRAM-CREDENTIAL-ID",
+            "name": "Telegram account 2"
+          }
+        },
+        "notes": "Report the timeout."
+      },
+      {
+        "parameters": {
+          "chatId": "YOUR-CHAT-ID",
+          "text": "={{ $json.nachricht }}",
+          "additionalFields": {}
+        },
+        "id": "7528889e-73fe-4efe-882b-a63aa654603e",
+        "name": "Telegram failed start",
+        "type": "n8n-nodes-base.telegram",
+        "typeVersion": 1.2,
+        "position": [
+          680,
+          -40
+        ],
+        "credentials": {
+          "telegramApi": {
+            "id": "YOUR-TELEGRAM-CREDENTIAL-ID",
+            "name": "Telegram account 2"
+          }
+        },
+        "notes": "The job could not start."
+      },
+      {
+        "parameters": {
+          "chatId": "YOUR-CHAT-ID",
+          "text": "={{ $json.nachricht }}",
+          "additionalFields": {}
+        },
+        "id": "f520d6fc-80e8-4515-9261-5824569b375d",
+        "name": "Telegram notice",
+        "type": "n8n-nodes-base.telegram",
+        "typeVersion": 1.2,
+        "position": [
+          20,
+          60
+        ],
+        "credentials": {
+          "telegramApi": {
+            "id": "YOUR-TELEGRAM-CREDENTIAL-ID",
+            "name": "Telegram account 2"
+          }
+        },
+        "notes": "No hit or an ambiguous hit."
+      },
+      {
+        "parameters": {},
+        "id": "246a0198-534e-43d0-a575-de051011ddae",
+        "name": "End",
+        "type": "n8n-nodes-base.noOp",
+        "typeVersion": 1,
+        "position": [
+          2220,
+          -330
+        ],
+        "notes": "Collecting point."
+      }
+    ],
+    "connections": {
+      "Form": {
+        "main": [
+          [
+            {
+              "node": "Fields",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Webhook": {
+        "main": [
+          [
+            {
+              "node": "Fields",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Fields": {
+        "main": [
+          [
+            {
+              "node": "Inputs ok?",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Inputs ok?": {
+        "main": [
+          [
+            {
+              "node": "Find",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "End",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Find": {
+        "main": [
+          [
+            {
+              "node": "Hits",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Hits": {
+        "main": [
+          [
+            {
+              "node": "One hit?",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "One hit?": {
+        "main": [
+          [
+            {
+              "node": "Start",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Telegram notice",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Start": {
+        "main": [
+          [
+            {
+              "node": "Reply",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Reply": {
+        "main": [
+          [
+            {
+              "node": "Running?",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Running?": {
+        "main": [
+          [
+            {
+              "node": "Wait",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Telegram failed start",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Wait": {
+        "main": [
+          [
+            {
+              "node": "Job",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Job": {
+        "main": [
+          [
+            {
+              "node": "Status",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Status": {
+        "main": [
+          [
+            {
+              "node": "Done?",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Done?": {
+        "main": [
+          [
+            {
+              "node": "Telegram result",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Abort?",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Abort?": {
+        "main": [
+          [
+            {
+              "node": "Telegram timeout",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Wait",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Telegram result": {
+        "main": [
+          [
+            {
+              "node": "End",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Telegram timeout": {
+        "main": [
+          [
+            {
+              "node": "End",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Telegram failed start": {
+        "main": [
+          [
+            {
+              "node": "End",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Telegram notice": {
+        "main": [
+          [
+            {
+              "node": "End",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    },
+    "settings": {
+      "executionOrder": "v1",
+      "saveManualExecutions": true
+    },
+    "staticData": null,
+    "meta": null,
+    "nodeGroups": [],
+    "pinData": null,
+    "versionId": "235aea09-9dc2-4a8c-bbaf-aa4f25663c2b",
+    "activeVersionId": "235aea09-9dc2-4a8c-bbaf-aa4f25663c2b",
+    "versionCounter": 2,
+    "triggerCount": 2,
+    "sourceWorkflowId": null,
+    "tags": [],
+    "shared": [
+      {
+        "updatedAt": "2026-09-23T11:33:03.230Z",
+        "createdAt": "2026-09-23T11:33:03.230Z",
+        "role": "workflow:owner",
+        "workflowId": "StimmenBotEN",
+        "projectId": "YOUR-N8N-PROJECT-ID",
+        "project": {
+          "updatedAt": "2026-05-01T21:32:56.513Z",
+          "createdAt": "2026-05-01T21:10:37.970Z",
+          "id": "YOUR-N8N-PROJECT-ID",
+          "name": "YOUR NAME",
+          "type": "personal",
+          "icon": null,
+          "description": null,
+          "customTelemetryTags": [],
+          "creatorId": "037809b0-4cc6-4e31-a4dc-0e8e9c1fd739"
+        }
+      }
+    ],
+    "versionMetadata": {
+      "name": null,
+      "description": null
+    }
+  }
+]

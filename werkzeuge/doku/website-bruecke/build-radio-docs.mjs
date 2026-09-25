@@ -81,6 +81,33 @@ const GRUPPEN = [
 
 // `datei` ist der Pfad innerhalb von DocOfficial; die englische Fassung liegt
 // unter EN/ — fehlt sie dort, zeigt die Seite die deutsche mit Hinweis.
+// Die EN-Fassung benutzt englische Ordner-/Dateinamen:
+const EN_DATEI = {
+  'DOKU/HANDBUCH.md': 'DOCS/MANUAL.md',
+  'DOKU/BETRIEB.md': 'DOCS/OPERATIONS.md',
+  'DOKU/BAU.md': 'DOCS/BUILD.md',
+  'DOKU/STIMME.md': 'DOCS/VOICE.md',
+  'NACHBAU/README.md': 'REBUILD/README.md',
+  'NACHBAU/umgebung.md': 'REBUILD/environment.md',
+  'NACHBAU/zugangsdaten.md': 'REBUILD/credentials.md',
+  'NACHBAU/zugangsdaten/UEBERSICHT.md': 'REBUILD/credentials/OVERVIEW.md',
+  'dienst/README.md': 'service/README.md',
+  'dienst/whisper/README.md': 'service/whisper/README.md',
+  'NACHBAU/sender-einrichten.md': 'REBUILD/station-setup.md',
+  'NACHBAU/searxng-einrichten.md': 'REBUILD/searxng-setup.md',
+  'NACHBAU/stimmen-und-modelle.md': 'REBUILD/voices-and-models.md',
+  'NACHBAU/eigene-stimme/README.md': 'REBUILD/own-voice/README.md',
+  'NACHBAU/ablaeufe-laufend/README.md': 'REBUILD/running-workflows/README.md',
+  'werkzeuge/README.md': 'tools/README.md',
+  'werkzeuge/README-projekt.md': 'tools/README-projekt.md',
+  'werkzeuge/meldungen/README.md': 'tools/news/README.md',
+  'werkzeuge/playlist/README.md': 'tools/playlist/README.md',
+  'werkzeuge/tempo/README.md': 'tools/tempo/README.md',
+  'NACHBAU/vorlage.md': 'REBUILD/template.md',
+  'ANHANG/README.md': 'APPENDIX/README.md',
+  'ANHANG/ANORDNUNG.md': 'APPENDIX/LAYOUT.md',
+}
+
 const DOKUMENTE = [
   { slug: 'ueberblick', datei: 'README.md', gruppe: 'ueberblick',
     titel: 'Überblick', titelEn: 'Overview',
@@ -232,6 +259,21 @@ const QUERVERWEISE = {
   'werkzeuge/tempo/README.md': 'werkzeug-tempo',
   'werkzeuge/tempo/README.md': 'werkzeug-tempo',
   'tempo/README.md': 'werkzeug-tempo',
+  // Dasselbe für die englischen Dateinamen der EN-Fassung:
+  'MANUAL.md': 'handbuch', 'OPERATIONS.md': 'betrieb',
+  'BUILD.md': 'bauen', 'VOICE.md': 'stimme', 'LAYOUT.md': 'anordnung',
+  'APPENDIX/README.md': 'anhang', 'APPENDIX/LAYOUT.md': 'anordnung',
+  'REBUILD/README.md': 'nachbau', 'REBUILD/environment.md': 'umgebung',
+  'REBUILD/credentials.md': 'zugangsdaten',
+  'REBUILD/credentials/OVERVIEW.md': 'zugangsdaten-uebersicht',
+  'REBUILD/station-setup.md': 'sender', 'REBUILD/searxng-setup.md': 'searxng',
+  'REBUILD/voices-and-models.md': 'stimmen-modelle',
+  'REBUILD/own-voice/README.md': 'stimme-nachbau',
+  'REBUILD/running-workflows/README.md': 'ablaeufe',
+  'REBUILD/template.md': 'vorlage',
+  'tools/README.md': 'werkzeuge', 'tools/news/README.md': 'werkzeug-meldungen',
+  'tools/playlist/README.md': 'werkzeug-playlist', 'tools/tempo/README.md': 'werkzeug-tempo',
+  'service/README.md': 'dienst', 'service/whisper/README.md': 'dienst-whisper',
 }
 
 /** Nackte `README.md`-Verweise: nur bei eindeutigem Zusammenhang verlinken.
@@ -645,7 +687,7 @@ function erzeugeInhalt() {
     }
     lader.set(dok.slug, { de: '', en: '' })
     for (const lang of ['de', 'en']) {
-      const enPfad = join(DOKU, 'EN', dok.datei)
+      const enPfad = join(DOKU, 'EN', EN_DATEI[dok.datei] ?? dok.datei)
       const eigenerText = lang === 'en' && da(enPfad)
       const quelle = eigenerText ? enPfad : dePfad
       const umgewandelt = wandleUm(lesen(quelle), dok, lang)

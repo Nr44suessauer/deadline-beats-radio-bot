@@ -8,7 +8,7 @@ Complete documentation of the bot that controls the internet radio station **Dea
 
 > **Date:** 2026-09-25 · The station and bot are running continuously.
 > **Everything lives in this folder** — documentation, service sources
-> (`dienst/`), tools (`werkzeuge/`) and the rebuild guide (`NACHBAU/`).
+> (`service/`), tools (`tools/`) and the rebuild guide (`REBUILD/`).
 >
 > **Edition for sharing:** all credentials are placeholders (German and English,
 > **without any third-party voice or voice data**).
@@ -23,9 +23,9 @@ Complete documentation of the bot that controls the internet radio station **Dea
 >
 > **License:** MIT — anyone may use, modify and redistribute this bot and its
 > documentation (see `../../LICENSE`). The training material of the own voice is excluded
-> (see `DOKU/STIMME.md`, section 14). The English copies of the seven n8n workflows (display texts translated,
-> provided for reading and as a template) are in `NACHBAU/ablaeufe-laufend/`;
-> the illustrated guide with English screenshots is `ANHANG/n8n-oberflaeche.html`.
+> (see `DOCS/VOICE.md`, section 14). The English copies of the seven n8n workflows (display texts translated,
+> provided for reading and as a template) are in `REBUILD/running-workflows/`;
+> the illustrated guide with English screenshots is `APPENDIX/n8n-interface.html`.
 
 ---
 
@@ -36,25 +36,25 @@ This project is organised so that for the rebuild you only need to follow **one 
 | Folder / file | What it contains |
 | --- | --- |
 | **`README.md`** (this file) | Entry point, usage, system overview — and this guide |
-| **`NACHBAU/`** | **the rebuild guide** (`NACHBAU/README.md`) with all setup documents, templates and the credentials overview |
-| **`DOKU/`** | the four volumes: `DOKU/HANDBUCH.md` (all technical details), `DOKU/BETRIEB.md` (daily operation, troubleshooting, tests), `DOKU/BAU.md` (build history, versions), `DOKU/STIMME.md` (the “YOUR-VOICE” voice and cloning) |
-| **`ANHANG/`** | appendix: n8n interface (HTML booklet), canvas layout, images, development documents (`ANHANG/entwicklung/`) |
-| **`dienst/`** | the speech service `radio-tts`: all modules, Dockerfile, Compose, `whisper/` and `whisper-amd/` |
-| **`werkzeuge/`** | the bot's workshop: build and import workflows, checks, images and documentation (`werkzeuge/doku/`), plus `playlist/`, `meldungen/`, `tempo/`, `aufraeumen/` |
+| **`REBUILD/`** | **the rebuild guide** (`REBUILD/README.md`) with all setup documents, templates and the credentials overview |
+| **`DOCS/`** | the four volumes: `DOCS/MANUAL.md` (all technical details), `DOCS/OPERATIONS.md` (daily operation, troubleshooting, tests), `DOCS/BUILD.md` (build history, versions), `DOCS/VOICE.md` (the “YOUR-VOICE” voice and cloning) |
+| **`APPENDIX/`** | appendix: n8n interface (HTML booklet), canvas layout, images, development documents (`APPENDIX/entwicklung/`) |
+| **`service/`** | the speech service `radio-tts`: all modules, Dockerfile, Compose, `whisper/` and `whisper-amd/` |
+| **`tools/`** | the bot's workshop: build and import workflows, checks, images and documentation (`tools/docs/`), plus `playlist/`, `news/`, `tempo/`, `aufraeumen/` |
 | **`EN/`** | this English edition (same structure) |
 
-**Rebuild in 8 steps** (each step detailed in `NACHBAU/README.md`):
+**Rebuild in 8 steps** (each step detailed in `REBUILD/README.md`):
 
-1. **Set up the `radio-tts` service** — announcements, catalogue, lists, inbox (`dienst/`)
-2. **Speech models on the GPU machine** — Ollama + Whisper (`NACHBAU/stimmen-und-modelle.md`)
+1. **Set up the `radio-tts` service** — announcements, catalogue, lists, inbox (`service/`)
+2. **Speech models on the GPU machine** — Ollama + Whisper (`REBUILD/voices-and-models.md`)
 3. **Start n8n** — two ways (LXC or Docker)
-4. **Import the workflows** — builder creates bot + 3 tools (`werkzeuge/`)
-5. **Set up the station** — AzuraCast, DJ harbour (`NACHBAU/sender-einrichten.md`)
+4. **Import the workflows** — builder creates bot + 3 tools (`tools/`)
+5. **Set up the station** — AzuraCast, DJ harbour (`REBUILD/station-setup.md`)
 6. **Import the music archive** — pull tracks into the station
-7. **Run the checks** — test runs (`DOKU/BETRIEB.md` and `NACHBAU/README.md` §4)
-8. **Own announcer voice (optional)** — `NACHBAU/eigene-stimme/`
+7. **Run the checks** — test runs (`DOCS/OPERATIONS.md` and `REBUILD/README.md` §4)
+8. **Own announcer voice (optional)** — `REBUILD/own-voice/`
 
-Prerequisites, order, all commands: **`NACHBAU/README.md`**.
+Prerequisites, order, all commands: **`REBUILD/README.md`**.
 
 ---
 
@@ -123,7 +123,7 @@ flowchart LR
 | **Ollama** | LXC 105 on `192.168.178.187:11434` | speech model `qwen3.6:27b` for planning, execution, verification |
 | **whisper.cpp** large-v3 (Vulkan) | LXC 112 on `ai-server`, `192.168.178.188:8000` | speech-to-text (GPU, MI50) |
 
-**Own announcer's voice:** There is an own moderation voice (transformation voice "YOUR-VOICE", service **`sprechdienst`** on the GPU machine, CT 111, Port **10205**). By default, the bot speaks with the stable Piper voice (`TTS_DEFAULT_VOICE=de_thorsten`); **your own voice** is used only on explicit request ("… with your own voice"). If the voice service is unreachable, the bot continues with the default voice — no announcement falls out. **In the station, it appears as the streamer "YOUR-VOICE"** (own bot account `deine-stimme`, so the operator's name is not displayed). Origin, values, and replication: `DOKU/STIMME.md` + `NACHBAU/eigene-stimme/`; the general guide for each series: `DOKU/STIMME.md`.
+**Own announcer's voice:** There is an own moderation voice (transformation voice "YOUR-VOICE", service **`sprechdienst`** on the GPU machine, CT 111, Port **10205**). By default, the bot speaks with the stable Piper voice (`TTS_DEFAULT_VOICE=de_thorsten`); **your own voice** is used only on explicit request ("… with your own voice"). If the voice service is unreachable, the bot continues with the default voice — no announcement falls out. **In the station, it appears as the streamer "YOUR-VOICE"** (own bot account `deine-stimme`, so the operator's name is not displayed). Origin, values, and replication: `DOCS/VOICE.md` + `REBUILD/own-voice/`; the general guide for each series: `DOCS/VOICE.md`.
 
 **Station:** *Deadline Beats*, station identifier `deadline_beats`, stream `http://192.168.178.33/listen/deadline_beats`, rotation = playlist "List A" (72 titles), wish pool = the entire archive.
 
@@ -134,15 +134,15 @@ flowchart LR
 | File | Content |
 | --- | --- |
 | **`README.md`** (this file) | Introduction, capabilities in brief, system overview |
-| **`DOKU/HANDBUCH.md`** | **Capabilities, architecture, diagrams, interfaces** — complete catalogue (example phrases, timings, limits), stages 0–3, 13 diagrams, all HTTP interfaces |
-| **`DOKU/BETRIEB.md`** | **Operations, troubleshooting, testing** — deploy, back up, monitor; known pitfalls; every test run with invocation and expectation |
-| **`DOKU/BAU.md`** | **Build & versions** — how the bot was built (chronicle, method, tools, decisions) and what the individual versions added |
-| **`DOKU/STIMME.md`** | **Voice** — how the “YOUR-VOICE” host voice was created (values, checks, discarded paths) and how to clone any voice (scripts in `NACHBAU/eigene-stimme/`) |
-| `ANHANG/ANORDNUNG.md` | generated overview of the workspace (each node with purpose) |
-| `ANHANG/ablauf-bot-*.png` | flow diagrams (overview, input, execution) |
-| `ANHANG/` | appendix: n8n booklet, canvas, images and the development documents (`ANHANG/entwicklung/`) |
-| **`NACHBAU/`** | the **rebuild guide** with setup documents and the credentials overview |
-| `dienst/` · `werkzeuge/` | service sources and workshop (see above) |
+| **`DOCS/MANUAL.md`** | **Capabilities, architecture, diagrams, interfaces** — complete catalogue (example phrases, timings, limits), stages 0–3, 13 diagrams, all HTTP interfaces |
+| **`DOCS/OPERATIONS.md`** | **Operations, troubleshooting, testing** — deploy, back up, monitor; known pitfalls; every test run with invocation and expectation |
+| **`DOCS/BUILD.md`** | **Build & versions** — how the bot was built (chronicle, method, tools, decisions) and what the individual versions added |
+| **`DOCS/VOICE.md`** | **Voice** — how the “YOUR-VOICE” host voice was created (values, checks, discarded paths) and how to clone any voice (scripts in `REBUILD/own-voice/`) |
+| `APPENDIX/LAYOUT.md` | generated overview of the workspace (each node with purpose) |
+| `APPENDIX/ablauf-bot-*.png` | flow diagrams (overview, input, execution) |
+| `APPENDIX/` | appendix: n8n booklet, canvas, images and the development documents (`APPENDIX/entwicklung/`) |
+| **`REBUILD/`** | the **rebuild guide** with setup documents and the credentials overview |
+| `service/` · `tools/` | service sources and workshop (see above) |
 
 ---
 
@@ -150,21 +150,21 @@ flowchart LR
 
 **Yes** — except for the music archive, the model and voice files, and the station database,
 which cannot be sensibly placed in a folder. The access credentials are now included
-(`NACHBAU/zugangsdaten/`, Section 6).
-Everything needed is in `NACHBAU/`:
+(`REBUILD/credentials/`, Section 6).
+Everything needed is in `REBUILD/`:
 
 | Required for rebuilding | Located in | Notes |
 | --- | --- | --- |
-| Flows (Bot 83 nodes + 3 tools) | **ready**: `NACHBAU/ablaeufe-laufend/` · **to rebuild**: `werkzeuge/agent-wf-bauen.py` | ready exports for exact restoration; the creator builds them alternatively (test: 0 findings) |
-| Service `radio-tts` (6 modules, Dockerfile, Compose) | `dienst/` | Compose template with `docker compose config` verified |
-| Operation, build, and test tools (over 100 files) | `werkzeuge/` | including all test runs |
-| Voices (Piper) | `NACHBAU/stimmen-holen.sh` | loads the 4 voices; **checksums identical** with the running system |
-| Personal voice (RVC) | **`NACHBAU/eigene-stimme/`** | Instructions + **all scripts**; dataset and model are generated from personal media collection (not in folder, Section 6) |
-| Language model (Ollama) + Speech recognition (Whisper) | `NACHBAU/stimmen-und-modelle.md` + `dienst/whisper/` | Models are loaded by their tools (17.7 GB / 3 GB) |
-| Setting up stations | `NACHBAU/sender-einrichten.md` | Station, Mount, Streamer, Wishes, Rotation |
-| Infrastructure (containers, ports, systemd) | `NACHBAU/umgebung.md` | Roles, ports, unit files |
-| Credentials | `NACHBAU/zugangsdaten/` (values) + `zugangsdaten.md` (instructions) | **now in the folder** — be careful when sharing |
-| Step-by-step instructions | `NACHBAU/README.md` | from "empty machine" to "test" |
+| Flows (Bot 83 nodes + 3 tools) | **ready**: `REBUILD/running-workflows/` · **to rebuild**: `tools/agent-wf-build.py` | ready exports for exact restoration; the creator builds them alternatively (test: 0 findings) |
+| Service `radio-tts` (6 modules, Dockerfile, Compose) | `service/` | Compose template with `docker compose config` verified |
+| Operation, build, and test tools (over 100 files) | `tools/` | including all test runs |
+| Voices (Piper) | `REBUILD/fetch-voices.sh` | loads the 4 voices; **checksums identical** with the running system |
+| Personal voice (RVC) | **`REBUILD/own-voice/`** | Instructions + **all scripts**; dataset and model are generated from personal media collection (not in folder, Section 6) |
+| Language model (Ollama) + Speech recognition (Whisper) | `REBUILD/voices-and-models.md` + `service/whisper/` | Models are loaded by their tools (17.7 GB / 3 GB) |
+| Setting up stations | `REBUILD/station-setup.md` | Station, Mount, Streamer, Wishes, Rotation |
+| Infrastructure (containers, ports, systemd) | `REBUILD/environment.md` | Roles, ports, unit files |
+| Credentials | `REBUILD/credentials/` (values) + `credentials.md` (instructions) | **now in the folder** — be careful when sharing |
+| Step-by-step instructions | `REBUILD/README.md` | from "empty machine" to "test" |
 
 **What cannot be in the folder:**
 
@@ -172,10 +172,10 @@ Everything needed is in `NACHBAU/`:
    to any personal archive (new catalog index).
 2. **The model and voice binary files** (200 MB voices, 17.7 GB language model,
    3 GB Whisper) — too large; sources and download commands are described.
-3. **The station database** (playlists, users, history) — rebuild via `sender-einrichten.md` or import
+3. **The station database** (playlists, users, history) — rebuild via `station-setup.md` or import
    from an AzuraCast backup.
 
-**Files with identifiers** (e.g. `werkzeuge/moderator-import.json`,
+**Files with identifiers** (e.g. `tools/moderator-import.json`,
 `agent-fassung-2026-09-19.json`) stay outside git for security reasons and live only
 on the disk (permissions 600) — for an exact copy of the **running** state, take them
 from there.
@@ -184,33 +184,33 @@ from there.
 
 ## 6. Where the credentials are located
 
-**They are in this folder:** `NACHBAU/zugangsdaten/` (directory 700,
-files 600) with `UEBERSICHT.md`, which file contains which value and where it belongs during
+**They are in this folder:** `REBUILD/credentials/` (directory 700,
+files 600) with `OVERVIEW.md`, which file contains which value and where it belongs during
 rebuilding.
 
 > **Note:** This folder contains secrets. Do not copy it to a public
-> repository, cloud, or chat. For sharing without secrets, omit `NACHBAU/zugangsdaten/` — the instructions
-> for regenerating them are then in `NACHBAU/zugangsdaten.md`.
+> repository, cloud, or chat. For sharing without secrets, omit `REBUILD/credentials/` — the instructions
+> for regenerating them are then in `REBUILD/credentials.md`.
 
 | Access | File in folder |
 | --- | --- |
-| Telegram bot token | `zugangsdaten/telegram-bot-token.txt` |
-| Operator chat IDs | `zugangsdaten/telegram-chat-ids.txt` |
-| inbox key (`X-News-Key`) | `zugangsdaten/meldung-schluessel.txt` (+ `…-container.txt`) |
-| Key of test input | `zugangsdaten/bot-test-schluessel.txt` |
-| AzuraCast: web login, stream, DJ access, API key | `zugangsdaten/azuracast-zugang.txt` (+ `api_key.txt`, `dj_passwort.txt`, `bot_streamer_passwort.txt`) |
-| Service configuration (DJ port, volume) | `zugangsdaten/geheim.env` |
-| n8n interface, project ID | `zugangsdaten/n8n-zugang.txt` |
-| SSH management access (Datenserver/Container) | `zugangsdaten/ssh/` |
+| Telegram bot token | `credentials/telegram-bot-token.txt` |
+| Operator chat IDs | `credentials/telegram-chat-ids.txt` |
+| inbox key (`X-News-Key`) | `credentials/meldung-schluessel.txt` (+ `…-container.txt`) |
+| Key of test input | `credentials/bot-test-schluessel.txt` |
+| AzuraCast: web login, stream, DJ access, API key | `credentials/azuracast-zugang.txt` (+ `api_key.txt`, `dj_passwort.txt`, `bot_streamer_passwort.txt`) |
+| Service configuration (DJ port, volume) | `credentials/secret.env` |
+| n8n interface, project ID | `credentials/n8n-zugang.txt` |
+| SSH management access (Datenserver/Container) | `credentials/ssh/` |
 
-In addition, `NACHBAU/ablaeufe-laufend/` contains the **exports of the running
+In addition, `REBUILD/running-workflows/` contains the **exports of the running
 processes** — these include Telegram tokens and sender keys (therefore 600). They
-are the basis for the **exact** restoration; alternatively, `werkzeuge/agent-wf-bauen.py` reconstructs the processes
+are the basis for the **exact** restoration; alternatively, `tools/agent-wf-build.py` reconstructs the processes
 with new access values.
 
 Not reconstructible (only hash stored): the password for the n8n interface and the
 AzuraCast web account — both can be reset, the commands are in
-`zugangsdaten/n8n-zugang.txt` and `zugangsdaten/UEBERSICHT.md`.
+`credentials/n8n-zugang.txt` and `credentials/OVERVIEW.md`.
 
 ---
 
