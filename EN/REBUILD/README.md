@@ -7,27 +7,16 @@ this folder; what **cannot** be in a folder is listed in section 6.
 **Short answer to "is everything there?"**
 
 | Area | In the folder? |
-
 | --- | --- |
-
 | Flows (Bot + 3 tools) | **yes, as creator** — will be rebuilt during setup (`tools/agent-wf-build.py`) |
-
 | Service `radio-tts` (Language, Announcements, Catalog, Lists, Mailbox, Research) | **yes** — `service/app/`, `service/Dockerfile`, `service/docker-compose.yml` |
-
 | Operation and test tools (over 100 scripts) | **yes** — `tools/` |
-
 | Voices and models | **Guide + download script** (`fetch-voices.sh`, `voices-and-models.md`) — the files themselves are 0.2–18 GB |
-
 | Own voice (RVC "YOUR-VOICE") | **yes** — `own-voice/`: all scripts + guide (`README.md`); dataset and model are generated from own media collection |
-
 | Access data | **yes** — `credentials/` with `OVERVIEW.md` (working copy: real values 700/600; published: placeholders); how they are created: `credentials.md` |
-
 | Music archive | **no** — the content itself; the bot runs with any own archive |
-
 | Station configuration | **Guide** — `station-setup.md` |
-
 | Own search engine (SearXNG, LXC 108) | **Guide** — `searxng-setup.md` |
-
 | Infrastructure (containers, IPs, proxy) | **Guide** — `environment.md` |
 
 ---
@@ -254,27 +243,16 @@ A **general** guide (each Serie/Stimme, all values and commands): `../DOCS/VOICE
 ## 3. What the Folder Contains
 
 | Folder | Content |
-
 | --- | --- |
-
 | `service/` *(in the project folder, `../service/`)* | the modules of the speech service (`main.py`, `catalog.py`, `playlist.py`, `news.py`, `search.py`), `Dockerfile`, `docker-compose.yml`, `secret.env.template`, `whisper/` (fallback speech recognition), `whisper-amd/` (speech recognition on the MI50) |
-
 | `tools/` *(in the project folder, `../tools/`)* | all operation, build, and test scripts (over 100 files) |
-
 | `credentials.md` | which access credentials are needed and how they are created |
-
 | `environment.md` | containers, IPs, ports, services, reverse proxy |
-
 | `station-setup.md` | set up the station (AzuraCast) |
-
 | `voices-and-models.md` | voices and models: sources, sizes, configuration |
-
 | `fetch-voices.sh` | loads the four Piper voices into a target directory |
-
 | `own-voice/` | **rebuild your own voice**: Extraction service (8890), collector (`deine-stimme_sammeln3/4/5.py`), training script, speech service (10205), test tools — guide in the folder |
-
 | `running-workflows/` | **the exports of the running workflows** (exact restoration; include access values, 700/600) |
-
 | `credentials/` | **the actual access values** (700/600; placeholders in the published copy) with `OVERVIEW.md`: Telegram token, chat IDs, mailbox and test keys, AzuraCast keys, DJ password, `secret.env`, n8n access, SSH keys |
 
 **Included but handle with care:** `credentials/` and
@@ -346,23 +324,14 @@ A rebuild is successful if:
 ## 7. Proof of rebuild (created 2026-09-20; workflows and syntax re-checked 2026-09-24)
 
 | Test | Result |
-
 | --- | --- |
-
 | Building workflows (`python3 tools/agent-wf-build.py`) | Bot with 83 nodes + 3 tools, all connections verified |
-
 | Canvas (`python3 tools/layout-check.py /tmp/radio-*.json`) | **0 findings** |
-
 | Python syntax of all modules (`compileall`) | in order |
-
 | `docker compose config` with the template | valid, all variables resolved |
-
 | `docker build` from `service/` | Image built (base `python:3.12-slim` + piper-tts, fastapi, lameenc) |
-
 | Test start of image (different port, voices included) | `/health` → `{"status":"ok","stimmen":4,"standard":"de_thorsten"}` *(since 2026-09-25: default `de_thorsten`, YOUR-VOICE on request — see Step 8)* |
-
 | Speech output of test (`POST /v1/audio/speech`) | HTTP 200, 56 kB WAV |
-
 | Loading voices (`fetch-voices.sh`) and **checksums** comparison | 4 voices, md5 **identical** with the running system |
 
 This proves: the **build and runtime files are complete** and functional. Only the three things from Section 6 (access data, Modell-/Stimmendateien,

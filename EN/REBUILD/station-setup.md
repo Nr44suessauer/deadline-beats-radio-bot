@@ -40,21 +40,13 @@ and addresses belong in `credentials/OVERVIEW.md`.
 ## 1. Create the Station
 
 | Setting | Example Value | Notes |
-
 | --- | --- | --- |
-
 | Name | `Deadline Beats` | free |
-
 | Short Name (shortcode) | `deadline_beats` | determines the stream address |
-
 | Time Zone | `UTC` | free |
-
 | Broadcast (backend) | `liquidsoap` | **Requirement** — here the DJ port is attached |
-
 | Output (frontend) | `icecast` | Listener stream |
-
 | AutoDJ | enabled | without AutoDJ there is no rotation |
-
 | Crossfade | 2 s (`normal`) | original |
 
 **Public Addresses** (example):
@@ -66,13 +58,9 @@ Listener frontend on port **8000**, management interface `/api`.
 ## 2. Mount (Listener Output)
 
 | Field | Example |
-
 | --- | --- |
-
 | Path | `/radio.mp3` |
-
 | Format / Bitrate | `mp3`, 192 kbps |
-
 | Default Mount | yes |
 
 One is sufficient; the bot does not use it directly (it controls via the API and speaks through the DJ port).
@@ -84,17 +72,11 @@ One is sufficient; the bot does not use it directly (it controls via the API and
 **This is the most important point.** Moderation speaks through the **DJ port**:
 
 | Setting | Value |
-
 | --- | --- |
-
 | Streamer User | **two accounts:** one for the operator (e.g., `operator`, display name "operator") and one for the bot (original: `deine-stimme`, display name **"YOUR-VOICE"**) |
-
 | Password | choose yourself (bot account in `secret.env` as `LIVE_USER`/`LIVE_PASSWORD`) |
-
 | Active | **yes** (both) |
-
 | Limit to times (`enforce_schedule`) | **no** — otherwise announcements only speak at certain times |
-
 | Allow DJ access (`enable_streamers`) | **yes** — in the station settings |
 
 Port: **8005**, Mount **`/`**, Protocol `PUT` with `Content-Type: audio/mpeg`, Basic-Auth from user + password.
@@ -108,15 +90,10 @@ Port: **8005**, Mount **`/`**, Protocol `PUT` with `Content-Type: audio/mpeg`, B
 ## 4. Requests and Rotation
 
 | Setting | Example Value | Why |
-
 | --- | --- | --- |
-
 | Allow Requests (`enable_requests`) | yes | for the request path |
-
 | Request Cooling Time (`request_threshold`) | **0 minutes** | otherwise requests are rejected if the title played "too recently" |
-
 | Playlists | `List A` (Type `default`, active, `include_in_requests`) | this is the **rotation** — only titles in it play automatically |
-
 | Everything Else in the Archive | not in a list | serves as a request and search pool |
 
 The bot plays requests via `PUT /api/station/1/files/batch` with
@@ -139,15 +116,10 @@ The bot plays requests via `PUT /api/station/1/files/batch` with
 ## 6. Settings Used by the Bot
 
 | Setting | Value | Effect |
-
 | --- | --- | --- |
-
 | `enable_requests` | yes | Desired path via API |
-
 | `request_threshold` | 0 | No cooldown period |
-
 | `enable_streamers` | yes | Live moderation possible |
-
 | Time zone `UTC` or Europe/Berlin | – | Display only |
 
 Verify with:

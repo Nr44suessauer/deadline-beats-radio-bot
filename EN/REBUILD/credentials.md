@@ -7,23 +7,14 @@
 ## 1. Overview
 
 | Access | Purpose | Where Created | Where It Belongs |
-
 | --- | --- | --- | --- |
-
 | **Telegram Bot Token** | the bot in Telegram | @BotFather in chat (`/newbot`) | in the workflows (during build: environment variable `TG_TOKEN`) |
-
 | **Own Chat ID** | operator identification | `@userinfobot` or the Telegram API | static workflow data (`erlaubte`), set with `erlaubte-setzen.py` |
-
 | **AzuraCast API Key** | everything at the station | AzuraCast → Profile → API Key | workflows (`AZ_KEY`) + environment variable for scripts |
-
 | **Liquidsoap/streamer passwords** | live announcements to the station (and manual sending) | AzuraCast: **two** streamer accounts to create — one for the operator (e.g., `operator`), one for the bot (e.g., `deine-stimme`, display name "YOUR-VOICE") | bot account as `LIVE_USER`/`LIVE_PASSWORD` in `/opt/radio-tts/secret.env` |
-
 | **Mailbox Key** | accept messages from outside | self-generated (32 characters) | `radio/meldung-schluessel.txt` + `secret.env`/`X-Meldung-Schluessel` |
-
 | **Key of the Test Input** | test runs via webhook | self-generated | `radio/bot-test-schluessel.txt` + static workflow data |
-
 | **n8n login** | UI/project | at first start | login data in n8n |
-
 | **SSH/Proxmox-Zugang** | container management | own infrastructure | not part of the bot |
 
 **All self-generated keys** (mailbox, test input) are long random character strings, e.g., `python3 -c "import secrets;print(secrets.token_urlsafe(24))"`.
@@ -100,25 +91,15 @@ The **Test Input** (Webhook `YOUR-WEBHOOK-PATH`) requires `?schluessel=<Wert>`; 
 ## 7. Where the Values Are in the Original
 
 | File / Location | Content |
-
 | --- | --- |
-
 | `radio/meldung-schluessel.txt` (600) | Key for the mailbox (`X-Meldung-Schluessel`) |
-
 | `radio/bot-test-schluessel.txt` (600) | Key for the test input |
-
 | `radio/azuracast-zugang.txt` (600) | Collection file: Web login link, stream addresses, DJ access (operator + Bot/YOUR-VOICE), API key |
-
 | `/root/azuracast-zugang.txt` on the data server | the same collection file |
-
 | `/opt/radio-tts/secret.env` (LXC 103) | DJ harbor and volume control values |
-
 | n8n login data | Telegram token and sender key are embedded in the workflow nodes |
-
 | `/var/azuracast/api_key.txt` (Container, 600) | API key (fallback) |
-
 | `/var/azuracast/dj_passwort.txt` (Container, 600) | Password for the operator DJ access (fallback) |
-
 | `/var/azuracast/bot_streamer_passwort.txt` (Container, 600) | Password for the Bot-/Ansagekontos `deine-stimme` |
 
 **Why this is in the workflows:** n8n stores HTTP nodes with their headers —

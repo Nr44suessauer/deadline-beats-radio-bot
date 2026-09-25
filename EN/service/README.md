@@ -51,33 +51,21 @@ KATALOG_DIR=/daten
 ## Catalog Endpoints
 
 | Endpoint | Purpose |
-
 | --- | --- |
-
 | `GET /katalog/status` | Number, status, duration of the last build |
-
 | `POST /katalog/aktualisieren` | Retrieve the catalog from the station (≈ 47 s) |
-
 | `GET /suche?q=&anzahl=&min_punkte=` | Fuzzy search (typos, misheard speech) |
-
 | `GET /genre?wort=&anzahl=&mischen=&nur_mit_playlist=` | Suggestions for direction, mood, decade |
-
 | `GET /genre/liste` | Direction and helper words (the bot fetches them during build) |
-
 | `GET /katalog/kuenstler?anzahl=` | Most frequent interpreters (hint text for speech recognition) |
 
 ## Playlist Task Endpoints
 
 | Endpoint | Purpose |
-
 | --- | --- |
-
 | `POST /playlist/befehl` | `{chatId, text}` — a sentence ("build a playlist Summer from Scooter") |
-
 | `POST /playlist/knopf` | `{chatId, daten}` — button press (`p3`, `pa`, `pf`, `px`, `l1`, `j`, `n`, `v`) |
-
 | `POST /playlist/vorschlag` | Candidates for a search term |
-
 | `GET /playlist/status` | open selections, station interface |
 
 The state (open selection per chat) is in the service's memory; a restart discards it.
@@ -86,21 +74,13 @@ Detailed: `../README.md` §11.
 ## Message Inbox Endpoints
 
 | Endpoint | Purpose |
-
 | --- | --- |
-
 | `POST /news/neu` | Submit message(s) (search bot) |
-
 | `GET /news/offen` | open messages (`nur_neue=1` = not yet presented) |
-
 | `GET /news/text/<kennung>` | preview of the speaking text |
-
 | `POST /news/angeboten` | mark as presented |
-
 | `POST /news/erledigt` | spoken / discarded / expired |
-
 | `POST /ansage/meldung`, `POST /ansage/text` | speak live (`trocken: true` = only generate) |
-
 | `GET /news/status`, `GET /ansage/status` | control (without key) |
 
 Everything except the two status addresses requires `X-Meldung-Schluessel`
@@ -115,11 +95,8 @@ Detailed: `../tools/news/README.md` and `../README.md` §12.
 ## Research Endpoint
 
 | Endpoint | Purpose |
-
 | --- | --- |
-
 | `POST /research` | `{art, wort, themen, quellen, ansagen, wichtig, trocken, quelle}` — fetches the **Topic Overview**, submits a message, and speaks it on request |
-
 | `GET /recherche/feeds` | the **21** sources, the types, and the settings of the overview |
 
 **Types:** `wetter`, `nachrichten`, `rss`, `wikipedia`, `ueberblick`.

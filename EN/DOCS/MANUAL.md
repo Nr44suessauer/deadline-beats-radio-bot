@@ -399,13 +399,9 @@ the creation of the moderation voice "YOUR-VOICE." The numbers and names come fr
 > (B3) are UML-like; flow diagrams (A1, A2, A7, B1, B2, C1, C2) are also included.
 
 | Part | Diagrams |
-
 | --- | --- |
-
 | **A — The Bot** | A1 Overview · A2 Processes · A3 Message Path · A4 Music Request · A5 Speech Message · A6 Announcement with Approval · A7 Topic Overview |
-
 | **B — The Voice** | B1 Creation (Clone Pipeline) · B2 Speaking Chain in Operation · B3 Services (Class View) · B4 States and Substitutions |
-
 | **C — Cross-Section** | C1 GPU Map · C2 Substitution Paths · Address and Check Tables |
 
 ---
@@ -877,41 +873,25 @@ flowchart LR
 #### Addresses
 
 | Service | Address | Purpose |
-
 | --- | --- | --- |
-
 | n8n | `http://192.168.178.53:5678` | the workflows (web: `YOUR-N8N-HOST`) |
-
 | radio-tts | `http://192.168.178.53:8881` | speech, announcement, catalog, lists, mailbox, search |
-
 | sprechdienst | `http://192.168.178.116:10205` | the voice YOUR-VOICE (`/tts`, `/health`) |
-
 | whisper-amd (MI50) | `http://192.168.178.188:8000` | speech recognition (`/transcribe`) |
-
 | Ollama | `http://192.168.178.187:11434` | speech model `qwen3.6:27b` |
-
 | AzuraCast | `http://192.168.178.33` | station: API, web; Icecast `:8000`, DJ harbor `:8005` |
-
 | SearXNG | `http://192.168.178.26:8888` | web search for overview |
 
 #### Check (one command per image)
 
 | Image | Command |
-
 | --- | --- |
-
 | A1/A2 | `ssh -F …/proxmox-ssh/config ai-server "pct exec 103 -- docker exec n8n n8n list:workflow"` |
-
 | A3–A6 | `OPERATIONS.md` §2 (end-to-end via the test input) |
-
 | A5 | `curl -s http://192.168.178.188:8000/health` |
-
 | A6/B2–B4 | `curl -s http://192.168.178.53:8881/health` and `curl -s http://192.168.178.116:10205/health` |
-
 | B2 | `ssh … "pct exec 103 -- docker exec radio-tts env \| grep -E 'TTS_\|LIVE_'"` |
-
 | C1 | `ssh … "pct exec 105 -- nvidia-smi"` (occupancy of 3090 Ti) |
-
 | C2 | `ssh … "pct exec 103 -- docker logs --since 1h radio-tts \| grep -i own voice"` |
 
 ---
@@ -919,21 +899,13 @@ flowchart LR
 ### Where the Stories Behind Them Are
 
 | Topic | File |
-
 | --- | --- |
-
 | Structure and Decisions | `MANUAL.md` |
-
 | Build Chronicle (v1 to v19) | `BUILD.md` |
-
 | The Voice YOUR-VOICE (values, listening tests, discarded paths) | `VOICE.md` |
-
 | Cloning a Voice from a Series (Guide) | `VOICE.md` |
-
 | All Interfaces | `MANUAL.md` |
-
 | Test Runs | `OPERATIONS.md` |
-
 | Disturbances and Backup Paths | `OPERATIONS.md` |
 
 ## Interfaces

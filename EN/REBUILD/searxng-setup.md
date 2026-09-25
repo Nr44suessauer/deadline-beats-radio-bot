@@ -6,25 +6,15 @@ DuckDuckGo and Bing directly — and these block computers without logging in
 (see `../DOCS/OPERATIONS.md` §14: DuckDuckGo 202, Mojeek Captcha, Ecosia 403).
 
 | Point | Value |
-
 | --- | --- |
-
 | Container | **LXC 108 "SearXNG"** on the ai-server (`pct`) |
-
 | System | Debian 12 (bookworm), 2 cores, **1024 MB**, 10 GB disk, `nesting=1`, `onboot=1` |
-
 | Address | **http://192.168.178.26:8888** (DHCP address of Fritz!Box) |
-
 | Service | `searxng.service` (systemd, calls `uwsgi --ini /etc/uwsgi/apps-available/searxng.ini`) on `0.0.0.0:8888`, plus `redis-server` |
-
 | Service User | `searxng` (uid 999) |
-
 | Source | `/usr/local/searxng/searxng-src` (git, github.com/searxng/searxng) |
-
 | Python Environment | `/usr/local/searxng/searx-pyenv` |
-
 | Settings | `/etc/searxng/settings.yml` |
-
 | Entry in the Bot | `RECHERCHE_SEARX_URL=http://192.168.178.26:8888` |
 
 ---

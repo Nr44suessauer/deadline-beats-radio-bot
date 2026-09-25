@@ -55,17 +55,11 @@ local network. The original's hostname is replaced by `YOUR-N8N-HOST`.
 ## 1. The Four Machines
 
 | Role | Original | Purpose | Minimum Setup |
-
 | --- | --- | --- | --- |
-
 | **Bot Machine** | LXC 103 on `ai-server` (`192.168.178.53`) | n8n (Port 5678) **and** Service `radio-tts` (Port 8881) | 4 cores, 4 GB RAM, 20 GB disk |
-
 | **GPU Machine** | LXC 105 on `ai-server` (`192.168.178.187`) | Ollama (11434) + faster-whisper (18790) | GPU with at least 8 GB VRAM (Original: RTX 3090 Ti 24 GB), 32 GB RAM |
-
 | **Transmitter Machine** | LXC 106 on Data Server (`192.168.178.163`), Web `http://192.168.178.33` | AzuraCast (Icecast 8000, Liquidsoap/AutoDJ, DJ Port 8005, API) | 4 cores, 2 GB RAM, music storage |
-
 | **Search Engine** | LXC 108 on `ai-server` (`192.168.178.26`, Port 8888) | SearXNG for topic overview (Setup: `searxng-setup.md`) | 2 cores, 1 GB RAM, 10 GB disk |
-
 | **Arbeitsplatz/Verwaltung** | Debian Desktop (this machine) | Tools, backups, tests, documentation | – |
 
 All containers are **unprivileged** LXC containers; the SSH and `pct` commands of the
@@ -77,27 +71,16 @@ tools go through `~/.ssh/config` (Alias
 ## 2. Ports and Services
 
 | Service | Address | Purpose |
-
 | --- | --- | --- |
-
 | n8n | `192.168.178.53:5678` (Web: `https://YOUR-N8N-HOST`) | the bot itself |
-
 | n8n Test Input | `…/webhook/YOUR-WEBHOOK-PATH?schluessel=…` | test runs without Telegram |
-
 | Service `radio-tts` | `192.168.178.53:8881` | language, announcements, catalog, lists, mailbox, research |
-
 | Custom Search Engine | `192.168.178.26:8888` (SearXNG, JSON) | "normal web pages" for topic overview |
-
 | Ollama | `192.168.178.187:11434` | language model `qwen3.6:27b` |
-
 | faster-whisper | `192.168.178.187:18790` | speech recognition |
-
 | AzuraCast Web | `192.168.178.33:80/443` | web interface and API |
-
 | Icecast (Listeners) | `192.168.178.33:8000` | stream (`/radio.mp3`) |
-
 | DJ Port | `192.168.178.33:8005`, Mount `/` | here moderation speaks in |
-
 | ComfyUI (present, not necessary) | `192.168.178.187:8188` | image tools of the GPU machine |
 
 The transmitter publishes additional transmitter mounts on ports 8005–8496 (per transmitter
@@ -181,17 +164,11 @@ Environment="OLLAMA_MODELS=/mnt/Storage"
 ## 5. Tool Access Paths
 
 | Path | Command (Original) |
-
 | --- | --- |
-
 | Bot Machine | `ssh -F ~/.ssh/config ai-server "pct exec 103 -- …"` |
-
 | Into the Service | `… pct exec 103 -- docker exec radio-tts …` |
-
 | Into n8n | `… pct exec 103 -- docker exec -u node n8n n8n …` |
-
 | GPU Machine | `ssh -F … ai-server "pct exec 105 -- …"` |
-
 | Transmitter | `ssh -i ~/.ssh/id_ed25519 root@192.168.178.163 "pct exec 106 -- docker exec azuracast …"` |
 
 For a rebuild, the scripts adapt to the own addresses — the places are noted as header lines (`CFG=…`, `PROJEKT=…`) in the respective scripts.

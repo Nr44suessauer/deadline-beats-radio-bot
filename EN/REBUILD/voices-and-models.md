@@ -16,15 +16,10 @@ The service uses **Piper** (`piper-tts`), each voice consists of two files:
 **Installed (Original, 201 MB):**
 
 | Short name in `main.py` | File | Size | Download (Piper voices, HuggingFace) |
-
 | --- | --- | --- | --- |
-
 | `de_thorsten` (Replacement voice) | `de_DE-thorsten-medium.onnx` | 63 MB | `…/de/de_DE/thorsten/medium/de_DE-thorsten-medium.onnx(.json)` |
-
 | `de_kerstin` | `de_DE-kerstin-low.onnx` | 63 MB | `…/de/de_DE/kerstin/low/…` |
-
 | `de_ramona` | `de_DE-ramona-low.onnx` | 63 MB | `…/de/de_DE/ramona/low/…` |
-
 | `de_eva` | `de_DE-eva_k-x_low.onnx` | 21 MB | `…/de/de_DE/eva_k/x_low/…` |
 
 Base URL: `https://huggingface.co/rhasspy/piper-voices/resolve/main/` (the three
@@ -59,21 +54,13 @@ since 2026-09-23 — since 2026-09-25 **on explicit request** (`stimme=deine-sti
 "… with your own voice"; default is `de_thorsten`).
 
 | Point | Value |
-
 | --- | --- |
-
 | Model | **`<your-model>`** — 400 epochs, Batch 8, Dataset 10:44 min (280 samples) |
-
 | Files | `/opt/Applio/logs/<your-model>/<your-model>.pth` (**53 MB**) + `<your-model>.index` (**97 MB**) |
-
 | Voice chain | edge-tts (`de-DE-AmalaNeural`, **+40%**) → RVC (rmvpe, pitch shift **+4**, `index_rate` **0.65**, `protect` 0.5) → WAV 22050 Hz |
-
 | Service | `sprechdienst` on CT 111, **Port 10205** (`POST /tts`, `GET /health`) |
-
 | Integration | `radio-tts` uses it **on request** (`stimme=deine-stimme`; default `de_thorsten`); Piper voices remain selectable via `voice`/`stimme`; in case of failure, fallback to `EIGENE_STIMME_ERSATZ` (de_thorsten) |
-
 | Creation, Values, Checks | `../DOCS/VOICE.md` |
-
 | Replication (all scripts) | `own-voice/README.md` |
 
 ---
@@ -81,17 +68,11 @@ since 2026-09-23 — since 2026-09-25 **on explicit request** (`stimme=deine-sti
 ## 3. Language Model (Ollama, GPU Machine)
 
 | Point | Value |
-
 | --- | --- |
-
 | Model | **`qwen3.6:27b`** (17.7 GB) — runs on the RTX 3090 Ti |
-
 | Origin | Ollama (`ollama pull`), alternatively own model file |
-
 | Address | `http://<GPU-Maschine>:11434` (Environment variable `OLLAMA_URL` during build) |
-
 | Settings in the bot | `temperature 0.2/0.3`, `maxTokens 3000` (plan/execute) or 4000 (check), `reasoning_effort: "none"` |
-
 | Service configuration | `OLLAMA_HOST=0.0.0.0:11434`, `OLLAMA_KEEP_ALIVE=30m`, `OLLAMA_MAX_LOADED_MODELS=1`, `OLLAMA_NUM_PARALLEL=1`, `OLLAMA_MODELS=/mnt/Storage` |
 
 **Why these values:**
@@ -157,19 +138,11 @@ It is **not** a model and can be rebuilt at any time (Original: 48,729 of
 ## 6. Overview of Sizes
 
 | Component | Size | Where |
-
 | --- | --- | --- |
-
 | Piper Voices (4) | 201 MB | `/opt/radio-tts/voices` |
-
 | Speaker Voice (RVC): Model + Index | 53 MB + 97 MB | `/opt/Applio/logs/<your-model>/` (CT 111) |
-
 | Speaker Dataset (280 items) | 10:44 min | `/opt/Applio/assets/datasets/<your-dataset>` |
-
 | Ollama Model | 17.7 GB | `/mnt/Storage` (GPU Machine) |
-
 | Whisper large-v3 | ~3 GB | HuggingFace cache of the GPU machine |
-
 | Catalog Index | 44 MB | `/opt/radio-tts/daten/katalog.json` |
-
 | Music Archive | ~15 TB | Media storage of the sender |

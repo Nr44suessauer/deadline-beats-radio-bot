@@ -46,9 +46,6 @@ bash agent-import-only.sh /tmp/radio-agent-import.json
 Difference between the two approaches:
 
 | Approach | Advantage | Disadvantage |
-
 | --- | --- | --- |
-
 | **Copy** (these files) | exactly the same bot, operational in minutes | requires the old access values; a Modell-/Stimmenwechsel change does not affect it |
-
 | **Build** (`tools/agent-wf-build.py`) | own access values, fully traceable | sets the `name` field in the tool nodes (cosmetic, changes tool names compared to the model) |
