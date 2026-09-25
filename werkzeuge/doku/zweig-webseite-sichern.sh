@@ -3,6 +3,11 @@
 # Git-Zweig `webseite`; schiebt den Zweig zu origin. Der Arbeitsordner bleibt
 # unberuehrt.
 #
+# Zum Schluss wird derselbe Stand als Zweig `main` ins oeffentliche GitHub-Repo
+# gespiegelt (https://github.com/Nr44suessauer/deadline-beats-radio-bot).
+# Schlaegt das fehl (Netz/Zugang), laeuft das Skript trotzdem durch und weist
+# auf `webseite-nach-github.sh` hin.
+#
 # Die Fassung entsteht mit `veroeffentlichung-webseite.py`:
 #   - Platzhalter statt Zugangswerte (ueber doc-official-bauen.py),
 #   - keine fremde Stimme und keine Stimmdaten; die eigene Wunschstimme steht
@@ -17,6 +22,9 @@ set -euo pipefail
 HIER="$(cd "$(dirname "$0")" && pwd)"
 REPO="$(cd "$HIER/../../../.." && pwd)"
 TMP="$(mktemp -d /tmp/webseite-zweig.XXXXXX)"
+
+# Oeffentliches GitHub-Repo (Spiegel, Zweig main); per Umfeld uebersteuerbar.
+GITHUB_REPO="${GITHUB_REPO:-https://github.com/Nr44suessauer/deadline-beats-radio-bot.git}"
 
 aufraeumen() {
   cd "$REPO"
@@ -54,3 +62,10 @@ else
 fi
 git push -q -u origin webseite
 echo "Zweig webseite ist bei origin aktuell."
+
+# Spiegelung ins oeffentliche GitHub-Repo (derselbe Stand als Zweig `main`).
+if git push -q "$GITHUB_REPO" HEAD:refs/heads/main 2>/dev/null; then
+  echo "GitHub-Spiegel (Zweig main) ist aktuell."
+else
+  echo "Hinweis: GitHub-Spiegel fehlgeschlagen - mit 'bash webseite-nach-github.sh' nachholen."
+fi
