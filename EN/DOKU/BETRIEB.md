@@ -688,7 +688,7 @@ The own moderation voice **"YOUR-VOICE"** is used **only on explicit request**:
 * **Without a request** `stimme` stays empty → default voice (live announcement, messages,
   overview, and research).
 * Configured in `/opt/radio-tts/geheim.env`: `TTS_DEFAULT_VOICE=de_thorsten`;
-  the your voice runs via the external service (CT 111, port 10205, `EIGENE_STIMME_URL`).
+  your own voice runs via the external service (CT 111, port 10205, `EIGENE_STIMME_URL`).
   If it fails, the bot continues with `de_thorsten` (`EIGENE_STIMME_ERSATZ`) — no
   announcement falls out; the log then shows "Eigene Stimme nicht erreichbar".
 * **Check:** every generation writes a line **`Stimme: <name>`** to the log

@@ -21,7 +21,7 @@ services:
       # reachable, the service continues speaking with EIGENE_STIMME_ERSATZ. Piper voices
       # remain selectable via the voice/voice field (de_thorsten, de_kerstin ...).
       # Standard voice: since 2026-09-25 de_thorsten (Piper, always running).
-      # The your voice will only be used upon explicit request
+      # Your own voice will only be used upon explicit request
       # (“... with your voice” -> voice=deine-stimme in the announcement request).
       TTS_DEFAULT_VOICE: ${TTS_DEFAULT_VOICE:-de_thorsten}
       EIGENE_STIMME_URL: ${EIGENE_STIMME_URL:-http://192.168.178.116:10205/tts}

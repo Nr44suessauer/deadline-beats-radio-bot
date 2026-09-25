@@ -128,7 +128,7 @@ The big day: From the own media stock, the **voice announcement "YOUR-VOICE"** w
 
 * **v19** `radio-v19-2026-09-23-eigene-stimme`: `radio-tts` knows the voice `deine-stimme` (external service on CT 111, port 10205), preset `TTS_DEFAULT_VOICE=deine-stimme` (since 2026-09-25 the default is `de_thorsten` — YOUR-VOICE on request, see 3.9), fallback `EIGENE_STIMME_ERSATZ=de_thorsten` with header `X-Stimme-Ersatz: 1`. **No n8n workflow needed to be changed** — workflows do not pass a fixed voice, the service preset applies everywhere (live announcement, messages, overview, dry runs).
 * **On the same evening — the GPU incident:** The first real announcements sounded male because the GPU was full (Ollama 18.7 GB directly before each announcement + old `whisper-stt` 1.8 GB + HA-Whisper 1.8 GB + ComfyUI + YOUR-VOICE) — RVC crashed with `CUDA out of memory` (HTTP 500), `radio-tts` took the fallback path. **Fixed:** `whisper-stt` stopped and set to manual operation (1.76 GB free), YOUR-VOICE returns the CUDA intermediate cache after each announcement, `PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True`. Reserve since then ~2.6 GB. (Details: `BETRIEB.md` §7.)
-* **And my voice choice**, by listening tests: pitch **+4**, tempo **+40%** (instead of the interim clarity version +20%), `index_rate` **0.65** (blend of base voice and training material) — this is the fixed sound of the your voice (since 25 Sep on request), ~**1050 characters per minute**.
+* **And my voice choice**, by listening tests: pitch **+4**, tempo **+40%** (instead of the interim clarity version +20%), `index_rate` **0.65** (blend of base voice and training material) — this is the fixed sound of your own voice (since 25 Sep on request), ~**1050 characters per minute**.
 
 #### 3.8 September 24–25 — display, docs, and the bilingual bot (v20–v21)
 
@@ -154,7 +154,7 @@ The big day: From the own media stock, the **voice announcement "YOUR-VOICE"** w
 #### 3.9 September 25 (evening) — voice selection and the second GPU incident (v28)
 
 * **v28** `radio-v28-2026-09-25-stimmenwahl`: **the default voice is `de_thorsten` again**
-  (Piper, always available); the **your voice on explicit request** ("… with your own voice").
+  (Piper, always available); **your own voice on explicit request** ("… with your own voice").
   The tools ("Werkzeug Meldungen", "Werkzeug Recherche") therefore have a field
   **`stimme`**; it is passed through to `/ansage/text`, `/ansage/meldung`, and
   `POST /recherche` (`dienst/suche.py`). The phrase "with your own voice" belongs only in

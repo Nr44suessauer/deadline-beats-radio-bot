@@ -428,7 +428,7 @@ def erzeuge_audio_gewaehlt(text: str, voice: str, speed: float,
     if "deine-stimme" in chosen.lower():  # spellings like "own voice" count as a request
         chosen = EIGENE_NAME
     # Make visible in the log which voice is speaking - this answers the
-    # question "why is the your voice no longer coming?" (operator 2026-09-25).
+    # question "why is your own voice no longer coming?" (operator 2026-09-25).
     print(f"Voice: {chosen}", flush=True)
     if not ist_eigene_stimme(chosen):
         voice = lade_stimme(chosen)

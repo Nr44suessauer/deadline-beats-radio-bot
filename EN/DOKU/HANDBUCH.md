@@ -429,7 +429,7 @@ flowchart TB
 
   subgraph GRX["GPU-Maschine · RTX 3090 Ti"]
     OL["Ollama · Port 11434<br/>qwen3.6:27b"]
-    AQ["sprechdienst · port 10205<br/>the your voice"]
+    AQ["sprechdienst · port 10205<br/>your own voice"]
     SD["voice service · port 8890<br/>Demucs and ECAPA"]
   end
 
