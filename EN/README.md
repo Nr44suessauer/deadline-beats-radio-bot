@@ -1,6 +1,8 @@
 # AI Radio Moderator Bot — Station 1 "Deadline Beats"
 
-<img src="https://media1.giphy.com/media/v1.Y2lkPTc5MGI3NjExdzc2ejN4OGF5bjhxd2R5dTM3ZzRydXdvdGIxZngwbWZvaWRsb3o3YiZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/gZDLCqO7dPIzHmRrTh/giphy.gif" width="280" alt="AI Radio Moderator Bot (GIF)">
+<table>
+<tr>
+<td valign="top">
 
 Complete documentation of the bot that controls the internet radio station **Deadline Beats** via Telegram, moderates the ongoing program, and can fetch content from the internet.
 
@@ -30,6 +32,15 @@ Complete documentation of the bot that controls the internet radio station **Dea
 > (see `DOKU/STIMME.md`, section 14). The English copies of the seven n8n workflows (display texts translated,
 > provided for reading and as a template) are in `NACHBAU/ablaeufe-laufend/`;
 > the illustrated guide with English screenshots is `ANHANG/n8n-oberflaeche.html`.
+
+</td>
+<td width="300" valign="top">
+
+<img src="https://media1.giphy.com/media/v1.Y2lkPTc5MGI3NjExdzc2ejN4OGF5bjhxd2R5dTM3ZzRydXdvdGIxZngwbWZvaWRsb3o3YiZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/gZDLCqO7dPIzHmRrTh/giphy.gif" width="280" alt="AI Radio Moderator Bot (GIF)">
+
+</td>
+</tr>
+</table>
 
 ---
 

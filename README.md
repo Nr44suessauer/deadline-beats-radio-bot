@@ -1,6 +1,8 @@
 # KI-Radio-Moderator-Bot — Sender 1 „Deadline Beats“
 
-<img src="https://media1.giphy.com/media/v1.Y2lkPTc5MGI3NjExdzc2ejN4OGF5bjhxd2R5dTM3ZzRydXdvdGIxZngwbWZvaWRsb3o3YiZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/gZDLCqO7dPIzHmRrTh/giphy.gif" width="280" alt="KI-Radio-Moderator-Bot (GIF)">
+<table>
+<tr>
+<td valign="top">
 
 Vollständige Dokumentation des Bots, der den Internetradiosender **Deadline Beats**
 per Telegram steuert, im laufenden Programm moderiert und sich Inhalte aus dem Netz
@@ -30,6 +32,15 @@ holen kann.
 > **Lizenz:** MIT — jeder darf diesen Bot und diese Dokumentation nutzen, ändern und
 > weitergeben (siehe `../LICENSE`). Ausgenommen bleibt das Trainingsmaterial der eigenen
 > Stimme (siehe `DOKU/STIMME.md`, Abschnitt 14).
+
+</td>
+<td width="300" valign="top">
+
+<img src="https://media1.giphy.com/media/v1.Y2lkPTc5MGI3NjExdzc2ejN4OGF5bjhxd2R5dTM3ZzRydXdvdGIxZngwbWZvaWRsb3o3YiZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/gZDLCqO7dPIzHmRrTh/giphy.gif" width="280" alt="KI-Radio-Moderator-Bot (GIF)">
+
+</td>
+</tr>
+</table>
 
 ---
 
