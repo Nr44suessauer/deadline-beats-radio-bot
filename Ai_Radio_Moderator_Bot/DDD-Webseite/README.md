@@ -13,8 +13,7 @@ website.
 **Documentation language:** English — this edition is documented in English only.
 **In git:** this edition is kept in its own branch **`webseite`** of the project
 repository (`mnauendo/radio-bot`); the main branch `Privat` holds station 1 only.
-The German version of this file is kept in `altfassungen/`; the complete
-step-by-step rebuild guide is **`NACHBAU/README.md`**.
+The complete step-by-step rebuild guide is **`NACHBAU/README.md`**.
 
 ---
 
@@ -88,9 +87,8 @@ demo station — now behave identically in German and English.
 | `werkzeuge/einspielen.sh` | imports the five workflows, **removes the old ten**, activates them, restarts n8n |
 | `werkzeuge/dienst-einspielen.sh` | deploys `dienst/` to LXC 103, removes the old instances, starts the container |
 | `werkzeuge/ausfuehrung-lesen.js` | reads the last execution of a workflow from the n8n database |
+| `chat-fenster.html` | the **chat window** (browser page): sends commands to the REST input and shows the answer — replaces the Telegram input (open locally, enter the test key once) |
 | `NACHBAU/` | the **complete rebuild guide** (`NACHBAU/README.md`, English): station, service, workflows, Telegram, voice, checks |
-| `ablaeufe-gebaut/` | copies of the last built workflows (600, blocked — they contain keys) |
-| `altfassungen/` | archive of the **earlier** single-language editions (DE and EN as separate bots, `dd-webseite-de-en-2026-09-25.tar.gz`) and of the German version of this README (`README-de-2026-09-25.md`) |
 | `ANORDNUNG.md` | generated overview of the canvas (5 workflows) |
 
 ---
@@ -115,6 +113,36 @@ cat DDD-Webseite/werkzeuge/ausfuehrung-lesen.js | ssh -F /media/discData/docs/pr
   "pct exec 103 -- bash -c 'cat > /tmp/aus.js && docker cp /tmp/aus.js n8n:/tmp/ >/dev/null && \
    docker exec -u node n8n node /tmp/aus.js DDD-Webseite-Bot'"
 ```
+
+### REST input — commands without Telegram
+
+The bot also takes a plain JSON command over its own webhook and answers **in
+the same HTTP request** (`ok`, `antwort`, `tastatur`, `sprache`). No Telegram
+token, no chat ID — a valid test key alone opens the bot:
+
+```bash
+KEY=$(cat DDD-Webseite/zugangsdaten/test-schluessel.txt)
+curl -s -X POST "http://192.168.178.53:5678/webhook/ddd-webseite-rest?schluessel=$KEY" \
+  -H 'Content-Type: application/json' \
+  -d '{"text": "what is playing right now"}'
+# {"ok":true,"antwort":"Now playing: …\nNext: …\nListeners: 0","tastatur":null,"sprache":"en"}
+```
+
+* `text` = the command, German or English (same shortcuts, same model paths).
+* The key may be in the URL (`?schluessel=…`) or in the body
+  (`"schluessel": "…"`) — a wrong key answers “Kein Zugang”.
+* **All three answer paths** return JSON: short way, service way (playlists,
+  mailbox) and main way. Buttons arrive as data in `tastatur`.
+* Slow commands (model runs, announcements) keep the request open — allow a few
+  minutes for those.
+
+### Chat window — replaces the Telegram input
+
+`chat-fenster.html` is a ready-made browser chat: open the file (double-click),
+enter the address (pre-filled) and the test key **once** (kept locally in the
+browser), then type as in Telegram — Enter sends. It talks directly to the REST
+input, so it works without Telegram and without the n8n interface. Verified
+end to end on 2026-09-25 (German, English and wrong key).
 
 ## 5. Setting up Telegram (when the bot should go live)
 
@@ -173,6 +201,12 @@ a German announcement of 9.8 s.
 | DE/EN: mailbox | “Im Postfach liegt nichts Offenes.” / “There is nothing open in the mailbox.” |
 | DE: “sag durch: …” | spoken (9.8 s), reply “✅ Die Begrüßung wurde erfolgreich im Radio angesagt.” |
 | EN: “announce into the stream: …” | spoken (10.2 s), **live: Aqua**, reply “✅ The announcement has been broadcast to the station.” |
+| REST input (2026-09-25): wrong key | `{"ok":true,"antwort":"⛔ Kein Zugang. …"}` — access refused |
+| REST input: DE “was läuft gerade” | “Jetzt laeuft: … Danach: … Zuhoerer: 1” (`sprache: de`) |
+| REST input: EN “what is playing now” | “Now playing: … Next: … Listeners: …” (`sprache: en`) |
+| REST input: service way “welche Wiedergabelisten gibt es” | playlist list as JSON (`default`, `Rotation`) |
+| Chat window (`chat-fenster.html`, file://) | message in, answer bubble out — full loop verified in a browser |
+| After n8n restart | REST webhook re-registers (answer again within seconds) |
 
 Importing restarts n8n **once** (~1 minute downtime for all bots); the main bot’s
 workflows are unchanged.
@@ -210,3 +244,6 @@ placeholder copy into `DocOfficial/` (English, without real values).
 * Re-arrange the music selection in the station as desired.
 * Rare English special cases (e.g. “overview of …”) run through the model; their
   content (news/weather) stays German.
+* n8n's own chat window (chat hub) is not wired up; the REST chat window
+  (`chat-fenster.html`) covers the need — the hub can be added later on top of
+  the same REST answer paths.

@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DDD-Webseite Demo - Chat-Fenster</title>
+<style>
+  :root { color-scheme: light dark; }
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+         background: #eef1f5; display: flex; flex-direction: column;
+         height: 100vh; }
+  @media (prefers-color-scheme: dark) { body { background: #14171c; color: #e8eaed; } }
+  header { padding: 12px 18px; background: #1f2a44; color: #fff; }
+  header h1 { margin: 0; font-size: 1.05rem; font-weight: 600; }
+  header p { margin: 4px 0 0; font-size: .8rem; opacity: .75; }
+  #einstellungen { display: flex; gap: 10px; flex-wrap: wrap; padding: 10px 18px;
+                   background: #ffffffcc; border-bottom: 1px solid #ccd2dc;
+                   align-items: end; }
+  @media (prefers-color-scheme: dark) { #einstellungen { background: #1b1f26cc;
+                   border-color: #2c3340; } }
+  fieldset { border: 0; margin: 0; padding: 0; display: flex; gap: 10px;
+             flex-wrap: wrap; align-items: end; }
+  label { display: flex; flex-direction: column; font-size: .72rem; gap: 3px;
+          opacity: .85; }
+  label input { font: inherit; padding: 6px 9px; border-radius: 8px;
+                border: 1px solid #b7bfcc; min-width: 260px; }
+  #schluessel { min-width: 220px; }
+  @media (prefers-color-scheme: dark) { label input { background: #10131a;
+                color: #e8eaed; border-color: #333c4b; } }
+  #chat { flex: 1; overflow-y: auto; padding: 18px; display: flex;
+          flex-direction: column; gap: 10px; }
+  .zeile { display: flex; }
+  .zeile.ich { justify-content: flex-end; }
+  .blase { max-width: min(78%, 720px); padding: 9px 13px; border-radius: 14px;
+           white-space: pre-wrap; overflow-wrap: anywhere; font-size: .95rem;
+           line-height: 1.45; box-shadow: 0 1px 2px #0002; }
+  .ich .blase { background: #2f6fed; color: #fff; border-bottom-right-radius: 4px; }
+  .bot .blase { background: #fff; border-bottom-left-radius: 4px; }
+  @media (prefers-color-scheme: dark) { .bot .blase { background: #232936; } }
+  .system .blase { background: #fff3cd; color: #6b5b00; font-size: .82rem;
+                   box-shadow: none; }
+  @media (prefers-color-scheme: dark) { .system .blase { background: #3a3418;
+                   color: #ffe9a8; } }
+  .sprache { font-size: .7rem; opacity: .6; margin-left: 6px; }
+  footer { display: flex; gap: 10px; padding: 12px 18px; background: #ffffffcc;
+           border-top: 1px solid #ccd2dc; }
+  @media (prefers-color-scheme: dark) { footer { background: #1b1f26cc;
+           border-color: #2c3340; } }
+  footer textarea { flex: 1; resize: none; font: inherit; padding: 10px 12px;
+                    border-radius: 10px; border: 1px solid #b7bfcc; height: 46px;
+                    min-height: 46px; max-height: 140px; }
+  @media (prefers-color-scheme: dark) { footer textarea { background: #10131a;
+                    color: #e8eaed; border-color: #333c4b; } }
+  footer button { font: inherit; font-weight: 600; padding: 0 22px; height: 46px;
+                  border-radius: 10px; border: 0; background: #2f6fed; color: #fff;
+                  cursor: pointer; }
+  footer button:disabled { opacity: .5; cursor: default; }
+</style>
+</head>
+<body>
+<header>
+  <h1>DDD-Webseite Demo - Chat-Fenster (Sender 2)</h1>
+  <p>Dieses Fenster ersetzt die Telegram-Eingabe: der Befehl geht an den
+     REST-Eingang des n8n-Bots, die Antwort kommt als JSON zurueck.</p>
+</header>
+
+<div id="einstellungen">
+  <fieldset>
+    <label>Adresse (n8n REST-Eingang)
+      <input id="adresse" type="text"
+             value="http://192.168.178.53:5678/webhook/ddd-webseite-rest">
+    </label>
+    <label>Schluessel (DDD-Webseite/zugangsdaten/test-schluessel.txt)
+      <input id="schluessel" type="password" autocomplete="off"
+             placeholder="Schluessel eintragen">
+    </label>
+  </fieldset>
+</div>
+
+<div id="chat"></div>
+
+<footer>
+  <textarea id="eingabe" placeholder="Was soll laufen? (deutsch oder englisch - Enter senden)"
+            rows="1"></textarea>
+  <button id="senden" type="button">Senden</button>
+</footer>
+
+<script>
+'use strict';
+const chat = document.getElementById('chat');
+const eingabe = document.getElementById('eingabe');
+const knopf = document.getElementById('senden');
+const adresse = document.getElementById('adresse');
+const schluessel = document.getElementById('schluessel');
+
+// Einstellungen im Browser merken - der Schluessel bleibt lokal.
+adresse.value = localStorage.getItem('ddd-adresse') || adresse.value;
+schluessel.value = localStorage.getItem('ddd-schluessel') || '';
+for (const feld of [adresse, schluessel]) {
+  feld.addEventListener('change', () => {
+    localStorage.setItem('ddd-adresse', adresse.value.trim());
+    localStorage.setItem('ddd-schluessel', schluessel.value.trim());
+  });
+}
+
+function zeile(art, text, sprache) {
+  const z = document.createElement('div');
+  z.className = 'zeile ' + art;
+  const b = document.createElement('div');
+  b.className = 'blase';
+  b.textContent = text;
+  if (sprache) {
+    const s = document.createElement('span');
+    s.className = 'sprache';
+    s.textContent = '(' + sprache + ')';
+    b.appendChild(s);
+  }
+  z.appendChild(b);
+  chat.appendChild(z);
+  chat.scrollTop = chat.scrollHeight;
+  return b;
+}
+
+async function senden() {
+  const text = eingabe.value.trim();
+  if (!text) return;
+  if (!schluessel.value.trim()) {
+    zeile('system', 'Bitte zuerst den Schluessel eintragen (steht in '
+      + 'DDD-Webseite/zugangsdaten/test-schluessel.txt).');
+    return;
+  }
+  zeile('ich', text);
+  eingabe.value = '';
+  eingabe.style.height = '46px';
+  knopf.disabled = true;
+  const warte = zeile('bot', '\u2026');
+  try {
+    const antwort = await fetch(adresse.value.trim(), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text, schluessel: schluessel.value.trim() }),
+      signal: AbortSignal.timeout(600000),
+    });
+    if (!antwort.ok) {
+      throw new Error('HTTP ' + antwort.status);
+    }
+    const daten = await antwort.json();
+    warte.remove();
+    zeile('bot', daten.antwort || '(leere Antwort)',
+          daten.sprache === 'en' ? 'en' : '');
+  } catch (fehler) {
+    warte.remove();
+    zeile('system', 'Keine Antwort: ' + fehler.message
+      + (String(fehler.message).includes('abort')
+         ? ' - Zeitablauf (10 Minuten) erreicht.'
+         : ' - laeuft n8n und stimmt die Adresse?'));
+  } finally {
+    knopf.disabled = false;
+    eingabe.focus();
+  }
+}
+
+knopf.addEventListener('click', senden);
+eingabe.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault();
+    senden();
+  }
+});
+
+zeile('system', 'Bereit. Beispiele: "was laeuft gerade", "spiele sofort Red Flag '
+  + 'von Billy Talent", "welche Wiedergabelisten gibt es", "what is playing now".');
+eingabe.focus();
+</script>
+</body>
+</html>

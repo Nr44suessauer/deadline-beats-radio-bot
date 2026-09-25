@@ -18,11 +18,13 @@ The short overview (what is running where, how the bilingual chat works) is in
 | Service `ddd-radio` | LXC 103 (192.168.178.53), port **8882** | catalogue search, playlist tasks, mailbox, research, speech output |
 | Bot (five workflows) | n8n (LXC 103), ids `DDD-Webseite-…` | reads Telegram in German or English, steers station and service |
 | Telegram | one bot token | the one chat window for both languages |
+| REST input (optional) | webhook `ddd-webseite-rest` + test key | commands and answers without Telegram — used by the chat window |
 | Voice `aqua` | voice service (CT 111, port 10205); fallback `de_thorsten` | speaks the announcements in the language of the text |
 
 ```mermaid
 flowchart LR
   TG["Telegram chat (DE/EN)"] --> BOT["n8n: DDD-Webseite-Bot"]
+  CHAT["REST input / chat window (chat-fenster.html)"] --> BOT
   BOT --> TOOLS["tool workflows: Radio, AzuraCast, Meldungen"]
   TOOLS --> SVC["service ddd-radio :8882"]
   BOT --> LLM["language model (Ollama)"]
@@ -229,7 +231,33 @@ cat DDD-Webseite/werkzeuge/ausfuehrung-lesen.js | ssh -F /media/discData/docs/pr
    docker exec -u node n8n node /tmp/aus.js DDD-Webseite-Bot'"
 ```
 
-### 5.4 Changing values
+### 5.4 REST input and chat window (no Telegram needed)
+
+The bot carries a second webhook that takes plain JSON and answers **in the
+same request** — no Telegram token, no chat ID. The test key alone opens it:
+
+```bash
+KEY=$(cat DDD-Webseite/zugangsdaten/test-schluessel.txt)
+curl -s -X POST "http://192.168.178.53:5678/webhook/ddd-webseite-rest?schluessel=$KEY" \
+  -H 'Content-Type: application/json' \
+  -d '{"text": "was läuft gerade"}'
+# {"ok":true,"antwort":"Jetzt laeuft: …","tastatur":null,"sprache":"de"}
+```
+
+* Body: `{"text": "…"}` (German or English) plus optional `"schluessel": "…"`;
+  the key may also sit in the URL (`?schluessel=…`). Wrong key → “Kein Zugang”.
+* **All three answer paths** return JSON: the three switches `REST? (kurz)`,
+  `REST? (dienst)` and `REST? (lang)` route the answer to one of the three
+  `REST antworten` nodes (`respondToWebhook`) instead of Telegram; `Eingabe`
+  marks REST runs with `istRest`.
+* Slow commands (model runs, announcements) keep the request open — allow a few
+  minutes.
+* `../chat-fenster.html` is the ready-made browser chat for this input: open the
+  file, enter address (pre-filled) and key once, type — Enter sends. It replaces
+  the Telegram input wherever no Telegram is set up, and is the natural page to
+  publish behind a reverse proxy later.
+
+### 5.5 Changing values
 
 Edit in **one** place: the `Werte` node of `DDD-Webseite-Konfiguration`
 (addresses, station number, API key, service URL, mailbox key, Telegram
@@ -288,6 +316,10 @@ After a rebuild, run through this list:
 6. Control: `next` → “The next track is starting.”; `nächster` → German reply.
 7. Mailbox: `Im Postfach liegt nichts Offenes.` / `There is nothing open in the mailbox.`
 8. Announcement: `sag durch: …` / `announce into the stream: …` → spoken, reply confirms.
+9. REST input: the curl from 5.4 answers with JSON in the right language; a
+   wrong key answers “Kein Zugang”.
+10. Chat window: open `../chat-fenster.html`, enter the key, send “was läuft
+   gerade” — the answer appears as a bubble.
 
 ---
 
@@ -324,9 +356,9 @@ After a rebuild, run through this list:
 | `../werkzeuge/agent-wf-bauen-ddd.py` | workflow generator |
 | `../werkzeuge/{bauen,pruefen,einspielen,dienst-einspielen}.sh` | build, check, deploy |
 | `../werkzeuge/ausfuehrung-lesen.js` | read the last workflow execution from n8n |
+| `../chat-fenster.html` | browser chat window for the REST input (replaces the Telegram input) |
 | `../dienst/` | service sources (`app/`, Dockerfile, compose, `geheim.env`) |
-| `../ablaeufe-gebaut/` | copies of the last built workflows (600, contain keys) |
-| `../altfassungen/` | archived earlier editions and the German README |
+| `/tmp/ddd-webseite-*.json` | the last built workflows (contain real keys — handle like the value files) |
 
 ---
 
@@ -335,8 +367,8 @@ After a rebuild, run through this list:
 * Real values live **only** in `../zugangsdaten/` and `../dienst/geheim.env`
   (mode 700/600). Never publish them; the repository’s `.gitignore` blocks
   these paths.
-* The built workflow files in `/tmp` and `../ablaeufe-gebaut/` contain the
-  real keys — treat them like the value files.
+* The built workflow files in `/tmp` contain the real keys — treat them like
+  the value files.
 * For a publishable copy, replace every value with a placeholder
   (`DEIN-…`/`YOUR-…` style) and re-check the files before handing them out:
   `grep -rE "[0-9]{8,12}:[A-Za-z0-9_-]{33,}"` (Telegram tokens),

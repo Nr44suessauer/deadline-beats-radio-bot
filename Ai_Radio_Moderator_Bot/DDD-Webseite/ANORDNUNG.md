@@ -1,27 +1,3 @@
-# Zeichenfläche der Abläufe der DDD-Webseite-Fassung (erzeugt)
-
-Diese Datei wird **erzeugt**, nicht von Hand gepflegt:
-
-```bash
-cd DDD-Webseite
-python3 ../werkzeuge/anordnung-uebersicht.py \
-  /tmp/ddd-webseite-konfiguration.json /tmp/ddd-webseite-werkzeuge.json \
-  /tmp/ddd-webseite-agent.json -o ANORDNUNG.md
-```
-
-Sie zeigt, was auf der Fläche steht — welcher Rahmen welche Aufgabe hat und
-was unter jedem Knoten als Notiz steht. Die Fassung enthält **fünf** Abläufe
-für **einen zweisprachigen Bot** (deutsche und englische Nachrichten im selben
-Chat):
-
-| Ablauf | Kennung | Aufgabe |
-| --- | --- | --- |
-| DDD-Webseite-Konfiguration | `DDD-Webseite-Konfiguration` | alle Adressen, Schlüssel und Aufgabentexte |
-| DDD-Webseite-Radio | `DDD-Webseite-Radio` | Titel suchen, Richtung, was läuft (zweisprachig) |
-| DDD-Webseite-AzuraCast | `DDD-Webseite-AzuraCast` | Sender-Schnittstelle nachschlagen und aufrufen |
-| DDD-Webseite-Meldungen | `DDD-Webseite-Meldungen` | Postfach und Ansagen (Dienst ddd-radio) |
-| DDD-Webseite-Bot | `DDD-Webseite-Bot` | der Telegram-Agent (DE/EN) |
-
 ## DDD-Webseite Konfiguration - alle Werte
 
 2 Knoten in 2 Rahmen. Jeder Knoten traegt seine Erklaerung als Notiz unter dem Namen.
@@ -112,7 +88,7 @@ Unterschnittstelle des Agenten fuer Musik: Weichen, Titel suchen, Richtung, Zust
 
 ## DDD-Webseite Bot - Telegram-Agent (DE/EN)
 
-83 Knoten in 10 Rahmen. Jeder Knoten traegt seine Erklaerung als Notiz unter dem Namen.
+90 Knoten in 10 Rahmen. Jeder Knoten traegt seine Erklaerung als Notiz unter dem Namen.
 
 ### Sprachnachricht (eigener Zweig oben)  ·  `Notiz Sprachnachricht`
 
@@ -129,40 +105,45 @@ Datei holen, umwandeln, erkennen (Whisper auf dem ai-Server). Erkannt: weiter an
 
 ### Eingang und Zugang  ·  `Notiz Eingang`
 
-Zwei Eingaenge; nur der Betreiber kommt durch (Liste `erlaubte`). Die kurzen Wege senden ueber **Senden (Kurzmeldung)**.
+Drei Eingaenge (Telegram, Test, REST); Zugang ueber `erlaubte` oder Testscluessel. Kurze Wege senden ueber **Senden (Kurzmeldung)** oder **REST antworten (kurz)**.
 
 | Knoten | Erklaerung (Notiz am Knoten) | Position |
 | --- | --- | --- |
 | `Telegram Trigger` | Eingang im Betreiberchat: Nachrichten und Knopfdruecke. | -4200, -1380 |
 | `Test-Eingang` | Nur zum Pruefen: nimmt eine Telegram-Nachricht als JSON an. | -4200, -1060 |
-| `Konfiguration` | Alle Werte an einer Stelle | -4200, -700 |
-| `Weiche Plan?` | Nachricht oder Zeitplan? | -4200, -520 |
+| `REST-Eingang` | Befehl ohne Telegram (JSON) | -4200, -740 |
+| `Konfiguration` | Alle Werte an einer Stelle | -4200, -460 |
+| `Weiche Plan?` | Nachricht oder Zeitplan? | -4200, -280 |
 | `Eingabe` | Nachricht, Sprache, Knopfdruck | -3980, -1220 |
 | `Sprachnachricht?` | Ja = Sprachnachricht, eigener Zweig oben. | -3760, -1220 |
 | `Zugang` | Nur der Betreiber | -3200, -1220 |
 | `Kein Zugang` | Kurze Absage. | -2980, -1500 |
 | `Freigegeben?` | Nein = Absage, der Lauf endet. | -2980, -1220 |
 | `Kein Text` | Kurze Rueckfrage bei Nachrichten ohne Text. | -2100, -700 |
-| `Senden (Kurzmeldung)` | Kurzer Weg, gleicher Aufruf | -1880, -700 |
+| `REST? (kurz)` | Ja = Antwort als JSON | -1880, -700 |
+| `REST antworten (kurz)` | Gibt die kurze Antwort als JSON an den REST-Aufrufer zurueck. | -1660, -960 |
+| `Senden (Kurzmeldung)` | Kurzer Weg, gleicher Aufruf | -1660, -700 |
 
 ### Dienste: Wiedergabelisten und Meldungen  ·  `Notiz Dienste`
 
-Knopf oder Text -> **Dienst Art** -> **Meldung?** -> Modul im Dienst ddd-radio. Listen merken sich die Auswahl, Meldungen kommen als Karte mit Knoepfen. Textnachrichten laufen ueber **Text da?** weiter in die Analyse.
+Knopf oder Text -> **Dienst Art** -> **Meldung?** -> Modul im Dienst ddd-radio. Listen merken sich die Auswahl; Meldungen kommen als Karte mit Knoepfen. REST-Aufrufe bekommen die Ausgabe als JSON statt per Telegram. Textnachrichten laufen ueber **Text da?** weiter in die Analyse.
 
 | Knoten | Erklaerung (Notiz am Knoten) | Position |
 | --- | --- | --- |
-| `Dienst Art` | Knopf oder Text fuer einen Dienst? | -2760, 578 |
-| `Dienst?` | Ja = eigener Dienst-Zweig | -2540, 578 |
-| `Meldung?` | Meldung oder Wiedergabeliste? | -2320, 838 |
-| `Listen Dienst` | Modul playlist.py im Dienst | -2320, 1098 |
-| `Meldung Dienst` | Modul meldungen.py im Dienst | -2320, 1358 |
-| `Text da?` | Nein = Knopf, Bild oder Sticker ohne Text. | -2100, 838 |
-| `Dienst Antwort` | Text und Knoepfe aufbereiten | -2100, 1358 |
-| `Auftrag` | Kontext fuer die Analyse | -1880, 838 |
-| `Dienst Senden` | sendMessage / editMessageText | -1880, 1358 |
-| `Senden fehlgeschlagen?` | Ja = neue Nachricht senden | -1660, 1358 |
-| `Dienst Ersatz senden` | Zweiter Versuch per sendMessage | -1440, 1358 |
-| `Ende` | Ausgabe des Dienst-Zweigs | -1220, 1358 |
+| `Dienst Art` | Knopf oder Text fuer einen Dienst? | -2760, 836 |
+| `Dienst?` | Ja = eigener Dienst-Zweig | -2540, 836 |
+| `Meldung?` | Meldung oder Wiedergabeliste? | -2320, 1096 |
+| `Listen Dienst` | Modul playlist.py im Dienst | -2320, 1356 |
+| `Meldung Dienst` | Modul meldungen.py im Dienst | -2320, 1616 |
+| `Text da?` | Nein = Knopf, Bild oder Sticker ohne Text. | -2100, 1096 |
+| `Dienst Antwort` | Text und Knoepfe aufbereiten | -2100, 1616 |
+| `REST antworten (dienst)` | Gibt die Dienst-Antwort als JSON an den REST-Aufrufer zurueck. | -2100, 1876 |
+| `Auftrag` | Kontext fuer die Analyse | -1880, 1096 |
+| `REST? (dienst)` | Ja = Antwort als JSON | -1880, 1616 |
+| `Dienst Senden` | sendMessage / editMessageText | -1880, 1876 |
+| `Senden fehlgeschlagen?` | Ja = neue Nachricht senden | -1660, 1616 |
+| `Dienst Ersatz senden` | Zweiter Versuch per sendMessage | -1440, 1616 |
+| `Ende` | Ausgabe des Dienst-Zweigs | -1220, 1616 |
 
 ### Postfach (Suchbot -> Moderator)  ·  `Notiz Postfach`
 
@@ -170,12 +151,12 @@ Alle 5 Minuten: neue Meldungen holen und als Karte mit Knoepfen vorlegen. **Meld
 
 | Knoten | Erklaerung (Notiz am Knoten) | Position |
 | --- | --- | --- |
-| `Zeitplan Meldungen` | Alle 5 Minuten: Postfach abfragen. | -2760, 1768 |
-| `Meldungen holen` | Holt neue Meldungen aus dem Postfach (nur_neue=1 = noch nicht angeboten). | -2540, 1768 |
-| `Meldung da?` | Nein = nichts Neues, der Lauf endet hier. | -2320, 1768 |
-| `Meldung Karte` | Karte mit Knoepfen bauen | -2100, 1768 |
-| `Angebot?` | Nur im Zeitplan-Weg | -1880, 1768 |
-| `Meldung anbieten` | Als angeboten merken | -1660, 1768 |
+| `Zeitplan Meldungen` | Alle 5 Minuten: Postfach abfragen. | -2760, 2322 |
+| `Meldungen holen` | Holt neue Meldungen aus dem Postfach (nur_neue=1 = noch nicht angeboten). | -2540, 2322 |
+| `Meldung da?` | Nein = nichts Neues, der Lauf endet hier. | -2320, 2322 |
+| `Meldung Karte` | Karte mit Knoepfen bauen | -2100, 2322 |
+| `Angebot?` | Nur im Zeitplan-Weg | -1880, 2322 |
+| `Meldung anbieten` | Als angeboten merken | -1660, 2322 |
 
 ### Stufe 0 und Stufe 1: verstehen und planen  ·  `Notiz Analyse`
 
@@ -183,15 +164,15 @@ Alle 5 Minuten: neue Meldungen holen und als Karte mit Knoepfen vorlegen. **Meld
 
 | Knoten | Erklaerung (Notiz am Knoten) | Position |
 | --- | --- | --- |
-| `Kurz?` | Stufe 0: ohne Sprachmodell | -1800, -128 |
-| `Kurzbefehl?` | Ja = direkt ausfuehren | -1580, -128 |
-| `Planen` | Stufe 1: Plan aus dem Text | -1360, -128 |
-| `Plan merken` | Zaehlt die Anlaeufe (max. 3) | -1360, 132 |
-| `Plan Antwort` | Liest den Text des Modells aus. | -1140, -128 |
-| `Plan nochmal?` | Ja = neuer Anlauf, Nein = Ersatzweg ueber die Ausfuehrung. | -1140, 132 |
-| `Plan da?` | Leer = noch einmal planen | -920, -128 |
-| `Befehle lesen` | Ein Element je Befehl | -680, -128 |
-| `Befehl da?` | Leer = direkt zur Antwort | -460, -128 |
+| `Kurz?` | Stufe 0: ohne Sprachmodell | -1800, 112 |
+| `Kurzbefehl?` | Ja = direkt ausfuehren | -1580, 112 |
+| `Planen` | Stufe 1: Plan aus dem Text | -1360, 112 |
+| `Plan merken` | Zaehlt die Anlaeufe (max. 3) | -1360, 372 |
+| `Plan Antwort` | Liest den Text des Modells aus. | -1140, 112 |
+| `Plan nochmal?` | Ja = neuer Anlauf, Nein = Ersatzweg ueber die Ausfuehrung. | -1140, 372 |
+| `Plan da?` | Leer = noch einmal planen | -920, 112 |
+| `Befehle lesen` | Ein Element je Befehl | -680, 112 |
+| `Befehl da?` | Leer = direkt zur Antwort | -460, 112 |
 
 ### Stufe 2: Ausfuehrung im Zyklus  ·  `Notiz Ausfuehrung`
 
@@ -199,22 +180,22 @@ Ein Befehl je Durchlauf - Ausgang 0 = fertig, Ausgang 1 = weiter. Drei Wege: Ers
 
 | Knoten | Erklaerung (Notiz am Knoten) | Position |
 | --- | --- | --- |
-| `Schleife` | 0 = fertig, 1 = weiter | -700, 960 |
-| `Direkt oder KI?` | Ja = Ersatzweg ohne Modell | -420, 960 |
-| `Ersatz Werkzeug` | Werkzeug spielt selbst | -140, 700 |
-| `Steuerung?` | Ja = feste Adressen | -140, 960 |
-| `Postfach?` | Ja = Frage nach dem Postfach | -140, 1220 |
-| `Ueberblick?` | Ja = Quellen-Ueberblick | -140, 1480 |
-| `Ersatz Antwort` | Schreibt die Ausgabe in den Merker, dann zurueck in die Schleife. | 80, 700 |
-| `Kurz Steuern` | Naechster Titel, Start/Stop/Neustart - feste Adressen, kein Modell. | 80, 960 |
-| `Postfach holen` | Offene Meldungen holen | 80, 1220 |
-| `Ausfuehren` | Ein Befehl je Durchlauf | 80, 1480 |
-| `Ueberblick holen` | Beitrag holen und sprechen | 80, 1740 |
-| `Sprachmodell Ausfuehren` | Sprachmodell fuer 'Ausfuehren' (Ollama ueber die OpenAI-Schnittstelle). | 80, 2000 |
-| `Steuerung Antwort` | Formuliert die Antwort des Senders. | 300, 960 |
-| `Postfach Antwort` | Liste als Text | 300, 1220 |
-| `Ergebnis sammeln` | Schreibt die Ausgabe in den Merker, dann zurueck in die Schleife. | 300, 1480 |
-| `Ueberblick Antwort` | Schreibt die Ausgabe in den Merker, dann zurueck in die Schleife. | 300, 1740 |
+| `Schleife` | 0 = fertig, 1 = weiter | -700, 1060 |
+| `Direkt oder KI?` | Ja = Ersatzweg ohne Modell | -420, 1060 |
+| `Ersatz Werkzeug` | Werkzeug spielt selbst | -140, 800 |
+| `Steuerung?` | Ja = feste Adressen | -140, 1060 |
+| `Postfach?` | Ja = Frage nach dem Postfach | -140, 1320 |
+| `Ueberblick?` | Ja = Quellen-Ueberblick | -140, 1580 |
+| `Ersatz Antwort` | Schreibt die Ausgabe in den Merker, dann zurueck in die Schleife. | 80, 800 |
+| `Kurz Steuern` | Naechster Titel, Start/Stop/Neustart - feste Adressen, kein Modell. | 80, 1060 |
+| `Postfach holen` | Offene Meldungen holen | 80, 1320 |
+| `Ausfuehren` | Ein Befehl je Durchlauf | 80, 1580 |
+| `Ueberblick holen` | Beitrag holen und sprechen | 80, 1840 |
+| `Sprachmodell Ausfuehren` | Sprachmodell fuer 'Ausfuehren' (Ollama ueber die OpenAI-Schnittstelle). | 80, 2100 |
+| `Steuerung Antwort` | Formuliert die Antwort des Senders. | 300, 1060 |
+| `Postfach Antwort` | Liste als Text | 300, 1320 |
+| `Ergebnis sammeln` | Schreibt die Ausgabe in den Merker, dann zurueck in die Schleife. | 300, 1580 |
+| `Ueberblick Antwort` | Schreibt die Ausgabe in den Merker, dann zurueck in die Schleife. | 300, 1840 |
 
 ### Werkzeuge (Unterschnittstellen des Agenten)  ·  `Notiz Werkzeuge`
 
@@ -233,7 +214,7 @@ Je Werkzeug ein Knoten; er ruft den Werkzeug-Ablauf per `executeWorkflow` auf. D
 
 ### Stufe 3: Pruefung, Nachfassen und Antwort  ·  `Notiz Pruefung`
 
-**Lage holen** und **Warteschlange holen** belegen den Senderzustand, **Pruefen** urteilt je Befehl. **Nachfassen?** startet genau einen zweiten Versuch je Befehl. **Antwort bauen** fasst zusammen und baut die Knoepfe, **Senden** schickt per HTML.
+**Lage holen** und **Warteschlange holen** belegen den Senderzustand, **Pruefen** urteilt je Befehl. **Nachfassen?** startet genau einen zweiten Versuch je Befehl. **Antwort bauen** fasst zusammen und baut die Knoepfe; **Senden** schickt per HTML - oder **REST antworten** gibt die Antwort als JSON zurueck.
 
 | Knoten | Erklaerung (Notiz am Knoten) | Position |
 | --- | --- | --- |
@@ -251,16 +232,18 @@ Je Werkzeug ein Knoten; er ruft den Werkzeug-Ablauf per `executeWorkflow` auf. D
 | `Nachtrag sammeln` | Schreibt die Ausgabe des zweiten Versuchs in den Merker. | 2640, 1220 |
 | `Antwort bauen` | Zusammenfassen + Knoepfe | 2900, 960 |
 | `Antwort` | Bereitet den Text fuer Telegram auf (HTML, ohne Sternchen). | 3120, 960 |
-| `Senden` | sendMessage (HTML) | 3340, 960 |
+| `REST? (lang)` | Ja = Antwort als JSON | 3340, 960 |
+| `Senden` | sendMessage (HTML) | 3560, 960 |
+| `REST antworten` | Gibt die Antwort als JSON an den REST-Aufrufer zurueck. | 3560, 1220 |
 
 ### DDD-Webseite Bot - zweisprachiger Telegram-Agent (DE/EN)  ·  `Notiz Uebersicht`
 
-EIN Bot, EIN Chat: der Betreiber schreibt deutsch oder englisch. Die Sprache wird am Eingang erkannt (Feld `sprache`) und reist mit - Kurzbefehle, Werkzeugantworten und die Antworten des Modells folgen ihr. Inhalte (Nachrichten, Wetter) und die Verwaltungswege des Dienstes bleiben deutsch. Was der Bot kann: Liedwunsch, Richtungswunsch, skip/pause/Status, Wiedergabelisten, Postfach, Recherche (Wetter, Nachrichten, RSS) und Ansagen im laufenden Programm. Alles kommt aus Telegram und geht dorthin zurueck; gespielt wird auf dem Sender "DDD-Webseite Demo" (Sender 2). Der Weg einer Nachricht: Eingang -> Stufe 0/1 Analyse -> Stufe 2 Ausfuehrung -> Stufe 3 Pruefung -> Antwort. Sprachnachrichten laufen oben durch Whisper, Dienste und Postfach haengen seitlich dran. Jeder Knoten traegt seinen Zweck als Notiz unter dem Namen, jeder Rahmen erklaert eine Stufe. Rahmenfarben: 1 Sprachnachricht | 2 Eingang | 3 Dienste | 4 Postfach | 5 Stufe 0+1 | 6 Stufe 2 + Werkzeuge | 7 Stufe 3 + Antwort Erzeugt von DDD-Webseite/werkzeuge/agent-wf-bauen-ddd.py - nie von Hand aendern. Aendern: bauen.sh, pruefen.sh, einspielen.sh. Doku: README.md (deutsch) und EN/README.md (englisch).
+EIN Bot, EIN Chat: der Betreiber schreibt deutsch oder englisch. Die Sprache wird am Eingang erkannt (Feld `sprache`) und reist mit - Kurzbefehle, Werkzeugantworten und die Antworten des Modells folgen ihr. Inhalte (Nachrichten, Wetter) und die Verwaltungswege des Dienstes bleiben deutsch. Was der Bot kann: Liedwunsch, Richtungswunsch, skip/pause/Status, Wiedergabelisten, Postfach, Recherche (Wetter, Nachrichten, RSS) und Ansagen im laufenden Programm. Alles kommt aus Telegram und geht dorthin zurueck - oder per REST-Eingang als JSON ({"text": "..."} plus Schluessel; Antwort {ok, antwort, tastatur, sprache}). Gespielt wird auf dem Sender "DDD-Webseite Demo" (Sender 2). Der Weg einer Nachricht: Eingang -> Stufe 0/1 Analyse -> Stufe 2 Ausfuehrung -> Stufe 3 Pruefung -> Antwort. Sprachnachrichten laufen oben durch Whisper, Dienste und Postfach haengen seitlich dran. Jeder Knoten traegt seinen Zweck als Notiz unter dem Namen, jeder Rahmen erklaert eine Stufe. Rahmenfarben: 1 Sprachnachricht | 2 Eingang | 3 Dienste | 4 Postfach | 5 Stufe 0+1 | 6 Stufe 2 + Werkzeuge | 7 Stufe 3 + Antwort Erzeugt von DDD-Webseite/werkzeuge/agent-wf-bauen-ddd.py - nie von Hand aendern. Aendern: bauen.sh, pruefen.sh, einspielen.sh. Doku: README.md (deutsch) und EN/README.md (englisch).
 
 *(Uebersichtskasten ohne Knoten)*
 
-### DDD-Webseite Bot - Telegram-Agent (DE/EN)  ·  `Notiz Doku`
+### DDD-Webseite Bot - Telegram-Agent (DE/EN) mit REST-Eingang  ·  `Notiz Doku`
 
-Der Bot: Telegram-Eingang -> Stufe 0/1 (verstehen und planen) -> Stufe 2 (ausfuehren) -> Stufe 3 (Antwort). Der Plan ist die Quelle der Anordnung: DDD-Webseite/werkzeuge/agent-wf-bauen-ddd.py (ANORDNUNG, BEREICHE, KURZNOTIZ). Aendern: bauen-de.sh (erzeugt /tmp/ddd-webseite-agent.json), dann einspielen.sh Pruefen: pruefen.sh (Anordnung + Code-Knoten), Betrieb: DDD-Webseite/README.md Beschreibung: README.md, HANDBUCH.md, HANDBUCH.md, BETRIEB.md, BETRIEB.md, BETRIEB.md, BAU.md Bild fuer Bild: ANHANG/n8n-oberflaeche.html  (Projektordner Ai_Radio_Moderator_Bot)
+Der Bot: Telegram-Eingang -> Stufe 0/1 (verstehen und planen) -> Stufe 2 (ausfuehren) -> Stufe 3 (Antwort). REST-Eingang: POST .../webhook/ddd-webseite-rest mit {"text": "..."} + Schluessel - Antwort als JSON. Der Plan ist die Quelle der Anordnung: DDD-Webseite/werkzeuge/agent-wf-bauen-ddd.py (ANORDNUNG, BEREICHE, KURZNOTIZ). Aendern: bauen-de.sh (erzeugt /tmp/ddd-webseite-agent.json), dann einspielen.sh Pruefen: pruefen.sh (Anordnung + Code-Knoten), Betrieb: DDD-Webseite/README.md Beschreibung: README.md, HANDBUCH.md, HANDBUCH.md, BETRIEB.md, BETRIEB.md, BETRIEB.md, BAU.md Bild fuer Bild: ANHANG/n8n-oberflaeche.html  (Projektordner Ai_Radio_Moderator_Bot)
 
 *(Uebersichtskasten ohne Knoten)*
