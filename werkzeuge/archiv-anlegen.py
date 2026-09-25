@@ -13,7 +13,7 @@ import uuid
 QUELLE = "RadioTelegramBot"
 ZIEL = "RadioTelegramBot-Archiv-2026-09-19"
 NAME = "Radio - Telegram-Wunschbot (Sicherung 19.09.2026)"
-ORDNER = "vEDODlq4jIKCUDmf"          # Ordner "Sender 1: Deadline Beats"
+ORDNER = "vEDODlq4jIKCUDmf"          # der n8n-Ordner
 TESTKENNUNG = "1"                    # nur fuer Testlaeufe, gehoert nicht in die Betreiberliste
 
 DB = "/var/lib/docker/volumes/n8n_data/_data/database.sqlite"

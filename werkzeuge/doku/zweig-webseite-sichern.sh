@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Baut die Veröffentlichungsfassung von Sender 1 und spiegelt sie in den
+# Baut die Veröffentlichungsfassung und spiegelt sie in den
 # Git-Zweig `webseite`; schiebt den Zweig zu origin. Der Arbeitsordner bleibt
 # unberuehrt.
 #
@@ -34,7 +34,7 @@ aufraeumen() {
 trap aufraeumen EXIT
 
 echo "--- Fassung bauen (Platzhalter, ohne fremde Stimme)"
-python3 "$HIER/veroeffentlichung-webseite.py" --ziel "$TMP/fassung" | tail -4
+python3 "$HIER/veroeffentlichung-webseite.py" --ziel "$TMP/fassung" | tail -12
 
 cd "$REPO"
 if git show-ref --verify --quiet refs/heads/webseite; then
@@ -57,7 +57,7 @@ git add -A
 if git diff --cached --quiet; then
   echo "Keine Aenderungen — Zweig webseite ist aktuell."
 else
-  git commit -q -m "${1:-Veroeffentlichungsfassung Sender 1 (DE+EN, Platzhalter, ohne fremde Stimme)}"
+  git commit -q -m "${1:-Veroeffentlichungsfassung (DE+EN, Platzhalter, ohne fremde Stimme)}"
   echo "Festschreibung: $(git log --oneline -1)"
 fi
 git push -q -u origin webseite

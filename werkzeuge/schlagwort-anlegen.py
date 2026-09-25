@@ -25,7 +25,7 @@ import sqlite3
 import string
 
 DB = "/var/lib/docker/volumes/n8n_data/_data/database.sqlite"
-ORDNER = "vEDODlq4jIKCUDmf"                     # Ordner "Sender 1: Deadline Beats"
+ORDNER = "vEDODlq4jIKCUDmf"                     # der n8n-Ordner
 
 RADIO = "Radio"
 WERKZEUG = "Radio-Werkzeug"

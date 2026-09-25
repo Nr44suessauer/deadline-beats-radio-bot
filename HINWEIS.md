@@ -2,7 +2,7 @@
 
 Diese Fassung ist zum Weitergeben und Veröffentlichen gedacht.
 Gebaut am 2026-09-26 aus der Arbeitsfassung
-(Ai_Radio_Moderator_Bot/Sender-1-Deadline-Beats).
+(Ai_Radio_Moderator_Bot).
 
 ## Was ersetzt wurde
 

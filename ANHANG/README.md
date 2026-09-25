@@ -199,22 +199,19 @@ Die Dokumente der Werkzeuge und des Dienstes stehen direkt bei ihren Ordnern:
 
 ## Der Projektordner
 
-Seit dem 25.09.2026 ist **alles in einem Projektordner** — und seit dem Umbau am
-Abend sind die **zwei Bots** als eigene Ordner sichtbar:
+Seit dem 25.09.2026 liegt **alles in einem Ordner**:
 
 ```
-Ai_Radio_Moderator_Bot/                der Projektordner (zwei Bots)
-├── README.md                          Wegweiser: beide Bots auf einen Blick
-├── LICENSE                            Lizenz (gilt für das ganze Projekt)
-├── Sender-1-Deadline-Beats/           Bot 1 (Sender 1 „Deadline Beats“):
-│   ├── README.md                      Einstieg, Fähigkeiten, Systemüberblick
-│   ├── charakter.md                   der Charakter der Stimme (Rolle und Ton für alle Modell-Antworten)
-│   ├── DOKU/                          die vier Bände (HANDBUCH, BETRIEB, BAU, STIMME)
-│   ├── NACHBAU/                       Anleitung zum Nachbauen, Einrichtungs-Dokumente, Vorlagen
-│   ├── dienst/                        die Module des Sprachdienstes radio-tts (+ whisper/, whisper-amd/)
-│   ├── werkzeuge/                     Bauen, Einspielen, Prüfen; `doku/` = Werkstatt dieser Sammlung
-│   └── EN/                            dieselbe Sammlung auf Englisch
-└── Sender-2-Axis-Church-Radio/        Bot 2 (Sender 2 „Axis Church Radio“, die Webseiten-Fassung)
+README.md                            Einstieg, Fähigkeiten, Systemüberblick
+HINWEIS.md                           Hinweis zu dieser Fassung (Platzhalter)
+charakter.md                         der Charakter der Stimme (Rolle und Ton für alle Modell-Antworten)
+LICENSE                              Lizenz (MIT)
+DOKU/                                die vier Bände (HANDBUCH, BETRIEB, BAU, STIMME)
+NACHBAU/                             Anleitung zum Nachbauen, Einrichtungs-Dokumente, Vorlagen
+dienst/                              die Module des Sprachdienstes radio-tts (+ whisper/, whisper-amd/)
+werkzeuge/                           Bauen, Einspielen, Prüfen; `doku/` = Werkstatt dieser Sammlung
+ANHANG/                              Beilagen (n8n-Heft, Zeichenflächen, Bilder, Entwicklungsdokumente)
+EN/                                  dieselbe Sammlung auf Englisch
 ```
 
 Die früheren Versionssicherungen (`fassungen/`, v1–v21) wurden entfernt und liegen

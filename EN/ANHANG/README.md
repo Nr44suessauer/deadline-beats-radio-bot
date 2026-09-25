@@ -203,22 +203,19 @@ The documents of the tools and the service live next to their folders:
 
 ## The Project Folder
 
-Since 2026-09-25, **everything is in one project folder** — and after the
-restructuring in the evening the **two bots** are visible as their own folders:
+Since 2026-09-25, **everything is in one folder**:
 
 ```
-Ai_Radio_Moderator_Bot/                the project folder (two bots)
-├── README.md                          guide: both bots at a glance
-├── LICENSE                            licence (applies to the whole project)
-├── Sender-1-Deadline-Beats/           bot 1 (station 1 "Deadline Beats"):
-│   ├── README.md                      entry point, abilities, system overview
-│   ├── charakter.md                   the voice's character (role and tone for all model replies)
-│   ├── DOKU/                          the four volumes (HANDBUCH, BETRIEB, BAU, STIMME)
-│   ├── NACHBAU/                       rebuild guide, setup documents, templates
-│   ├── dienst/                        the modules of the speech service radio-tts (+ whisper/, whisper-amd/)
-│   ├── werkzeuge/                     build, import, check; `doku/` = workshop of this collection
-│   └── EN/                            this English edition
-└── Sender-2-Axis-Church-Radio/        bot 2 (station 2 "Axis Church Radio", the website edition)
+README.md                            entry point, abilities, system overview
+HINWEIS.md                           note on this edition (placeholders)
+charakter.md                         the voice's character (role and tone for all model replies)
+LICENSE                              licence (MIT)
+DOKU/                                the four volumes (HANDBUCH, BETRIEB, BAU, STIMME)
+NACHBAU/                             rebuild guide, setup documents, templates
+dienst/                              the modules of the speech service radio-tts (+ whisper/, whisper-amd/)
+werkzeuge/                           build, import, check; `doku/` = workshop of this collection
+ANHANG/                              appendix (n8n booklet, canvases, images, development documents)
+EN/                                  this English edition
 ```
 
 The earlier version backups (`fassungen/`, v1–v21) were removed and are collected

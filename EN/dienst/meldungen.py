@@ -59,8 +59,8 @@ MAX_CHARACTERS = int(os.environ.get("ANSAGE_MAX_ZEICHEN", "9000"))
 MAX_NEWS = int(os.environ.get("MELDUNGEN_MAX", "500"))
 MAX_ANNOUNCEMENTS = int(os.environ.get("ANSAGEN_MAX", "100"))
 # The same free text will not be spoken twice within these seconds.
-# Protection against tool loops of the model (in the DDD version as of 2026-09-25
-# occurred; here after an incident on the same evening taken over: a command
+# Protection against tool loops of the model (introduced after an incident on
+# the same evening: a command
 # first spoke the messages and then still a 1.4-minute overview).
 ANSAGE_SPERRE_SEK = int(os.environ.get("ANSAGE_SPERRE_SEK", "90"))
 

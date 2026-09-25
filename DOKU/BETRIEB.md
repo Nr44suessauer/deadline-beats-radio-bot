@@ -108,7 +108,7 @@ python3 werkzeuge/charakter-einspielen.py --trocken  # nur zeigen, was sich änd
 
 Das Werkzeug holt die laufende Zentrale (`Konfiguration`) aus n8n, ersetzt **nur** das Feld
 `charakter` im Knoten `Werte`, spielt sie zurück und prüft am Ende, dass der Charakter im
-Ablauf verdrahtet ist (Hauptbot: Knoten `Planen`; DDD: die Agenten). Vorher wird die
+Ablauf verdrahtet ist (Knoten `Planen`). Vorher wird die
 laufende Fassung nach `/tmp/charakter-sicherung-…json` gesichert; schlägt der Import fehl,
 spielt das Werkzeug die Sicherung automatisch zurück. Ein kompletter Neubau
 (`agent-patchen.sh` und `agent-einspielen-nur.sh`) liest dieselbe Datei — sie bleibt die

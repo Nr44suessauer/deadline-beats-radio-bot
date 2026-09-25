@@ -4,7 +4,7 @@
 Aufruf: agent-nachbereiten.py <testschluessel> <chatId...>
 
   - ordnet Werkzeuge und Agent dem Projekt und dem Ordner
-    "Sender 1: Deadline Beats" zu (ohne shared_workflow-Zeile erscheint ein
+    "Deadline Beats" zu (ohne shared_workflow-Zeile erscheint ein
     Arbeitsablauf in keiner Liste)
   - setzt Testschluessel und Betreiberliste im Agenten
   - raeumt Webhook-Leichen ab: n8n legt fuer jeden Webhook eine Zeile an, die
@@ -22,7 +22,7 @@ import sqlite3
 import sys
 
 PROJEKT = "DEINE-N8N-PROJEKT-KENNUNG"
-ORDNER = "vEDODlq4jIKCUDmf"          # Ordner "Sender 1: Deadline Beats"
+ORDNER = "vEDODlq4jIKCUDmf"          # der n8n-Ordner
 AGENT = "RadioAgentBot"
 ZENTRALE = ["Konfiguration", "StimmenBot"]   # gehoeren in denselben Ordner
 ALT = "RadioTelegramBot"

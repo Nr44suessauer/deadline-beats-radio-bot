@@ -6,7 +6,7 @@
  *   Quelle:  <dokuordner>/DocOfficial
  *            Das ist die VERÖFFENTLICHUNGSFASSUNG: alle Zugangsdaten sind dort
  *            durch Platzhalter ersetzt. NIE den Arbeitsordner daneben
- *            (Sender-1-Deadline-Beats/) verwenden — dort stehen echte Werte.
+ *            (Projektordner) verwenden — dort stehen echte Werte.
  *   Ziel:    src/data/radio/…      Inhalt (erzeugte TS-Module, je Dok + Sprache)
  *            public/radio/…        Medien (Bilder, Animationen als MP4, die
  *                                  interaktive n8n-Oberfläche)
@@ -702,7 +702,7 @@ ${e.en}
   const fehltEnText = fehltEn.map((s) => `  ${tsText(s)}: true,`).join('\n')
 
   const index = `// Erzeugt von tools/build-radio-docs.mjs — nicht von Hand bearbeiten.
-// Inhaltliche Quelle: Ai_Radio_Moderator_Bot/Sender-1-Deadline-Beats/DocOfficial (Veröffentlichungs-
+// Inhaltliche Quelle: Ai_Radio_Moderator_Bot/DocOfficial (Veröffentlichungs-
 // fassung mit Platzhaltern). Neu erzeugen: node tools/build-radio-docs.mjs
 import type { RadioDoc } from './types'
 

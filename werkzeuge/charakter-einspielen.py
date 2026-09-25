@@ -3,9 +3,8 @@
 
 Die Charakterdatei (Vorgabe: charakter.md neben dieser Ausgabe) bestimmt, WIE die Figur
 spricht - nicht, WAS der Bot tut. Sie landet beim Bauen in der Zentrale im Feld
-"charakter" und wirkt zur Laufzeit: im Hauptbot formuliert der Knoten "Planen" damit die
-GESPROCHENEN Ansagen (die Telegram-Antworten bleiben sachlich), in der DDD-Fassung haengen
-die Agenten der Ausfuehrung den Text an ihren Systemtext an. Dieses Werkzeug aendert NUR
+"charakter" und wirkt zur Laufzeit: der Knoten "Planen" formuliert damit die
+GESPROCHENEN Ansagen (die Telegram-Antworten bleiben sachlich). Dieses Werkzeug aendert NUR
 diesen einen Wert im laufenden Ablauf - ohne Neubau, ohne Neustart:
 
   1. Charakterdatei lesen (Zeilen mit # am Anfang sind Notizen und fallen weg)
@@ -13,9 +12,7 @@ diesen einen Wert im laufenden Ablauf - ohne Neubau, ohne Neustart:
   3. im Knoten "Werte" genau das Feld "charakter" ersetzen
   4. zurueck importieren, einschalten und gegenpruefen
 
-Welche Ausgabe gemeint ist, ergibt sich aus dem Ort dieses Werkzeugs:
-  Sender-1-Deadline-Beats/werkzeuge/charakter-einspielen.py    -> "Konfiguration"             (Sender 1)
-  Sender-2-Axis-Church-Radio/werkzeuge/charakter-einspielen.py -> "DDD-Webseite-Konfiguration" (Sender 2)
+Das Ziel ist immer der Ablauf "Konfiguration" der laufenden Zentrale.
 
 Aufruf:
   python3 werkzeuge/charakter-einspielen.py            (Datei + Einspielen)
@@ -39,10 +36,9 @@ import time
 from pathlib import Path
 
 HIER = Path(__file__).resolve().parent
-AUSGABE = HIER.parent                                   # Sender-1-… bzw. Sender-2-Axis-Church-Radio
-WEBSEITE = AUSGABE.name in ("Sender-2-Axis-Church-Radio", "DDD-Webseite")
-WORKFLOW = "DDD-Webseite-Konfiguration" if WEBSEITE else "Konfiguration"
-AGENT = "DDD-Webseite-Bot" if WEBSEITE else "RadioAgentBot"
+AUSGABE = HIER.parent                                   # der Projektordner
+WORKFLOW = "Konfiguration"
+AGENT = "RadioAgentBot"
 KNOTEN = "Werte"
 PROJEKT = "DEINE-N8N-PROJEKT-KENNUNG"                            # n8n-Projekt der beiden Bots
 CFG = "~/.ssh/config"

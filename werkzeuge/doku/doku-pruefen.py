@@ -3,8 +3,7 @@
 
 Aufruf:  python3 werkzeuge/doku/doku-pruefen.py [--leise]
 
-Geprüft wird (deutsch und englisch, alle .md-Dateien; der Zweitbot-Ordner
-Sender-2-Axis-Church-Radio/ wird mitgeprüft, wenn vorhanden):
+Geprüft wird (deutsch und englisch, alle .md-Dateien):
   1. Abschnittsnummern: doppelte oder aus der Reihe laufende `## N.`-Titel
   2. Codeblöcke: ungerade Anzahl von ``` -Zäunen
   3. Mermaid: Beschriftungen mit Klammern ohne Anführungszeichen
@@ -21,12 +20,8 @@ import re
 import sys
 from pathlib import Path
 
-QUELLE = Path(__file__).resolve().parent.parent.parent          # Sender-1-Deadline-Beats
-# Die Doku des Zweitbots (Nachbarordner) wird mitgeprueft, wenn vorhanden.
+QUELLE = Path(__file__).resolve().parent.parent.parent          # der Projektordner
 QUELLEN = [QUELLE]
-ZWEITBOT = QUELLE.parent / "Sender-2-Axis-Church-Radio"
-if ZWEITBOT.is_dir():
-    QUELLEN.append(ZWEITBOT)
 OHNE = {"DocOfficial", ".git", "__pycache__", "node_modules"}
 
 NUMMER = re.compile(r"^(#{2,4})\s+(\d+(?:\.\d+)*)\.?\s+(.*)$")
@@ -35,7 +30,7 @@ MERMAID_KLAMMER = re.compile(r"(\||\[|-->)\s*[A-Za-z0-9_]*\[?[^\"\'\]\n|]*\([^)\
 
 
 def wurzel_von(p: Path) -> Path:
-    """Wurzel (Sender-1- oder Sender-2-Ordner), zu der eine Datei gehoert."""
+    """Wurzel, zu der eine Datei gehoert."""
     return next(w for w in QUELLEN if p.is_relative_to(w))
 
 

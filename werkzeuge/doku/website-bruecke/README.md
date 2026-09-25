@@ -16,7 +16,7 @@ sie leiten den Projektordner (Ziel der Ausgabe) aus ihrem eigenen Pfad ab
 
 ```sh
 cd <projektordner>/DeadlineDrivenWebsite
-cp ../Ai_Radio_Moderator_Bot/Sender-1-Deadline-Beats/werkzeuge/website-bruecke/*.mjs tools/
+cp ../Ai_Radio_Moderator_Bot/werkzeuge/website-bruecke/*.mjs tools/
 node tools/build-radio-docs.mjs --pruefen   # nur die Geheimnis-Gegenprobe
 node tools/build-radio-docs.mjs             # Inhalt + Medien neu erzeugen
 node tools/stimmproben.mjs --pruefen    # Hörproben nur messen

@@ -31,13 +31,12 @@ geprüft.
 | `Werkzeug-Was-laeuft.json` | `RadioWerkzeugStatus` | Werkzeug - Was laeuft | 4 | 19.09.2026 |
 | `Werkzeug-Richtung-suchen.json` | `RadioWerkzeugRichtung` | Werkzeug - Richtung suchen | 9 | 19.09.2026 |
 
-Nach dem Entfernen bleibt der Bestand **senderbezogen** bei diesen elf Abläufen
+Nach dem Entfernen bleibt der Bestand **senderbezogen** bei diesen sechs Abläufen
 (alle aktiv):
 
 | Sender | Abläufe |
 | --- | --- |
-| „Deadline Beats“ (privat, Sender 1) | `RadioAgentBot`, `RadioWerkzeug`, `AzuraWerkzeug`, `MeldungenWerkzeug`, `Konfiguration`, `StimmenBot` |
-| „Axis Church Radio“ (öffentlich, Sender 2) | `DDD-Webseite-Bot`, `-Radio`, `-AzuraCast`, `-Meldungen`, `-Konfiguration` |
+| „Deadline Beats“ | `RadioAgentBot`, `RadioWerkzeug`, `AzuraWerkzeug`, `MeldungenWerkzeug`, `Konfiguration`, `StimmenBot` |
 
 Nicht angetastet (gehören nicht zum Radio): die NewsBot-Familie und „recherche
 done“ (Website-Nachrichten), Bewerbung – Analyse, Mail Extractor, Brave-Chatbot,

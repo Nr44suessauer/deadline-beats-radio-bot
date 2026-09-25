@@ -694,7 +694,7 @@ werkzeuge.append(werkzeug_arbeit(W_AZURA, W_AZURA_NAME, [
     http("Stations", [-180, 420], "GET", API_ADMIN + "/stations", None, AZ_KOPF, "All stations."),
     http("Status", [60, 420], "GET", API + "/status", None, AZ_KOPF, "Is the broadcast part running?"),
     http("Playlists", [300, 420], "GET", API + "/playlists", None, AZ_KOPF,
-         "Playlists of station 1."),
+         "Playlists of the station."),
     code("Ueberblick", [540, 420], UEBERSICHT_JS),
 ], {
     "Entry": {"main": [[{"node": "Look up addresses?", "type": "main", "index": 0}]]},

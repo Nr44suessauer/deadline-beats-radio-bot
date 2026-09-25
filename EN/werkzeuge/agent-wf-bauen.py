@@ -778,7 +778,7 @@ werkzeuge.append(werkzeug_arbeit(W_AZURA, W_AZURA_NAME, [
     http("Stations", [-180, 420], "GET", API_ADMIN + "/stations", None, AZ_KOPF, "All stations."),
     http("Status", [60, 420], "GET", API + "/status", None, AZ_KOPF, "Is the broadcast part running?"),
     http("Playlists", [300, 420], "GET", API + "/playlists", None, AZ_KOPF,
-         "Playlists of station 1."),
+         "Playlists of the station."),
     code("Ueberblick", [540, 420], UEBERSICHT_JS),
 ], {
     "Entry": {"main": [[{"node": "Look up addresses?", "type": "main", "index": 0}]]},
@@ -3204,7 +3204,7 @@ dokunotiz(agent, "Radio - Telegram-Agent", [
     "Change: agent-patchen.sh --cleanup -> agent-deploy-only.sh /tmp/radio-agent-new.json -> docker restart n8n",
     "Check: anordnung-check.py (0 findings), code-check.py (0 faulty code nodes), BETRIEB.md",
     "Description: README.md, HANDBUCH.md, HANDBUCH.md, BETRIEB.md, BETRIEB.md, BETRIEB.md, BAU.md",
-    "Image by image: ANHANG/n8n-oberflaeche.html  (project folder Ai_Radio_Moderator_Bot/Sender-1-Deadline-Beats)",
+    "Image by image: ANHANG/n8n-oberflaeche.html",
 ])
 # ------------------------------------------------- layout of the tools
 # The same idea as with the bot: one line per branch, around it a frame with

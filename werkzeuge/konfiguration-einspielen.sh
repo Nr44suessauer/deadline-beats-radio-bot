@@ -8,7 +8,7 @@
 #
 # Es wird NICHTS geloescht: vorhandene Ablaeufe mit denselben Kennungen werden
 # ersetzt, alles andere bleibt. Die alte Fassung liegt als Sicherung bereit.
-# Zum Schluss liegen die fuenf Ablaeufe im Ordner "Sender 1: Deadline Beats"
+# Zum Schluss liegen die fuenf Ablaeufe im n8n-Ordner "Deadline Beats"
 # (n8n-ordner-setzen.sh - der Import uebernimmt keine Ordner-Zuordnung).
 set -euo pipefail
 cd "$(dirname "$0")"

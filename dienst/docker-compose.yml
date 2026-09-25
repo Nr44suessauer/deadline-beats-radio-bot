@@ -17,7 +17,7 @@ services:
       VOICE_DIR: /voices
       # Eigene Moderationsstimme: "deine-stimme" erzeugt der Stimmendienst auf der
       # GPU-Maschine (edge-tts + RVC, CT 111 Port 10205; Aufbau:
-      # docs/projects/Ai_Radio_Moderator_Bot/Sender-1-Deadline-Beats/DOKU/STIMME.md). Ist er nicht
+      # docs/projects/DOKU/STIMME.md). Ist er nicht
       # erreichbar, spricht der Dienst mit EIGENE_STIMME_ERSATZ weiter. Piper-Stimmen
       # bleiben ueber das Feld voice/stimme waehlbar (de_thorsten, de_kerstin ...).
       # Standardstimme: seit 2026-09-25 de_thorsten (Piper, laeuft immer).

@@ -3,8 +3,7 @@
 
 Usage:  python3 EN/werkzeuge/doku/doku-pruefen.py [--leise]
 
-Checked are (German and English, all .md files; the second bot's folder
-Sender-2-Axis-Church-Radio/ is checked as well when present):
+Checked are (German and English, all .md files):
  1. Section numbers: duplicate or out-of-sequence `## N.`-titles
  2. Code blocks: odd number of ```-fences
  3. Mermaid: labels with parentheses without quotes
@@ -21,12 +20,8 @@ import re
 import sys
 from pathlib import Path
 
-QUELLE = Path(__file__).resolve().parent.parent.parent          # Sender-1-Deadline-Beats
-# The documentation of the second bot (neighbour folder) is checked as well.
+QUELLE = Path(__file__).resolve().parent.parent.parent          # the project folder
 QUELLEN = [QUELLE]
-ZWEITBOT = QUELLE.parent / "Sender-2-Axis-Church-Radio"
-if ZWEITBOT.is_dir():
-    QUELLEN.append(ZWEITBOT)
 OHNE = {"DocOfficial", ".git", "__pycache__", "node_modules"}
 
 NUMMER = re.compile(r"^(#{2,4})\s+(\d+(?:\.\d+)*)\.?\s+(.*)$")
@@ -35,7 +30,7 @@ MERMAID_KLAMMER = re.compile(r"(\||\[|-->)\s*[A-Za-z0-9_]*\[?[^\"\'\]\n|]*\([^)\
 
 
 def wurzel_von(p: Path) -> Path:
-    """Root (Sender-1 or Sender-2 folder) a file belongs to."""
+    """Root a file belongs to."""
     return next(w for w in QUELLEN if p.is_relative_to(w))
 
 

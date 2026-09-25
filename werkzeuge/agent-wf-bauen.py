@@ -93,8 +93,8 @@ AZ = Ausdruck(K + ".sender.adresse")
 API = AZ + "/api/station/1"
 API_ADMIN = AZ + "/api/admin"
 # Adresse fuer "was laeuft gerade": Senderkennung aus der Konfiguration
-# (Sender 1 bzw. 2). Vorher stand hier fest "/api/nowplaying/1" - der
-# DDD-Bot fragte damit den falschen Sender ab (gefunden am 2026-09-25).
+# Vorher stand hier fest "/api/nowplaying/1" - der
+# Damit wurde vorher der falsche Sender abgefragt (gefunden am 2026-09-25).
 NOWPLAYING = Ausdruck(K + ".sender.adresse + '/api/nowplaying/' + " + K + ".sender.senderId")
 KATALOG = Ausdruck(K + ".dienst.adresse")
 MELDUNGEN = Ausdruck(K + ".dienst.adresse")
@@ -167,7 +167,7 @@ SUCHTEXT = ("={{ String($('Eingang').first().json.suchtext || '')"
             ".replace(/\\s+/g, ' ').trim() }}")
 
 PROJEKT = "DEINE-N8N-PROJEKT-KENNUNG"
-ORDNER = "vEDODlq4jIKCUDmf"          # Ordner "Sender 1: Deadline Beats"
+ORDNER = "vEDODlq4jIKCUDmf"          # der n8n-Ordner
 
 # Ein einziger Werkzeug-Arbeitsablauf fuer alles: Titel suchen, Richtung, Status.
 #
@@ -2995,7 +2995,7 @@ Verwaltungswege des Dienstes bleiben deutsch.
 Was der Bot kann: Liedwunsch, Richtungswunsch, skip/pause/Status, Wiedergabelisten,
 Postfach, Recherche (Wetter, Nachrichten, RSS) und Ansagen im laufenden Programm.
 Alles kommt aus Telegram und geht dorthin zurueck; gespielt wird auf dem Sender
-"Deadline Beats" (Sender 1).
+"Deadline Beats".
 
 Der Weg einer Nachricht: Eingang -> Stufe 0/1 Analyse -> Stufe 2 Ausfuehrung ->
 Stufe 3 Pruefung -> Antwort. Sprachnachrichten laufen oben durch Whisper,
@@ -3559,7 +3559,7 @@ dokunotiz(agent, "Radio - Telegram-Agent", [
     "Aendern: agent-patchen.sh --aufraeumen -> agent-einspielen-nur.sh /tmp/radio-agent-neu.json -> docker restart n8n",
     "Pruefen: anordnung-pruefen.py (0 Befunde), code-pruefen.py (0 fehlerhafte Code-Knoten), BETRIEB.md",
     "Beschreibung: README.md, HANDBUCH.md, HANDBUCH.md, BETRIEB.md, BETRIEB.md, BETRIEB.md, BAU.md",
-    "Bild fuer Bild: ANHANG/n8n-oberflaeche.html  (Projektordner Ai_Radio_Moderator_Bot/Sender-1-Deadline-Beats)",
+    "Bild fuer Bild: ANHANG/n8n-oberflaeche.html",
 ])
 # ------------------------------------------------- Anordnung der Werkzeuge
 # Dieselbe Idee wie beim Bot: je Zweig eine Zeile, darum ein Rahmen mit

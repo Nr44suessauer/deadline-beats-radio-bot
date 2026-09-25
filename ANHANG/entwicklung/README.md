@@ -436,7 +436,7 @@ Piper-Stimmen liegen in `/voices` als `<name>.onnx` + `<name>.onnx.json`. Mitgel
 `de_DE-thorsten-medium`, `de_DE-kerstin-low`, `de_DE-eva_k-x_low`,
 `de_DE-ramona-low`. **Vorgabe der Ansagen ist seit 2026-09-23 die eigene Stimme
 `deine-stimme`** (externer Stimmendienst auf CT 111, Port 10205; Entstehung und Nachbau:
-`docs/projects/Ai_Radio_Moderator_Bot/Sender-1-Deadline-Beats/DOKU/STIMME.md`) — ohne `voice`-Angabe nimmt der
+`docs/projects/DOKU/STIMME.md`) — ohne `voice`-Angabe nimmt der
 Dienst sie, bei Ausfall des Stimmendienstes ersatzweise `de_thorsten` (`EIGENE_STIMME_ERSATZ`).
 
 ---
@@ -842,21 +842,18 @@ Senderfassungen liegen getrennt:
 
 | Ordner | Inhalt |
 | --- | --- |
-| **Sender 1: Deadline Beats** | der private Bot: RadioAgentBot, die drei Werkzeuge, Konfiguration, StimmenBot |
-| **Sender 2: Axis Church Radio** | die vier Abläufe der Webseiten-Fassung (`DDD-Webseite-…`) |
+| **Deadline Beats** | RadioAgentBot, die drei Werkzeuge, Konfiguration, StimmenBot |
 
-Gesetzt wird die Zuordnung von **`werkzeuge/n8n-ordner-setzen.sh`** (Sender 1 — läuft automatisch
-am Ende von `konfiguration-einspielen.sh` und `agent-einspielen-nur.sh`) und von
-**`Sender-2-Axis-Church-Radio/werkzeuge/einspielen.sh`** (Sender 2). Wichtig: `n8n import:workflow` übernimmt
+Gesetzt wird die Zuordnung von **`werkzeuge/n8n-ordner-setzen.sh`** (läuft automatisch
+am Ende von `konfiguration-einspielen.sh` und `agent-einspielen-nur.sh`). Wichtig: `n8n import:workflow` übernimmt
 **keine** Ordner-Zuordnung — ohne diesen Schritt landen neue Abläufe ohne Ordner.
 
 Die **Schlagwörter** bleiben als zweite Ebene (oben in der Übersicht filterbar):
 
 | Schlagwort | Arbeitsabläufe |
 | --- | --- |
-| **Sender 1: Deadline Beats** | die sechs Abläufe des privaten Bots |
-| **Sender 2: Axis Church Radio** | die vier Abläufe der Webseiten-Fassung |
-| **Radio**, **Radio-Werkzeug** (Altbestand) | Kennzeichnung aus der Zeit vor den zwei Fassungen |
+| **Deadline Beats** | die sechs Abläufe des Bots |
+| **Radio**, **Radio-Werkzeug** (Altbestand) | ältere Kennzeichnung |
 
 „Aktiv" heißt in n8n nicht „Bot": der Werkzeug-Ablauf **muss** aktiv sein, sonst lehnt n8n den
 Aufruf eines Unter-Arbeitsablaufs ab („Workflow is not active and cannot be executed."). Nur der
@@ -879,7 +876,7 @@ export TG_TOKEN=$(cat /tmp/.tgtok)        # Bot-Kennung
 
 `agent-einspielen.sh` ruft `agent-wf-bauen.py` (erzeugt alle Arbeitsabläufe),
 `import-agent-vorbereiten.py` (Importdateien) und `agent-nachbereiten.py` (Ordner
-„Sender 1: Deadline Beats", Projektrechte, Testschlüssel, Webhook-Leichen, alte Werkzeuge stilllegen). Das Schalten
+„Deadline Beats", Projektrechte, Testschlüssel, Webhook-Leichen, alte Werkzeuge stilllegen). Das Schalten
 selbst läuft über den offiziellen Befehl `n8n update:workflow --active=…` und einen Neustart.
 
 ```bash
@@ -892,16 +889,14 @@ ssh -F $CFG ai-server "pct exec 103 -- bash -lc 'docker exec -u node n8n node /t
 ### Charakter der Stimme (2026-09-25)
 
 Der Wunsch: der Stimme „DEINE-STIMME“ einen Charakter geben können — ohne den Erzeuger anzufassen.
-Die Rolle steht deshalb als Klartext in `charakter.md` (Sender 1: Projektordner,
-Sender 2: `Sender-2-Axis-Church-Radio/charakter.md`). Zeilen mit `#` am Anfang sind Notizen; alles
+Die Rolle steht deshalb als Klartext in `charakter.md` (im Projektordner). Zeilen mit `#` am Anfang sind Notizen; alles
 andere ist der Charaktertext.
 
 * **Weg:** Der Erzeuger liest die Datei und legt sie als Feld `charakter` in den Knoten
   `Werte` der Zentrale. Seit dem Abend haengt sie beim **Hauptbot** der Knoten `Planen`
   **zur Laufzeit** an seinen Systemtext und formuliert damit freie Ansagen (art=ansage);
   die Agenten der Ausfuehrung kennen sie absichtlich nicht, damit die Telegram-Antworten
-  sachlich bleiben. In der **DDD-Fassung** haengen weiterhin die Agenten (`Ausfuehren`,
-  `Nacharbeiten`) den Text an ihren Systemtext an — dort gehoert die Figur zum Chat.
+  sachlich bleiben.
   `/no_think` bleibt jeweils der Schluss.
 * **Ändern ohne Neubau:** `python3 werkzeuge/charakter-einspielen.py` exportiert die
   laufende Zentrale, ersetzt nur dieses Feld, importiert sie zurück und prüft gegen
@@ -909,7 +904,7 @@ andere ist der Charaktertext.
 * **Grenzen:** Feste Kurzantworten der Stufe 0 (Steuerung, Status, Postfach,
   Wiedergabelisten über `Dienst Art`) und die vom Dienst erzeugten Materialtexte
   (Feeds, Wetterdaten) folgen dem Charakter nicht — er färbt die frei formulierten
-  Ansagen und in der DDD-Fassung die Chat-Sätze des Modells.
+  Ansagen.
 * **Nebenfund:** `agent-patchen.sh` las den Postfach-Schlüssel noch aus dem Projektordner;
   nach dem Aufräumen liegt er in `NACHBAU/zugangsdaten/` — das Skript sucht jetzt an
   beiden Stellen.
@@ -918,7 +913,7 @@ andere ist der Charaktertext.
   `FRAGE_WORT` in `agent-patchen`/Erzeuger). Die lebhafte Figur fragt aber gern rhetorisch
   („War das nicht einfach großartig?") — und Knöpfe gab es gar nicht. Jetzt erscheint der
   Hinweis nur noch, wenn wirklich Knöpfe entstehen (Prüfung auf `tastatur` in
-  `ANTWORT_BAUEN_JS`, beide Erzeuger). Live geprüft (DDD + Hauptbot): Die Antwort endet
+  `ANTWORT_BAUEN_JS`). Live geprüft: Die Antwort endet
   mit „…vorlesen lassen?" **ohne** den Hinweis; die echten Auswahllisten tragen ihn weiter.
 
 ### Ansage-Schutz: ein Befehl, eine Ansage (2026-09-25 abends)
@@ -929,8 +924,7 @@ auf (Nachrichten 22,7 s, dann ein 500er mit `ConnectionResetError`, dann ein
 **1,4-Minuten-Überblick**) und dauerte 5:21 min — seine Ansagen kamen dadurch **nach** der
 Informatik-Erklärung an („fängt auf einmal an, Börse zu erklären"). Der zweite
 (fehlgeschlagene) Aufruf hatte die Meldung schon abgelegt; der 5-Minuten-Zeitplan bot sie
-später als Karte an („danach nochmal eine alte Meldung"). Die DDD-Fassung hatte dieselben
-Schutzstufen seit dem Mittag — sie wurden abends auf den Hauptbot übertragen:
+später als Karte an („danach nochmal eine alte Meldung"). Die Schutzstufen wurden abends auf den Hauptbot übertragen:
 
 | Schutz | Wo | Wirkung |
 | --- | --- | --- |
@@ -953,10 +947,8 @@ Meldung beginnt mit **`DBeats: `**.
   Die Python-Schreibweise `\U0001f3a7` (🎧) versteht JS nicht — der Schrägstrich fällt
   weg und **`U0001f3a7` steht wörtlich in der Nachricht**. Die Erzeuger hatten mehrere
   solcher Escapes in JS-Texten („Verstanden: …", Meldungs-Karte, Knopf „Verwerfen").
-* **Behoben:** `werkzeuge/agent-wf-bauen.py` (Hauptbot) schreibt die Texte schlicht,
-  **ohne** Zeichen davor; im **DDD-Erzeuger** sind die beabsichtigten Zeichen jetzt
-  gültig geschrieben (`\u{1F3A7}`, `\u{1F4F0}`, `\u{1F5D1}` …) — die lebhafte Figur der
-  Webseite behält ihre Zeichen, nur der Hauptbot wird sachlich.
+* **Behoben:** `werkzeuge/agent-wf-bauen.py` schreibt die Texte schlicht,
+  **ohne** Zeichen davor.
 * **Präfix:** Die vier Sende-Knoten (`Dienst Senden`, `Dienst Ersatz senden`, `Senden`,
   `Senden (Kurzmeldung)`) setzen `'DBeats: ' + …` davor; Meldungs-Karte, Knopfhinweise
   und Modelltexte bleiben innen schlicht (Knopfhinweis nur, wenn wirklich Knöpfe da sind).
@@ -968,8 +960,7 @@ Meldung beginnt mit **`DBeats: `**.
 * **Geprüft (live, echte Sendungen im Betreiber-Chat):**
   `DBeats: Wiedergabelisten: …` und
   `DBeats: Die aktuelle Nachricht wurde als Meldung im Postfach abgelegt.` —
-  keine Emojis, kein `U0001f…`; der Modellweg bleibt bei **genau einem** Werkzeugaufruf;
-  DDD-REST-Probe („what is playing right now") sauber. Fassung
+  keine Emojis, kein `U0001f…`; der Modellweg bleibt bei **genau einem** Werkzeugaufruf. Fassung
   `radio-v25-2026-09-25-sachlich`.
 * **Postfach aussortiert:** 39 offene Meldungen (Testreste vom 20./21.09. und die beiden
   Proben) wurden als *verworfen* vermerkt (bleiben in der Kontrolle sichtbar). Sonst
@@ -1004,7 +995,6 @@ Lieben, schön, dass ihr da seid! Ich bin DEINE-STIMME, eure Hausherrin hier bei
 Radio gesprochen."); ein vorgegebener Text wurde **wörtlich** gesprochen („Hier ist DEINE-STIMME -
 bleibt dran, gleich geht es weiter!", 10,4 s). Der Wetter-Trockenlauf zeigt den neuen
 Vorspann („Und nun der Blick zum Himmel …"). Fassung `radio-v26-2026-09-25-sprachcharakter`.
-Die **DDD-Fassung** blieb unverändert (dort gehört die Figur auch in den Chat).
 
 ### Nachrichten sauber und zusammenhängend gesprochen (2026-09-25 abends)
 
@@ -1022,7 +1012,7 @@ Ursachen heraus:
 4. **Wikipedia-Definitionen** kamen fest in jeden Themen-Überblick („Wikipedia: Eine
    Börse ist ein …").
 
-Behoben in `dienst/suche.py` (+ DDD-Kopie) und `dienst/meldungen.py`:
+Behoben in `dienst/suche.py` und `dienst/meldungen.py`:
 
 * `_saeubern()` entfernt Agentur-Klammern („(dpa/afp)"), Autorenzeilen — auch mit
   Initialen („Von M. Rödle und P. Kuntschner.") —, Draht-Kürzel („EQS-News:"),
@@ -1039,7 +1029,7 @@ Behoben in `dienst/suche.py` (+ DDD-Kopie) und `dienst/meldungen.py`:
 * **Wikipedia ist aus dem Nachrichten-Überblick raus** (`RECHERCHE_THEMA_WIKI` = 0;
   `=1` holt ihn zurück). Für „was ist X" bleibt die Kurzinfo `art=wikipedia`.
 
-Geprüft (Trockenläufe, Haupt- und DDD-Dienst): Nachrichten ohne Autorenzeile und ohne
+Geprüft (Trockenläufe): Nachrichten ohne Autorenzeile und ohne
 „?."; „börse" → „Zum Thema Börse." + Schlagzeilen mit „Das meldet das Manager
 Magazin. / die Welt. / die Tagesschau." + Feed-Bericht, **wiki 0**, keine Werbe-Reste.
 Fassung `radio-v27-2026-09-25-nachrichten-sauber`.
@@ -1077,14 +1067,6 @@ Protokollzeile `Stimme: de_thorsten`; „… mit eigener Stimme" → Werkzeugauf
 `stimme=deine-stimme`, `x-stimme: deine-stimme`, Protokollzeile `Stimme: deine-stimme`, gesprochener Text
 ohne den Zusatz („Probe Nummer drei"). Fassung `radio-v28-2026-09-25-stimmenwahl`.
 
-**Nachtrag (Abend):** Der **DDD-Zwilling** (Axis Church Radio, `:8882`) hat dieselbe
-Wahl bekommen: Standardstimme `de_thorsten`, DEINE-STIMME nur auf ausdrücklichen Wunsch
-(Werkzeug-Feld `stimme` in beiden Werkzeugen, Durchreichen in `Freie Ansage`,
-`Meldung ansagen` und `Recherche holen`, Dienst-Vorgabe `TTS_DEFAULT_VOICE=de_thorsten`
-und Protokollzeile `Stimme: …`). Live über den REST-Eingang geprüft: ohne Wunsch
-`Stimme: de_thorsten`; mit „mit eigener Stimme" → Werkzeug `stimme=deine-stimme`, Protokoll
-`Stimme: deine-stimme`, Text ohne den Zusatz.
-
 **Nachtrag 2 (Betreiber-Befund „in eigener Stimme geht nicht"):** Der echte Telegram-Wunsch
 „antworte mir in eigener Stimme, wie das Wetter … wird" kam trotzdem mit der Standardstimme
 (gemessen: Werkzeugwerte `stimme: ""` in den Läufen 4869/4889) — die Wahl hing allein
@@ -1093,7 +1075,7 @@ am Sprachmodell, das „in eigener Stimme" nicht als Stimmenwunsch las. **Neu, v
 „in der eigenen Stimme", „mit eigener Stimme", „mit deiner Stimme", „mit meiner Stimme"); (2) **„Befehle
 lesen"** schreibt ihn in jeden Sprech-Befehl (`ansage`/`recherche` → `b.stimme`);
 (3) die Ausführung gibt das Feld unverändert an das Werkzeug weiter; (4) der Dienst
-zählt jede Schreibweise mit „DEINE-STIMME" in eigener Stimme-Wunsch. Live geprüft (beide Bots):
+zählt jede Schreibweise mit „DEINE-STIMME" in eigener Stimme-Wunsch. Live geprüft:
 Original-Formulierung → Werkzeug `stimme="deine-stimme"`, Protokoll `Stimme: deine-stimme`;
 Test-Meldung danach verworfen (Postfach 0 offen).
 

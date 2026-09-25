@@ -208,15 +208,14 @@ zum Nachbauen für jede Serie** in `STIMME.md`.
   in einem Chat. Neu: `sprache_raten` am Eingang, englische Kurzbefehle der Stufe 0,
   Werkzeugantworten in der Sprache des Betreibers (`sprache`-Feld), verstärkte
   Sprachregel im Ausführungs-Prompt. **Zwei Fehler gefunden und behoben:** „was läuft"
-  fragte fest Sender 1 ab (jetzt `senderId` aus der Konfiguration — betraf den
-  DDD-Bot, der Sender 2 bedient), und englische Ansagen wurden deutsch bestätigt
+  fragte die falsche Sender-Kennung ab (jetzt `senderId` aus der Konfiguration),
+  und englische Ansagen wurden deutsch bestätigt
   (die Bestätigung folgt jetzt der Sprache). Prüfungen: Status/Wunsch/Liste/Auswahl/
-  Postfach/Ansage/Sprachnachricht je Sprache auf **beiden** Sendern, 13 Beispiele grün.
+  Postfach/Ansage/Sprachnachricht je Sprache, 13 Beispiele grün.
   Rückweg: `radio-v21-vor-zweisprachig-2026-09-25`.
-* **n8n-Ordner und -Tags** trennen beide Senderfassungen: Ordner `Sender 1: Deadline Beats`
-  (6 Abläufe) und `Sender 2: Axis Church Radio` (4 Abläufe), dieselben Namen als Schlagwörter.
-  Die Zuordnung setzen die Einspielskripte (`n8n-ordner-setzen.sh`,
-  `Sender-2-Axis-Church-Radio/werkzeuge/einspielen.sh`) — `n8n import:workflow` übernimmt keine Ordner.
+* **n8n-Ordner und -Tags:** die Abläufe liegen im Ordner `Deadline Beats`
+  (6 Abläufe), derselbe Name als Schlagwort. Die Zuordnung setzt das Einspielskript
+  (`n8n-ordner-setzen.sh`) — `n8n import:workflow` übernimmt keine Ordner.
 
 #### 3.9 25. September (abends) — Stimmenwahl und der zweite GPU-Vorfall (v28)
 

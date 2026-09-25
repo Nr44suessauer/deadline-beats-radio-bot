@@ -140,15 +140,15 @@ The big day: From the own media stock, the **voice announcement "YOUR-VOICE"** w
 * **v21** `radio-v21-2026-09-25-zweisprachig`: the bot understands **German and English**
   in one chat. New: `sprache_raten` at the input, English stage-0 shortcuts, tool replies
   in the operator's language (`sprache` field), a stricter language rule in the execution
-  prompt. **Two bugs found and fixed:** "what is playing" was hard-wired to station 1
-  (now `senderId` from the configuration — this affected the DDD bot serving station 2),
+  prompt. **Two bugs found and fixed:** "what is playing" was hard-wired to a wrong
+  station ID (now `senderId` from the configuration),
   and English announcements were confirmed in German (the confirmation now follows the
   language). Checks: status/request/list/selection/mailbox/announcement/voice message in
-  each language on **both** stations, 13 samples green.
+  each language, 13 samples green.
   Rollback: `radio-v21-vor-zweisprachig-2026-09-25`.
-* **n8n folders and tags** separate both station editions: folder `Sender 1: Deadline Beats`
-  (6 workflows) and `Sender 2: Axis Church Radio` (4 workflows), the same names as tags. The deploy
-  scripts set the folders (`n8n-ordner-setzen.sh`, `Sender-2-Axis-Church-Radio/werkzeuge/einspielen.sh`) —
+* **n8n folders and tags:** the workflows live in the folder `Deadline Beats`
+  (6 workflows), the same name as a tag. The deploy
+  script (`n8n-ordner-setzen.sh`) sets the folder —
   `n8n import:workflow` does not carry folder assignments.
 
 #### 3.9 September 25 (evening) — voice selection and the second GPU incident (v28)

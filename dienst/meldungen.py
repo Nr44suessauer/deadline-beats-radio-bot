@@ -59,8 +59,8 @@ MAX_ZEICHEN = int(os.environ.get("ANSAGE_MAX_ZEICHEN", "9000"))
 MAX_MELDUNGEN = int(os.environ.get("MELDUNGEN_MAX", "500"))
 MAX_ANSAGEN = int(os.environ.get("ANSAGEN_MAX", "100"))
 # Derselbe freie Text wird innerhalb dieser Sekunden nicht zweimal gesprochen.
-# Schutz vor Werkzeug-Schleifen des Modells (in der DDD-Fassung am 2026-09-25
-# aufgetreten; hier nach einem Vorfall am selben Abend uebernommen: ein Befehl
+# Schutz vor Werkzeug-Schleifen des Modells (nach einem Vorfall am Abend
+# uebernommen: ein Befehl
 # sprach erst die Nachrichten und danach noch einen 1,4-Minuten-Ueberblick).
 ANSAGE_SPERRE_SEK = int(os.environ.get("ANSAGE_SPERRE_SEK", "90"))
 
