@@ -144,6 +144,15 @@ that: the **API key** (rights) and the **playlist gate** in the tool workflow
    locked. The bot checks every music path against
    `GET /playlist/titel?name=…` of the service — a hit outside the list is
    answered “Diesen Titel gibt es nicht in der Demo-Playlist.”
+8. Clean on-air names: the stream shows the **file tags** and the stored
+   `station_media.text` column — patching only the media row through the API is
+   not enough (measured 2026-09-25). Set artist/album/title in the files
+   (`ffmpeg -y -i in.mp3 -c copy -metadata artist=… -metadata album=…
+   -metadata title=… out.mp3`), refresh a stale stored text
+   (`update station_media set text = concat(artist, ' - ', title) where id in (…)`)
+   and rebuild the queue with `PUT /api/admin/debug/station/<id>/clearqueue`
+   (the endpoint is **PUT**, not POST) — new queue entries then carry the clean
+   text.
 
 ---
 
