@@ -806,7 +806,7 @@ classDiagram
   RadioDienst --> Sender : spricht im Sendetakt hinein
 ```
 
-* Der **RadioDienst kennt zwei Stimmenwege**: die eigene Stimme (auf Wunsch) und `de_thorsten`
+* Der **RadioDienst kennt zwei Stimmenwege**: die eigene Stimme und `de_thorsten`
   (Ersatz) — Piper-Stimmen bleiben über den Parameter `voice` wählbar.
 * Das **Konto `deine-stimme`** am Hafen ist der Grund, warum im Sender „DEINE-STIMME" steht.
 

@@ -135,14 +135,14 @@ flowchart LR
 | **Ollama** | LXC 105 auf `192.168.178.187:11434` | Sprachmodell `qwen3.6:27b` für Planen, Ausführen, Prüfen |
 | **whisper.cpp** large-v3 (Vulkan) | LXC 112 auf `ai-server`, `192.168.178.188:8000` | Sprachnachrichten in Text (GPU, MI50; seit 2026-09-23). Der frühere Dienst in LXC 105 (`:18790`) ist abgeschaltet — Ersatzweg auf Handbetrieb |
 
-**Eigene Sprecherstimme (auf Wunsch):** Seit 2026-09-23 gibt es eine eigene
+**Eigene Sprecherstimme:** Seit 2026-09-23 gibt es eine eigene
 Moderationsstimme (Wandlungsstimme „DEINE-STIMME", Dienst **`sprechdienst`** auf der GPU-Maschine,
 CT 111, Port **10205**). Seit **2026-09-25** spricht der Bot standardmäßig mit der
 stabilen Piper-Stimme (`TTS_DEFAULT_VOICE=de_thorsten`); die **eigene Stimme** wird nur
 auf ausdrücklichen Wunsch verwendet („… mit eigener Stimme"). Ist der Stimmendienst
 nicht erreichbar, spricht der Bot mit der Standardstimme weiter — eine Ansage fällt
 nicht aus. **Im Sender erscheint sie beim Sprechen als Streamer „DEINE-STIMME“** (eigenes
-Bot-Konto `deine-stimme`, damit nicht mein Name angezeigt wird). Entstehung, Werte und
+Bot-Konto `deine-stimme`, damit nicht der Betreibername angezeigt wird). Entstehung, Werte und
 Nachbau: `DOKU/STIMME.md` + `NACHBAU/eigene-stimme/`; die allgemeine Anleitung für jede
 Serie: `DOKU/STIMME.md`.
 

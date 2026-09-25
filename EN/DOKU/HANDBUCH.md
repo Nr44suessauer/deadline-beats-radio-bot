@@ -793,7 +793,7 @@ classDiagram
   RadioDienst --> Sender : spricht im Sendetakt hinein
 ```
 
-* The **Radio Service knows two voice paths**: your own voice (on request) and `de_thorsten`
+* The **Radio Service knows two voice paths**: your own voice and `de_thorsten`
   (backup) — Piper voices remain selectable via the `voice` parameter.
 * The **account `deine-stimme`** at the harbor is the reason why "YOUR-VOICE" is displayed in the transmitter.
 
