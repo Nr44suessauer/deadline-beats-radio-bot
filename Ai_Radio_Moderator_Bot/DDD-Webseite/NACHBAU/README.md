@@ -203,6 +203,10 @@ bash pruefen.sh      # layout + code + contracts
 bash einspielen.sh   # import + activate (restarts n8n, ~1 minute)
 ```
 
+* `pruefen.sh` works on the built files in `/tmp`; it calls the three helper
+  scripts from `../../werkzeuge/` (they ship with the branch). The package build
+  (`veroeffentlichung-bauen.py`) reads `../../LICENSE` from there as well.
+
 * `bauen.sh` substitutes the value files into the workflows. `TRIGGER_AUS=0`
   leaves the Telegram and schedule triggers active — the default `1` keeps
   them **off** until the token is in place. `DIENST_URL` overrides the
@@ -363,7 +367,9 @@ After a rebuild, run through this list:
 | `../werkzeuge/{bauen,pruefen,einspielen,dienst-einspielen}.sh` | build, check, deploy |
 | `../werkzeuge/ausfuehrung-lesen.js` | read the last workflow execution from n8n |
 | `../chat-fenster.html` | browser chat window for the REST input (replaces the Telegram input) |
-| `../dienst/` | service sources (`app/`, Dockerfile, compose, `geheim.env`) |
+| `../dienst/` | service sources (`app/`, Dockerfile, compose, `geheim.env`; `geheim.env.vorlage` is the template — copy it and fill in your values) |
+| `../../werkzeuge/{anordnung-pruefen,code-pruefen,anordnung-uebersicht}.py` | helper scripts for `pruefen.sh` and the canvas overview (`ANORDNUNG.md`) — they ship with the branch next to the edition |
+| `../../LICENSE` | MIT license (ships in the branch and in the published package) |
 | `/tmp/ddd-webseite-*.json` | the last built workflows (contain real keys — handle like the value files) |
 
 ---

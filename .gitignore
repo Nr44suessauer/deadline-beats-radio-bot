@@ -4,6 +4,8 @@
 !/Ai_Radio_Moderator_Bot/
 /Ai_Radio_Moderator_Bot/*
 !/Ai_Radio_Moderator_Bot/DDD-Webseite/
+!/Ai_Radio_Moderator_Bot/werkzeuge/
+!/Ai_Radio_Moderator_Bot/LICENSE
 
 # Zugangswerte und Bau-Ausgaben bleiben lokal
 /Ai_Radio_Moderator_Bot/DDD-Webseite/zugangsdaten/
