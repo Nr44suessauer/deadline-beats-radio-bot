@@ -1,0 +1,132 @@
+#!/usr/bin/env python3
+"""Übernimmt die Tempo-Änderungen in den laufenden Radio-Ablauf.
+
+Statt den Ablauf komplett neu zu bauen (dafür fehlt die Telegram-Kennung),
+werden nur die Knoten ersetzt, die sich im Erzeuger wirklich geändert haben.
+Die Kennung wird aus der laufenden Fassung übernommen, damit der Vergleich
+nicht an den Telegram-Adressen scheitert.
+
+Aufruf:
+    python3 03-tempo-patchen.py <laufend.json> <neu-gebaut.json> <ausgabe.json> [erlaubteIds]
+"""
+import json
+import re
+import sys
+
+# Knoten, bei denen eine Änderung erwartet wird - alles andere wäre ein Fehler.
+ERWARTET = {"Kurz?", "Befehle und Lage", "Planen", "Pruefen"}
+
+# Abweichungen, die nur von der neueren n8n-Fassung stammen und bewusst NICHT
+# übernommen werden: der Erzeuger setzt bei den Werkzeugknoten die Felder "name"
+# (Modellname des Werkzeugs) und "source". In der laufenden Fassung fehlen sie,
+# dort gelten die Knotennamen als Werkzeugnamen. Ein Übernehmen würde die
+# Werkzeuge für das Modell umbenennen - das gehört nicht zu dieser Änderung.
+BEKANNT_HARMLOS = {
+    "Werkzeug Titel suchen", "Werkzeug Richtung suchen", "Werkzeug Was laeuft",
+    "Werkzeug Azura Adressen", "Werkzeug Azura Aufruf", "Werkzeug Azura Ueberblick",
+}
+
+
+def kennung_aus(text: str) -> str | None:
+    treffer = re.search(r"https://api\.telegram\.org/bot([A-Za-z0-9:_-]+)/", text)
+    return treffer.group(1) if treffer else None
+
+
+def normalisieren(obj):
+    """Zufallswerte und n8n-Vorgabefelder ausblenden, die bei jedem Bau neu
+    entstehen: Knoten-IDs, Farben, Positionen und Felder, die n8n beim Speichern
+    ergänzt, der Erzeuger aber nicht setzt."""
+    WEGFELDER = {
+        "id", "color", "hasOutputParser", "method", "position", "webhookId",
+        "batchSize", "source", "mode", "parameterType", "alwaysOutputData",
+    }
+    if isinstance(obj, dict):
+        return {k: normalisieren(v) for k, v in obj.items() if k not in WEGFELDER}
+    if isinstance(obj, list):
+        return [normalisieren(x) for x in obj]
+    return obj
+
+
+def main() -> int:
+    laufend_datei, gebaut_datei, ziel_datei = sys.argv[1:4]
+    erlaubte = sys.argv[4] if len(sys.argv) > 4 else None
+
+    laufend_text = open(laufend_datei, encoding="utf-8").read()
+    gebaut_text = open(gebaut_datei, encoding="utf-8").read()
+
+    kennung = kennung_aus(laufend_text)
+    if not kennung:
+        print("FEHLER: keine Telegram-Kennung in der laufenden Fassung gefunden")
+        return 1
+
+    # Der Erzeuger schreibt ein einzelnes Objekt, der Export eine Liste.
+    # Vor dem Vergleich alle Zugangswerte durch denselben Merker ersetzen -
+    # in der laufenden Fassung stehen die echten Werte, im Neubau "dummy".
+    laufend_text = laufend_text.replace(kennung, "<GEHEIM>")
+    schluessel = re.search(r"[0-9a-f]{16}:[0-9a-f]{32}", laufend_text)
+    if schluessel:
+        laufend_text = laufend_text.replace(schluessel.group(0), "<GEHEIM>")
+    gebaut_text = gebaut_text.replace("dummy", "<GEHEIM>")
+
+    laufend_daten = json.loads(laufend_text)
+    laufend = laufend_daten[0] if isinstance(laufend_daten, list) else laufend_daten
+    gebaut_daten = json.loads(gebaut_text)
+    gebaut = gebaut_daten[0] if isinstance(gebaut_daten, list) else gebaut_daten
+
+    alt = {n["name"]: n for n in laufend["nodes"]}
+    neu = {n["name"]: n for n in gebaut["nodes"]}
+
+    fehlend = sorted(set(neu) - set(alt))
+    if fehlend:
+        print(f"FEHLER: neue Knoten im Neubau, die es laufend nicht gibt: {fehlend}")
+        return 1
+
+    unterschiede, unbekannt = [], []
+    for name in alt:
+        if json.dumps(normalisieren(alt[name].get("parameters")), sort_keys=True, ensure_ascii=False) \
+                != json.dumps(normalisieren(neu[name].get("parameters")), sort_keys=True, ensure_ascii=False):
+            unterschiede.append(name)
+            if name not in ERWARTET and name not in BEKANNT_HARMLOS:
+                unbekannt.append(name)
+
+    print("Knoten laufend/neu:", len(alt), len(neu))
+    print("Verbindungen unverändert:", laufend.get("connections") == gebaut.get("connections"))
+    print("Unterschiede:", ", ".join(unterschiede) if unterschiede else "(keine)")
+    if unbekannt:
+        print(f"FEHLER: unerwartete Änderungen in {unbekannt} - Abbruch")
+        return 1
+    fehlend_erwartet = ERWARTET - set(unterschiede)
+    if fehlend_erwartet:
+        print(f"FEHLER: erwartete Änderung fehlt in {sorted(fehlend_erwartet)} - Abbruch")
+        return 1
+
+    # Nur die gewollten Knoten übernehmen, die harmlosen unverändert lassen.
+    zu_tauschen = [n for n in unterschiede if n in ERWARTET]
+    print("Wird übernommen:", ", ".join(zu_tauschen))
+    if unterschiede != zu_tauschen:
+        print("Bleibt unverändert (nur neuere n8n-Vorgaben):",
+              ", ".join(n for n in unterschiede if n not in ERWARTET))
+
+    for name in zu_tauschen:
+        alt[name]["parameters"] = neu[name]["parameters"]
+        alt[name]["notes"] = neu[name].get("notes", alt[name].get("notes"))
+
+    # Testkennungen für Probeläufe in die Betreiberliste aufnehmen
+    if erlaubte:
+        daten = laufend.get("staticData")
+        if isinstance(daten, str):
+            daten = json.loads(daten or "{}")
+        glob = daten.setdefault("global", {})
+        vorher = list(glob.get("erlaubte") or [])
+        glob["erlaubte"] = sorted({str(x) for x in vorher} | {str(x) for x in erlaubte.split(",")})
+        laufend["staticData"] = daten
+        print("Erlaubte Kennungen:", vorher, "->", glob["erlaubte"])
+
+    with open(ziel_datei, "w", encoding="utf-8") as f:
+        json.dump([laufend], f, ensure_ascii=False, indent=2)
+    print("geschrieben:", ziel_datei)
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

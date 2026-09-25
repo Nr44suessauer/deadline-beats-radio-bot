@@ -1,0 +1,15 @@
+[Unit]
+Description=whisper.cpp Server (Vulkan, large-v3) auf der MI50
+After=network.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/opt/whisper.cpp
+ExecStart=/opt/whisper.cpp/build/bin/whisper-server -m /opt/whisper-models/ggml-large-v3.bin --host 127.0.0.1 --port 8081 --threads 4 --beam-size 5 --vad -vm /opt/whisper-models/ggml-silero-v5.1.2.bin
+Restart=always
+RestartSec=5
+Environment=PYTHONUNBUFFERED=1
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,16 @@
+[Unit]
+Description=Whisper-Bruecke /transcribe (ffmpeg -> whisper.cpp, MI50)
+After=whisper-cpp.service
+Requires=whisper-cpp.service
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/opt/whisper-bruecke
+ExecStart=/usr/bin/python3 /opt/whisper-bruecke/whisper_amd.py --port 8000
+Restart=always
+RestartSec=5
+Environment=PYTHONUNBUFFERED=1
+
+[Install]
+WantedBy=multi-user.target

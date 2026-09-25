@@ -1,0 +1,865 @@
+[
+  {
+    "id": "RadioWerkzeugEN",
+    "name": "Tool - Radio (EN)",
+    "description": null,
+    "active": false,
+    "nodes": [
+      {
+        "parameters": {
+          "workflowInputs": {
+            "values": [
+              {
+                "name": "suchtext",
+                "type": "string"
+              },
+              {
+                "name": "richtung",
+                "type": "string"
+              },
+              {
+                "name": "frage",
+                "type": "string"
+              },
+              {
+                "name": "einreihen",
+                "type": "boolean"
+              }
+            ]
+          },
+          "inputSource": "workflowInputs"
+        },
+        "id": "e6976a6a-9da0-5d29-830f-6d206bdf267b",
+        "name": "Entry",
+        "type": "n8n-nodes-base.executeWorkflowTrigger",
+        "typeVersion": 1.1,
+        "position": [
+          -900,
+          0
+        ],
+        "notes": "Tool fields: suchtext, richtung, frage, einreihen.",
+        "notesInFlow": true
+      },
+      {
+        "parameters": {
+          "conditions": {
+            "options": {
+              "caseSensitive": true,
+              "leftValue": "",
+              "typeValidation": "loose",
+              "version": 2
+            },
+            "combinator": "and",
+            "conditions": [
+              {
+                "id": "8ef44fc0-efa8-4043-bae4-e90df9a85709",
+                "leftValue": "={{ !!String($json.richtung || '').trim() }}",
+                "rightValue": "",
+                "operator": {
+                  "type": "boolean",
+                  "operation": "true",
+                  "singleValue": true
+                }
+              }
+            ]
+          },
+          "options": {}
+        },
+        "id": "77ac9340-168b-5cd3-8acc-9970e801d8ef",
+        "name": "Direction?",
+        "type": "n8n-nodes-base.if",
+        "typeVersion": 2.2,
+        "position": [
+          -660,
+          0
+        ],
+        "notes": "Yes = mood/genre/decade -> fetch suggestions and play the first one.",
+        "notesInFlow": true
+      },
+      {
+        "parameters": {
+          "method": "GET",
+          "url": "={{ $('Configuration').first().json.konfig.dienst.adresse + \"/genre\" }}",
+          "sendQuery": true,
+          "queryParameters": {
+            "parameters": [
+              {
+                "name": "wort",
+                "value": "={{ $('Entry').first().json.richtung }}"
+              },
+              {
+                "name": "anzahl",
+                "value": "12"
+              },
+              {
+                "name": "mischen",
+                "value": "true"
+              }
+            ]
+          },
+          "sendHeaders": true,
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "X-API-Key",
+                "value": "={{ $('Configuration').first().json.konfig.sender.schluessel }}"
+              }
+            ]
+          },
+          "options": {
+            "timeout": 30000
+          }
+        },
+        "id": "67e1dab7-84b3-5da5-b0e9-81e01c18218b",
+        "name": "Search direction",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [
+          -420,
+          -480
+        ],
+        "onError": "continueRegularOutput",
+        "notes": "Catalogue service by mood, genre or decade.",
+        "notesInFlow": true
+      },
+      {
+        "parameters": {
+          "jsCode": "\n// Eingabe am Ausloeser lesen (siehe SUCHE_JS).\nconst eingang = $('Entry').first().json || {};\nconst wort = String(eingang.richtung || $json.richtung || '').trim();\nconst einreihen = eingang.einreihen === true\n  || String(eingang.einreihen || '').toLowerCase() === 'true';\nif (!wort) {\n  return [{ json: { ergebnis: 'FEHLER: Keine Richtung genannt.', pfad: '',\n    einreihen: einreihen } }];\n}\nlet j = {};\ntry { j = $('Search direction').first().json || {}; } catch (e) { j = {}; }\nif (j.error || !j.treffer || !j.treffer.length) {\n  return [{ json: { ergebnis: 'Die Richtung \"' + wort + '\" kennt der Katalog nicht. '\n    + 'Bekannte Richtungen: party, dance, rock, pop, metal, hiphop, electronic, disco, '\n    + 'punk, grunge, folk, blues, jazz, klassik, schlager, deutschrap, ruhig, hart, 90er, 80er. '\n    + 'Nimm eine davon und rufe richtung_suchen erneut auf.' } }];\n}\nconst zeilen = j.treffer.slice(0, 4).map((t, i) => (i + 1) + '. '\n  + ((t.artist ? t.artist + ' - ' : '') + (t.title || '?'))\n  + (t.length_text ? '  (' + t.length_text + ')' : ''));\nconst erster = j.treffer[0];\nconst titel = (erster.artist ? erster.artist + ' - ' : '') + (erster.title || '?');\n// Eine Stimmung ist ein Auftrag, keine Frage: gespielt wird hier im Werkzeug,\n// das Modell meldet nur noch das Ergebnis (Knoten \"Sofort eintragen\").\nconst wo = einreihen ? 'laeuft danach (nach dem laufenden Titel).' : 'laeuft jetzt sofort.';\nreturn [{ json: {\n  ergebnis: 'OK: \"' + titel + '\" ' + wo + ' (Richtung ' + (j.richtung || wort) + ').'\n    + (zeilen.length > 1 ? '\\nDanach koennen kommen: ' + zeilen.slice(1, 4).join(', ') : ''),\n  pfad: erster.path || '',\n  titel: titel,\n  einreihen: einreihen } }];\n"
+        },
+        "id": "5d576ee0-5a82-5aa3-90d1-05e4e0e57ca1",
+        "name": "Prepare suggestions",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          -180,
+          -480
+        ],
+        "notes": "Turns the suggestions into a first track or a list.",
+        "notesInFlow": true
+      },
+      {
+        "parameters": {
+          "conditions": {
+            "options": {
+              "caseSensitive": true,
+              "leftValue": "",
+              "typeValidation": "loose",
+              "version": 2
+            },
+            "combinator": "and",
+            "conditions": [
+              {
+                "id": "1a090163-9e81-4e59-a30a-ba4d505e76d4",
+                "leftValue": "={{ !!String($json.frage || '').trim() }}",
+                "rightValue": "",
+                "operator": {
+                  "type": "boolean",
+                  "operation": "true",
+                  "singleValue": true
+                }
+              }
+            ]
+          },
+          "options": {}
+        },
+        "id": "77c8e343-6f77-55fc-8fd9-ff77e48fe14b",
+        "name": "Status only?",
+        "type": "n8n-nodes-base.if",
+        "typeVersion": 2.2,
+        "position": [
+          -420,
+          0
+        ],
+        "notes": "Yes = question about the programme, no search.",
+        "notesInFlow": true
+      },
+      {
+        "parameters": {
+          "method": "GET",
+          "url": "={{ $('Configuration').first().json.konfig.sender.adresse + \"/api/nowplaying/1\" }}",
+          "sendHeaders": true,
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "X-API-Key",
+                "value": "={{ $('Configuration').first().json.konfig.sender.schluessel }}"
+              }
+            ]
+          },
+          "options": {
+            "timeout": 30000
+          }
+        },
+        "id": "0ab69bb7-231a-5d22-b8ed-ad572d1a2fb9",
+        "name": "NowPlaying",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [
+          -420,
+          1116
+        ],
+        "onError": "continueRegularOutput",
+        "notes": "What is playing, what comes next, how many listeners.",
+        "notesInFlow": true
+      },
+      {
+        "parameters": {
+          "jsCode": "\nconst j = $json || {};\nif (j.error) {\n  return [{ json: { ergebnis: 'Der Sender antwortet gerade nicht.' } }];\n}\nconst jetzt = (j.now_playing && j.now_playing.song) || {};\nconst rest = Math.max(0, Math.round((jetzt.duration || 0) - (jetzt.elapsed || 0)));\nconst naechster = (j.playing_next && j.playing_next.song) || {};\nreturn [{ json: { ergebnis: 'Jetzt laeuft: ' + (jetzt.text || 'unbekannt')\n  + (rest ? ' (noch ' + Math.floor(rest / 60) + ':' + String(rest % 60).padStart(2, '0') + ' min)' : '')\n  + '\\nDanach: ' + (naechster.text || 'unbekannt')\n  + '\\nZuhoerer: ' + ((j.listeners && j.listeners.current) || 0) } }];\n"
+        },
+        "id": "e03bebd0-79d4-59c7-89c1-c806a206da79",
+        "name": "Prepare status",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          -180,
+          1116
+        ],
+        "notes": "Phrases the state as text (the tool's return value).",
+        "notesInFlow": true
+      },
+      {
+        "parameters": {
+          "method": "GET",
+          "url": "={{ $('Configuration').first().json.konfig.dienst.adresse + \"/suche\" }}",
+          "sendQuery": true,
+          "queryParameters": {
+            "parameters": [
+              {
+                "name": "q",
+                "value": "={{ String($('Entry').first().json.suchtext || '').replace(/\\b(von|vom|the|der|die|das|den|dem|des|und|oder|aus|mit|ohne|fuer|bitte|mal|doch|einmal|sofort|gleich|jetzt|schnell|eben|denn|mir|noch|spiele|spiel|leg|lege|mach|was|etwas|ein|eine|einen|im|in|am|an|auf|zu|zur|zum|feat|ft|of|with|by|and)\\b/gi, ' ').replace(/\\s+/g, ' ').trim() }}"
+              },
+              {
+                "name": "anzahl",
+                "value": "8"
+              },
+              {
+                "name": "min_punkte",
+                "value": "40"
+              }
+            ]
+          },
+          "sendHeaders": true,
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "X-API-Key",
+                "value": "={{ $('Configuration').first().json.konfig.sender.schluessel }}"
+              }
+            ]
+          },
+          "options": {
+            "timeout": 30000
+          }
+        },
+        "id": "752578ce-d986-50cc-b424-30cce8613d46",
+        "name": "Smart search",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [
+          -420,
+          688
+        ],
+        "onError": "continueRegularOutput",
+        "notes": "Fuzzy search in the catalogue service (typo tolerant).",
+        "notesInFlow": true
+      },
+      {
+        "parameters": {
+          "method": "GET",
+          "url": "={{ $('Configuration').first().json.konfig.sender.adresse + \"/api/station/1\" + \"/files\" }}",
+          "sendQuery": true,
+          "queryParameters": {
+            "parameters": [
+              {
+                "name": "searchPhrase",
+                "value": "={{ String($('Entry').first().json.suchtext || '').replace(/\\b(von|vom|the|der|die|das|den|dem|des|und|oder|aus|mit|ohne|fuer|bitte|mal|doch|einmal|sofort|gleich|jetzt|schnell|eben|denn|mir|noch|spiele|spiel|leg|lege|mach|was|etwas|ein|eine|einen|im|in|am|an|auf|zu|zur|zum|feat|ft|of|with|by|and)\\b/gi, ' ').replace(/\\s+/g, ' ').trim() }}"
+              },
+              {
+                "name": "rowCount",
+                "value": "40"
+              }
+            ]
+          },
+          "sendHeaders": true,
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "X-API-Key",
+                "value": "={{ $('Configuration').first().json.konfig.sender.schluessel }}"
+              }
+            ]
+          },
+          "options": {
+            "timeout": 30000
+          }
+        },
+        "id": "57525a3f-d3de-550b-a407-1a9b8f2f2632",
+        "name": "Station search",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [
+          -180,
+          688
+        ],
+        "onError": "continueRegularOutput",
+        "notes": "Station full-text search as a second source.",
+        "notesInFlow": true
+      },
+      {
+        "parameters": {
+          "jsCode": "\n// Treffer beider Quellen zu einer kurzen Liste machen, die das Sprachmodell lesen kann.\n// Der Suchbegriff wird am Ausloeser gelesen: die HTTP-Schritte davor geben ihre\n// eigene Antwort aus und tragen die Eingabe nicht weiter.\nconst eingang = $('Entry').first().json || {};\nconst suchtext = String(eingang.suchtext || $json.suchtext || '').trim();\nconst einreihen = eingang.einreihen === true\n  || String(eingang.einreihen || '').toLowerCase() === 'true';\nif (!suchtext) {\n  return [{ json: { ergebnis: 'FEHLER: Kein Suchbegriff. Nenne Interpret und/oder Titel, '\n    + 'zum Beispiel \"Modern Talking Juliet\". Suche nie ohne Begriff.', pfad: '',\n    einreihen: einreihen } }];\n}\n\nconst okText = (t) => 'OK: \"' + t + '\" ' + (einreihen\n  ? 'laeuft danach (nach dem laufenden Titel).'\n  : 'laeuft jetzt sofort.');\n\n// Merker der letzten Auswahlliste: \"2\" oder \"nummer 2\" loest daraus auf. So muss\n// das Modell den Dateipfad nicht abschreiben - kleinere Modelle erfinden ihn sonst.\nconst d = $getWorkflowStaticData('global');\nconst vorher = Array.isArray(d.listen) ? d.listen : [];\nconst zahl = suchtext.match(/^[^\\d]{0,12}(\\d{1,2})[^\\d]{0,6}$/);\nif (zahl) {\n  const t = vorher[Number(zahl[1]) - 1];\n  if (!t) {\n    return [{ json: { ergebnis: (vorher.length\n      ? 'Die Nummer ' + zahl[1] + ' gibt es nicht - zur Auswahl standen ' + vorher.length + ' Titel.'\n      : 'Es steht keine Auswahlliste bereit. Suche erst nach einem Titel.'), pfad: '',\n      einreihen: einreihen } }];\n  }\n  d.listen = [];\n  return [{ json: { ergebnis: okText(t.titel), pfad: t.pfad, titel: t.titel,\n    einreihen: einreihen } }];\n}\n\nfunction quelle(quelleName) {\n  try {\n    const j = $(quelleName).first().json;\n    if (!j || j.error) return [];\n    if (Array.isArray(j.treffer)) return j.treffer;              // Katalogdienst\n    return (j.rows || j.data || (Array.isArray(j) ? j : []));    // Sender\n  } catch (e) { return []; }\n}\n\nconst norm = (s) => String(s || '').toLowerCase()\n  .replace(/ä/g, 'ae').replace(/ö/g, 'oe').replace(/ü/g, 'ue').replace(/ß/g, 'ss')\n  .replace(/[^a-z0-9]+/g, ' ').trim();\n\n// Kern des Titels ohne Fassungszusatz: \"Juliet (remastered)\", \"01. Juliet\" und\n// \"Juliet\" sind dasselbe Lied. Ohne diese Zusammenfassung sieht das Modell drei\n// Moeglichkeiten und fragt nach, statt einfach zu spielen (Wunsch des Betreibers:\n// ein genannter Titel laeuft sofort).\nconst kernTitel = (t) => norm(t && t.title)\n  .replace(/^\\d{1,3}\\s+/, ' ')\n  .replace(/\\s*[\\(\\[][^\\)\\]]*[\\)\\]]/g, ' ')\n  .replace(/\\b(remaster(ed)?|remix|live|edit|version|extended|single|album|radio)\\b/g, ' ')\n  .replace(/\\s+/g, ' ').trim();\n\n// Ein Zusatzwort am Ende ist dieselbe Aufnahme (\"juliet jeo s\"), ein anderes Wort\n// nicht (\"juliet in love\").\nfunction istFassung(a, b) {\n  if (!a.length || !b.length) return false;\n  const kurz = a.length <= b.length ? a : b;\n  const lang = a.length <= b.length ? b : a;\n  for (let i = 0; i < kurz.length; i += 1) if (kurz[i] !== lang[i]) return false;\n  return true;\n}\n\nconst kernS = (t) => kernTitel(t).split(' ').filter(Boolean);\nconst treffer = [];\nconst gesehen = new Set();\nconst kerne = [];\nfor (const t of quelle('Suche klug').concat(quelle('Suche Sender'))) {\n  const pfad = t.path || '';\n  if (!pfad) continue;\n  // Live-/Bootleg-Mitschnitte liegen im Archiv und werden nie vorgeschlagen.\n  // Der Schraegstrich muss einfach maskiert sein (\\/) - mit \\\\/ waere der\n  // regulaere Ausdruck in JavaScript ungueltig.\n  if (/^_Archiv\\//i.test(pfad)) continue;\n  const roh = (t.artist || '') + '|' + (t.title || '') + '|' + pfad;\n  if (gesehen.has(roh)) continue;\n  gesehen.add(roh);\n  const artist = norm(t.artist);\n  const kern = kernS(t);\n  if (kerne.some((k) => k.artist === artist && istFassung(k.kern, kern))) continue;\n  kerne.push({ artist: artist, kern: kern });\n  treffer.push(t);\n  if (treffer.length >= 5) break;\n}\n\nif (!treffer.length) {\n  d.listen = [];\n  return [{ json: { ergebnis: 'KEINE TREFFER fuer \"' + suchtext + '\". '\n    + 'Versuche den Interpreten allein oder eine Richtung (richtung_suchen).', pfad: '',\n    einreihen: einreihen } }];\n}\n\n// Wie viele Titel eine Auswahlliste hoechstens zeigt. Telegram erlaubt deutlich\n// mehr Knoepfe (callback_data ist auf 1-64 Bytes begrenzt, deshalb steht dort nur\n// eine Nummer), aber acht Vorschlaege sind im Chat eine gute Grenze.\nconst AUSWAHL_MAX = 8;\n\n// Bewertung: \"spiele Juliet von Modern Talking\" soll sofort spielen, nicht\n// nachfragen. Ein einzelner Suchbegriff liefert im Archiv schnell einen zweiten\n// Titel aus demselben Album (\"Down on My Knees\") - der ist deutlich schwaecher\n// und darf keine Rueckfrage ausloesen. Deshalb nur dann eine Liste zeigen, wenn\n// zwei Treffer gleich stark sind.\n//\n// Fuellwoerter fliegen raus (\"von\", \"the\", \"bitte\"), sonst passt nie ein Titel\n// vollstaendig. Und: ein Titel, in dem NICHT alle genannten Woerter vorkommen,\n// ist nie ein klarer Treffer - sonst spielt \"Sweet Dreams von Eurythmics\" am\n// Ende \"Sweet Dreams My Love\" von jemand anderem (passiert am 2026-09-19).\nconst STOPP = new Set(['von', 'vom', 'der', 'die', 'das', 'den', 'dem', 'des', 'und', 'oder',\n  'aus', 'mit', 'ohne', 'fuer', 'im', 'in', 'am', 'an', 'auf', 'zu', 'zur', 'zum', 'ein', 'eine',\n  'einen', 'the', 'of', 'with', 'by', 'and', 'a', 'la', 'le', 'los', 'les', 'feat', 'ft',\n  'bitte', 'mal', 'spiele', 'spiel', 'leg', 'was']);\nconst woerter = norm(suchtext).split(' ').filter((w) => w && !STOPP.has(w));\nconst nenntAlle = (t) => {\n  if (!woerter.length) return false;\n  const teile = (norm(t.artist) + ' ' + norm(t.title) + ' ' + norm(t.path)).split(' ');\n  return woerter.every((w) => teile.includes(w) || teile.some((x) => x.length > 3 && x.includes(w)));\n};\nfunction punkte(t) {\n  const titel = norm(t.title);\n  const artist = norm(t.artist);\n  const heu = [titel, artist, norm(t.album), norm(t.path)].join(' ');\n  let p = 0;\n  for (const w of woerter) {\n    if (artist.split(' ').includes(w)) p += 30;\n    if (titel.split(' ').includes(w)) p += 25;\n    if (heu.includes(w)) p += 8;\n  }\n  // Alles, was der Nutzer genannt hat, steckt in Interpret oder Titel.\n  if (nenntAlle(t)) p += 40;\n  const dauer = Number(t.length);\n  if (dauer > 0 && dauer < 45) p -= 35;        // Jingles, angespielte Dateien\n  if (/^moderation\\//i.test(String(t.path || ''))) p -= 60;\n  return p;\n}\n\nconst bewertet = treffer.map((t) => ({ t: t, p: punkte(t) })).sort((a, b) => b.p - a.p);\nconst klar = nenntAlle(bewertet[0].t)\n  && (bewertet.length === 1 || (bewertet[0].p - bewertet[1].p) >= 25);\nconst zeigen = klar ? bewertet.slice(0, 1) : bewertet.slice(0, AUSWAHL_MAX);\n\nconst name = (t) => (t.artist ? t.artist + ' - ' : '') + (t.title || '?');\nconst zeilen = zeigen.map((e, i) => (i + 1) + '. ' + name(e.t)\n  + (e.t.length_text ? '  (' + e.t.length_text + ')' : ''));\nconst bester = zeigen[0].t;\n\nif (klar) {\n  d.listen = [];\n  // Klarer Treffer: das Werkzeug spielt selbst (Knoten \"Sofort eintragen\") - das\n  // Modell bekommt nur die fertige Meldung und kann den Titel nicht bloss ankuendigen.\n  return [{ json: { ergebnis: okText(name(bester)), pfad: bester.path || '',\n    titel: name(bester), einreihen: einreihen } }];\n}\n\n// Auswahl merken: bei der naechsten Nachricht (\"2\" oder Knopfdruck) loest das\n// Werkzeug daraus auf. \"auswahl\" sind nur die Titel - der Bot baut daraus die\n// anklickbaren Knoepfe (callback_data \"w\" + Nummer), der Dateipfad bleibt hier.\nd.listen = zeigen.map((e) => ({ titel: name(e.t), pfad: e.t.path }));\nreturn [{ json: {\n  ergebnis: 'Mehrere Titel passen zu \"' + suchtext + '\":\\n' + zeilen.join('\\n')\n    + '\\n\\nFrage kurz, welcher gemeint ist. Antwortet er mit einer Nummer, rufe titel_suchen\\n'\n    + 'mit genau dieser Nummer als suchtext auf.',\n  auswahl: zeigen.map((e) => name(e.t)),\n  pfad: '', einreihen: einreihen } }];\n"
+        },
+        "id": "dfbc499d-6aaf-5109-8316-6656b17e3b66",
+        "name": "Prepare hits",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          60,
+          688
+        ],
+        "notes": "Combines hits from both sources into a short list.",
+        "notesInFlow": true
+      },
+      {
+        "parameters": {
+          "conditions": {
+            "options": {
+              "caseSensitive": true,
+              "leftValue": "",
+              "typeValidation": "loose",
+              "version": 2
+            },
+            "combinator": "and",
+            "conditions": [
+              {
+                "id": "2f92def1-18c0-4e92-bc4e-71b8a0158a3d",
+                "leftValue": "={{ !!$json.pfad }}",
+                "rightValue": "",
+                "operator": {
+                  "type": "boolean",
+                  "operation": "true",
+                  "singleValue": true
+                }
+              }
+            ]
+          },
+          "options": {}
+        },
+        "id": "bcb20b5d-5e4a-58e0-8e36-0f5b2aaaf250",
+        "name": "Hits present?",
+        "type": "n8n-nodes-base.if",
+        "typeVersion": 2.2,
+        "position": [
+          540,
+          0
+        ],
+        "notes": "Yes = there is a track that should play.",
+        "notesInFlow": true
+      },
+      {
+        "parameters": {
+          "conditions": {
+            "options": {
+              "caseSensitive": true,
+              "leftValue": "",
+              "typeValidation": "loose",
+              "version": 2
+            },
+            "combinator": "and",
+            "conditions": [
+              {
+                "id": "25da2f5b-41f8-4538-9a61-3fdd53de3a6e",
+                "leftValue": "={{ $('Hits present?').first().json.einreihen }}",
+                "rightValue": "",
+                "operator": {
+                  "type": "boolean",
+                  "operation": "true",
+                  "singleValue": true
+                }
+              }
+            ]
+          },
+          "options": {}
+        },
+        "id": "30423b01-373e-58ba-9726-015a8d287531",
+        "name": "Queue it?",
+        "type": "n8n-nodes-base.if",
+        "typeVersion": 2.2,
+        "position": [
+          780,
+          0
+        ],
+        "notes": "Yes = only queue it, do not interrupt.",
+        "notesInFlow": true
+      },
+      {
+        "parameters": {
+          "method": "PUT",
+          "url": "={{ $('Configuration').first().json.konfig.sender.adresse + \"/api/admin\" + \"/debug/station/1/telnet\" }}",
+          "sendHeaders": true,
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "X-API-Key",
+                "value": "={{ $('Configuration').first().json.konfig.sender.schluessel }}"
+              }
+            ]
+          },
+          "options": {
+            "timeout": 30000
+          },
+          "sendBody": true,
+          "specifyBody": "json",
+          "jsonBody": "={{ JSON.stringify({ command: 'interrupting_requests.flush_and_skip' }) }}"
+        },
+        "id": "288c3247-c9f3-5bc6-a00a-fad234bdbc83",
+        "name": "Clear queue",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [
+          1020,
+          -260
+        ],
+        "onError": "continueRegularOutput",
+        "notes": "Clears the station's interrupting queue.",
+        "notesInFlow": true
+      },
+      {
+        "parameters": {
+          "method": "PUT",
+          "url": "={{ $('Configuration').first().json.konfig.sender.adresse + \"/api/station/1\" + \"/files/batch\" }}",
+          "sendHeaders": true,
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "X-API-Key",
+                "value": "={{ $('Configuration').first().json.konfig.sender.schluessel }}"
+              }
+            ]
+          },
+          "options": {
+            "timeout": 30000
+          },
+          "sendBody": true,
+          "specifyBody": "json",
+          "jsonBody": "={{ JSON.stringify({ do: 'immediate', files: [$('Hits present?').first().json.pfad] }) }}"
+        },
+        "id": "82cbb02e-d0af-5761-927a-3ee8258ee4fe",
+        "name": "Insert now",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [
+          1260,
+          -260
+        ],
+        "onError": "continueRegularOutput",
+        "notes": "Inserts the track into the interrupting queue right away.",
+        "notesInFlow": true
+      },
+      {
+        "parameters": {
+          "method": "PUT",
+          "url": "={{ $('Configuration').first().json.konfig.sender.adresse + \"/api/station/1\" + \"/files/batch\" }}",
+          "sendHeaders": true,
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "X-API-Key",
+                "value": "={{ $('Configuration').first().json.konfig.sender.schluessel }}"
+              }
+            ]
+          },
+          "options": {
+            "timeout": 30000
+          },
+          "sendBody": true,
+          "specifyBody": "json",
+          "jsonBody": "={{ JSON.stringify({ do: 'queue', files: [$('Hits present?').first().json.pfad] }) }}"
+        },
+        "id": "12a6038e-c0b8-50f0-9d77-17e961804c0d",
+        "name": "Insert after",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [
+          1260,
+          180
+        ],
+        "onError": "continueRegularOutput",
+        "notes": "Appends the track after the current one.",
+        "notesInFlow": true
+      },
+      {
+        "parameters": {
+          "jsCode": "\n// Der Suchlauf hat bei einem klaren Treffer schon gespielt - hier nur noch die\n// Antwort des Senders pruefen und den Text weitergeben. Der Text steht je nach\n// Zweig in \"Treffer aufbereiten\" (Titelsuche) oder \"Vorschlaege aufbereiten\"\n// (Richtung); der jeweils andere Knoten ist nicht gelaufen.\nlet auf = {};\ntry { auf = $('Prepare hits').first().json || {}; } catch (e) { auf = {}; }\nif (!auf.ergebnis) {\n  try { auf = $('Prepare suggestions').first().json || {}; } catch (e) { auf = {}; }\n}\nlet antwort = null;\nif (auf.pfad) {\n  const quelle = auf.einreihen ? 'Danach eintragen' : 'Sofort eintragen';\n  try { antwort = $(quelle).first().json; } catch (e) { antwort = null; }\n}\nif (!auf.pfad || !antwort) return [{ json: { ergebnis: auf.ergebnis || 'Kein Treffer.',\n  auswahl: Array.isArray(auf.auswahl) ? auf.auswahl : [] } }];\nconst fehler = (antwort.errors || []).length || antwort.error;\nreturn [{ json: { ergebnis: (fehler\n  ? 'FEHLER beim Eintragen: ' + JSON.stringify(antwort.errors || antwort.error)\n  : auf.ergebnis),\n  auswahl: Array.isArray(auf.auswahl) ? auf.auswahl : [] } }];\n"
+        },
+        "id": "58b11f1f-3ac2-51ce-82a5-899f194e3c87",
+        "name": "Result",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          1700,
+          0
+        ],
+        "notes": "Output node: the tool workflow ends here.",
+        "notesInFlow": true
+      },
+      {
+        "parameters": {
+          "source": "database",
+          "workflowId": {
+            "__rl": true,
+            "value": "KonfigurationEN",
+            "mode": "list",
+            "cachedResultName": "Konfiguration - alle Werte"
+          },
+          "workflowInputs": {
+            "mappingMode": "defineBelow",
+            "value": {
+              "eingang": "={{ JSON.stringify($json) }}"
+            },
+            "matchingColumns": [],
+            "schema": [
+              {
+                "id": "eingang",
+                "displayName": "eingang",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true,
+                "removed": false
+              }
+            ],
+            "attemptToConvertTypes": false,
+            "convertFieldsToString": false
+          }
+        },
+        "id": "49c7c3bf-33e6-5b8c-8275-108febbfeca3",
+        "name": "Configuration",
+        "type": "n8n-nodes-base.executeWorkflow",
+        "typeVersion": 1.2,
+        "position": [
+          -900,
+          260
+        ],
+        "notes": "All addresses, keys and task texts (Configuration workflow).",
+        "notesInFlow": true
+      },
+      {
+        "parameters": {
+          "content": "## Switches\nDirection, state or title search - one of three.",
+          "height": 618,
+          "width": 920,
+          "color": 5
+        },
+        "id": "c2ebf6d0-2bc2-5b09-adff-97a72b2d273b",
+        "name": "Note W switches",
+        "type": "n8n-nodes-base.stickyNote",
+        "typeVersion": 1,
+        "position": [
+          -990,
+          -116
+        ]
+      },
+      {
+        "parameters": {
+          "content": "## Branch: direction\nMood, genre or decade from the catalogue service.",
+          "height": 358,
+          "width": 610,
+          "color": 4
+        },
+        "id": "d58159bb-85c9-5015-9516-163cb403f4e7",
+        "name": "Note W direction",
+        "type": "n8n-nodes-base.stickyNote",
+        "typeVersion": 1,
+        "position": [
+          -510,
+          -596
+        ]
+      },
+      {
+        "parameters": {
+          "content": "## Branch: title search\nCatalogue service (fuzzy) and the station's full-text search.",
+          "height": 358,
+          "width": 850,
+          "color": 1
+        },
+        "id": "d65873d8-a9dc-50ee-acde-e230c18046d0",
+        "name": "Note W search",
+        "type": "n8n-nodes-base.stickyNote",
+        "typeVersion": 1,
+        "position": [
+          -510,
+          572
+        ]
+      },
+      {
+        "parameters": {
+          "content": "## Branch: what's playing\nOnly the state - the return value is the text.",
+          "height": 358,
+          "width": 610,
+          "color": 6
+        },
+        "id": "13c864dc-ea62-5df7-9400-c436ea4cbba2",
+        "name": "Note W status",
+        "type": "n8n-nodes-base.stickyNote",
+        "typeVersion": 1,
+        "position": [
+          -510,
+          1000
+        ]
+      },
+      {
+        "parameters": {
+          "content": "## Playback\nWithout a path nothing is inserted - then it stays a selection list.\nWith a path: first clear the interrupting queue, then insert now or at the back.",
+          "height": 798,
+          "width": 1090,
+          "color": 3
+        },
+        "id": "9f4403da-6950-5e73-a011-96f8b3e4619e",
+        "name": "Note W playback",
+        "type": "n8n-nodes-base.stickyNote",
+        "typeVersion": 1,
+        "position": [
+          450,
+          -394
+        ]
+      },
+      {
+        "parameters": {
+          "content": "## Output\nThe tool workflow ends here - the text goes back to the agent.",
+          "height": 358,
+          "width": 370,
+          "color": 2
+        },
+        "id": "63a5c18c-6c13-5e0f-b7e3-449a7f2fa482",
+        "name": "Note W output",
+        "type": "n8n-nodes-base.stickyNote",
+        "typeVersion": 1,
+        "position": [
+          1610,
+          -134
+        ]
+      },
+      {
+        "parameters": {
+          "content": "## Tool - Radio\nSub-interface of the agent for music: switches, title search, direction, state, playback.\nIt is called through the agent's tool nodes (Tool title search etc.).\nThe plan is the source: radio/werkzeuge/agent-wf-bauen.py (W_ANORDNUNG, W_BEREICHE).\nChange/check like the agent; description: ARCHITEKTUR.md, FAEHIGKEITEN.md, ANHANG/n8n-oberflaeche.html",
+          "height": 172,
+          "width": 1150,
+          "color": 2
+        },
+        "id": "0f054de2-955f-5ebb-9aa2-b855369a78a2",
+        "name": "Note docs",
+        "type": "n8n-nodes-base.stickyNote",
+        "typeVersion": 1,
+        "position": [
+          -900,
+          -848
+        ]
+      }
+    ],
+    "connections": {
+      "Entry": {
+        "main": [
+          [
+            {
+              "node": "Configuration",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Direction?": {
+        "main": [
+          [
+            {
+              "node": "Search direction",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Status only?",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Search direction": {
+        "main": [
+          [
+            {
+              "node": "Prepare suggestions",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Prepare suggestions": {
+        "main": [
+          [
+            {
+              "node": "Hits present?",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Status only?": {
+        "main": [
+          [
+            {
+              "node": "NowPlaying",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Smart search",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "NowPlaying": {
+        "main": [
+          [
+            {
+              "node": "Prepare status",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Smart search": {
+        "main": [
+          [
+            {
+              "node": "Station search",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Station search": {
+        "main": [
+          [
+            {
+              "node": "Prepare hits",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Prepare hits": {
+        "main": [
+          [
+            {
+              "node": "Hits present?",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Hits present?": {
+        "main": [
+          [
+            {
+              "node": "Queue it?",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Result",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Queue it?": {
+        "main": [
+          [
+            {
+              "node": "Insert after",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Clear queue",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Clear queue": {
+        "main": [
+          [
+            {
+              "node": "Insert now",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Insert now": {
+        "main": [
+          [
+            {
+              "node": "Result",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Insert after": {
+        "main": [
+          [
+            {
+              "node": "Result",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Configuration": {
+        "main": [
+          [
+            {
+              "node": "Direction?",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    },
+    "settings": {
+      "executionOrder": "v1"
+    },
+    "tags": [
+      {
+        "name": "Radio-Werkzeug"
+      }
+    ]
+  }
+]

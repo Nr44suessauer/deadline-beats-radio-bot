@@ -1,0 +1,37 @@
+services:
+  radio-tts:
+    build: .
+    image: radio-tts:latest
+    container_name: radio-tts
+    restart: unless-stopped
+    ports:
+      - "8881:8881"
+    volumes:
+      # Eigene Stimmen: <name>.onnx + <name>.onnx.json hier ablegen
+      - ./voices:/voices
+      # Katalog des Musikarchivs (unscharfe Suche, Vorschlaege)
+      - ./daten:/daten
+    env_file:
+      - ./geheim.env
+    environment:
+      VOICE_DIR: /voices
+      # Eigene Moderationsstimme: "deine-stimme" erzeugt der Stimmendienst auf der
+      # GPU-Maschine (edge-tts + RVC, CT 111 Port 10205; Aufbau:
+      # docs/projects/Ai_Radio_Moderator_Bot/Sender-1-Deadline-Beats/DOKU/STIMME.md). Ist er nicht
+      # erreichbar, spricht der Dienst mit EIGENE_STIMME_ERSATZ weiter. Piper-Stimmen
+      # bleiben ueber das Feld voice/stimme waehlbar (de_thorsten, de_kerstin ...).
+      # Standardstimme: seit 2026-09-25 de_thorsten (Piper, laeuft immer).
+      # Die eigene Stimme wird nur noch auf ausdruecklichen Wunsch verwendet
+      # ("... mit eigener Stimme" -> stimme=deine-stimme in der Ansage-Anfrage).
+      TTS_DEFAULT_VOICE: ${TTS_DEFAULT_VOICE:-de_thorsten}
+      EIGENE_STIMME_URL: ${EIGENE_STIMME_URL:-http://192.168.178.116:10205/tts}
+      EIGENE_STIMME_ERSATZ: ${EIGENE_STIMME_ERSATZ:-de_thorsten}
+      # Eigene Suchmaschine fuer den Themen-Ueberblick (LXC 108, SearXNG).
+      # Leer lassen = Rueckfall auf DuckDuckGo/Bing.
+      RECHERCHE_SEARX_URL: ${RECHERCHE_SEARX_URL:-http://192.168.178.26:8888}
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8881/health').status==200 else 1)"]
+      interval: 60s
+      timeout: 10s
+      retries: 3
+      start_period: 20s

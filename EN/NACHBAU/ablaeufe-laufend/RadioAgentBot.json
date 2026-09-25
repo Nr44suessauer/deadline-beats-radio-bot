@@ -1,0 +1,3762 @@
+[
+  {
+    "id": "RadioAgentBotEN",
+    "name": "Radio - Telegram Agent (EN)",
+    "description": null,
+    "active": false,
+    "nodes": [
+      {
+        "parameters": {
+          "updates": [
+            "message",
+            "callback_query"
+          ],
+          "additionalFields": {}
+        },
+        "id": "0fd24045-b500-586f-8e74-dcd5b7c1d752",
+        "name": "Telegram Trigger",
+        "type": "n8n-nodes-base.telegramTrigger",
+        "typeVersion": 1.2,
+        "position": [
+          -4200,
+          -1380
+        ],
+        "webhookId": "1cd60673-b7e9-5e1d-8ad3-6b95bac0a620",
+        "credentials": {
+          "telegramApi": {
+            "id": "DEINE-TELEGRAMAPI-KENNUNG",
+            "name": "Telegram account 2"
+          }
+        },
+        "notes": "Entry in the operator chat: messages and button presses.",
+        "notesInFlow": true
+      },
+      {
+        "parameters": {
+          "httpMethod": "POST",
+          "path": "DEIN-WEBHOOK-PFAD",
+          "responseMode": "lastNode",
+          "options": {}
+        },
+        "id": "228ce217-cbcb-5756-bd88-0e3d83081c0e",
+        "name": "Test input",
+        "type": "n8n-nodes-base.webhook",
+        "typeVersion": 2,
+        "position": [
+          -4200,
+          -1060
+        ],
+        "webhookId": "e610aee3-fa76-569b-a671-d4c73e5f0364",
+        "notes": "For testing only: accepts a Telegram message as JSON.",
+        "notesInFlow": true
+      },
+      {
+        "parameters": {
+          "jsCode": "\n// Telegram-Update vereinheitlichen (Nachricht, Sprachnachricht, Knopfdruck).\nconst roh = $input.first().json ?? {};\nconst b = (roh.body && typeof roh.body === 'object') ? roh.body : null;\nconst quelle = (b && (b.message || b.callback_query || b.edited_message)) ? b : roh;\nconst istTest = !!(roh.body || roh.webhookUrl);\nconst schluessel = String((roh.query && roh.query.schluessel) || quelle.schluessel || '');\nconst cq = quelle.callback_query || null;\nconst m = quelle.message || (cq && cq.message) || {};\nconst von = (cq && cq.from) || m.from || {};\nconst stimme = m.voice || m.audio || null;\n// Knopfdruck aus der Auswahlliste: Die Kennung wird zur Nummer - der weitere\n// Ablauf behandelt sie wie eine getippte \"2\" (das Werkzeug loest die Nummer aus\n// seiner gemerkten Liste auf). Der Text der Bot-Nachricht ist hier NICHT gemeint.\n// Alte Kennungen (\"w:2\") werden mitgelesen, damit alte Pruefskripte nicht stumm\n// das Falsche testen.\nconst knopf = cq ? String(cq.data || '') : '';\nconst knopfNummer = (knopf.match(/^w:?(\\d{1,2})$/) || [])[1] || '';\nreturn [{ json: {\n  chatId: String((m.chat && m.chat.id) !== undefined ? m.chat.id : ''),\n  text: cq ? knopfNummer : String(m.text || '').trim(),\n  knopfRoh: knopf,\n  istSprache: !!stimme,\n  stimmeDateiId: stimme ? String(stimme.file_id || '') : '',\n  stimmeTestUrl: (stimme && stimme.test_url) ? String(stimme.test_url) : '',\n  messageId: (cq && cq.message ? cq.message.message_id : m.message_id) || null,\n  userName: [von.first_name, von.last_name].filter(Boolean).join(' ') || von.username || '',\n  isCallback: !!cq,\n  istTest, schluessel,\n  eingang: new Date().toISOString(),\n} }];\n"
+        },
+        "id": "d5a7159b-4312-557f-99e7-677e6b20fadd",
+        "name": "Input",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          -3980,
+          -1220
+        ],
+        "notes": "Message, voice, button press",
+        "notesInFlow": true
+      },
+      {
+        "parameters": {
+          "conditions": {
+            "options": {
+              "caseSensitive": true,
+              "leftValue": "",
+              "typeValidation": "loose",
+              "version": 2
+            },
+            "combinator": "and",
+            "conditions": [
+              {
+                "id": "df35258c-22c6-4891-b04a-e3c22f3fb685",
+                "leftValue": "={{ $json.istSprache }}",
+                "rightValue": "",
+                "operator": {
+                  "type": "boolean",
+                  "operation": "true",
+                  "singleValue": true
+                }
+              }
+            ]
+          },
+          "options": {}
+        },
+        "id": "f5113f3e-eb24-53c1-a350-813ac42044e0",
+        "name": "Voice message?",
+        "type": "n8n-nodes-base.if",
+        "typeVersion": 2.2,
+        "position": [
+          -3760,
+          -1220
+        ],
+        "notes": "Yes = voice message, its own branch above.",
+        "notesInFlow": true
+      },
+      {
+        "parameters": {
+          "method": "GET",
+          "url": "={{ $('Configuration').first().json.konfig.telegram.bot + \"/getFile\" }}",
+          "sendQuery": true,
+          "queryParameters": {
+            "parameters": [
+              {
+                "name": "file_id",
+                "value": "={{ $json.stimmeDateiId }}"
+              }
+            ]
+          },
+          "options": {
+            "timeout": 20000
+          }
+        },
+        "id": "69d4179f-02a3-50d2-997e-fcacfdb09a98",
+        "name": "Fetch file",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [
+          -3800,
+          -2060
+        ],
+        "onError": "continueRegularOutput",
+        "notes": "Fetch the voice message's path from Telegram.",
+        "notesInFlow": true
+      },
+      {
+        "parameters": {
+          "method": "GET",
+          "url": "={{ $('Input').item.json.stimmeTestUrl || ('https://api.telegram.org/file/bot' + $('Configuration').first().json.konfig.telegram.token + '/' + ($json.result ? $json.result.file_path : '')) }}",
+          "options": {
+            "timeout": 30000,
+            "response": {
+              "response": {
+                "responseFormat": "file",
+                "outputPropertyName": "audio"
+              }
+            }
+          }
+        },
+        "id": "1da59be8-d2e1-5619-9918-86be93bf5c51",
+        "name": "Download audio",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [
+          -3580,
+          -2060
+        ],
+        "onError": "continueRegularOutput",
+        "notes": "Download the file (in tests via stimme.test_url).",
+        "notesInFlow": true
+      },
+      {
+        "parameters": {
+          "method": "POST",
+          "url": "={{ $('Configuration').first().json.konfig.sprache.adresse }}",
+          "sendBody": true,
+          "contentType": "multipart-form-data",
+          "bodyParameters": {
+            "parameters": [
+              {
+                "parameterType": "formBinaryData",
+                "name": "file",
+                "inputDataFieldName": "audio"
+              },
+              {
+                "parameterType": "formData",
+                "name": "language",
+                "value": "de"
+              }
+            ]
+          },
+          "options": {
+            "timeout": 120000
+          }
+        },
+        "id": "9ba9f3dd-ddad-505b-a990-bba990807025",
+        "name": "Convert",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [
+          -3360,
+          -2060
+        ],
+        "onError": "continueRegularOutput",
+        "notes": "Speech recognition on the ai server (whisper.cpp, MI50).",
+        "notesInFlow": true
+      },
+      {
+        "parameters": {
+          "jsCode": "\n// Sprachnachricht: nur den Text weitergeben, deuten laesst der Agent deuten.\nconst felder = $('Input').item.json;\nconst roh = $input.first().json || {};\nif (roh.error) {\n  return [{ json: Object.assign({}, felder, { text: '',\n    antwort: '\\u26a0\\ufe0f Die Sprachnachricht konnte nicht verarbeitet werden.' }) }];\n}\nconst sauber = String(roh.text || '').replace(/\\s+/g, ' ').trim();\nif (!sauber) {\n  return [{ json: Object.assign({}, felder, { text: '',\n    antwort: '\\U0001f3a7 Ich habe nichts verstanden - bitte nochmal sprechen.' }) }];\n}\nreturn [{ json: Object.assign({}, felder, { text: sauber, gehoert: sauber }) }];\n"
+        },
+        "id": "a8e3ed09-55a0-58b7-8c5e-f9425ededd3b",
+        "name": "Transcript",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          -3140,
+          -2060
+        ],
+        "notes": "Pass on the text only - interpretation happens later.",
+        "notesInFlow": true
+      },
+      {
+        "parameters": {
+          "conditions": {
+            "options": {
+              "caseSensitive": true,
+              "leftValue": "",
+              "typeValidation": "loose",
+              "version": 2
+            },
+            "combinator": "and",
+            "conditions": [
+              {
+                "id": "aabdcfc5-fd88-48c4-bf81-5102af69e2c7",
+                "leftValue": "={{ !!$json.text }}",
+                "rightValue": "",
+                "operator": {
+                  "type": "boolean",
+                  "operation": "true",
+                  "singleValue": true
+                }
+              }
+            ]
+          },
+          "options": {}
+        },
+        "id": "005ff23d-ec52-586c-8678-408042b461a5",
+        "name": "Understood?",
+        "type": "n8n-nodes-base.if",
+        "typeVersion": 2.2,
+        "position": [
+          -2920,
+          -2060
+        ],
+        "notes": "No = nothing understood, short feedback.",
+        "notesInFlow": true
+      },
+      {
+        "parameters": {
+          "jsCode": "\nconst j = $json;\nreturn [{ json: { chatId: j.chatId || $('Input').item.json.chatId,\n  antwort: '\\U0001f3a7 Verstanden: \\u00bb' + (j.gehoert || '') + '\\u00ab' } }];\n"
+        },
+        "id": "c80e8332-8c5b-50f0-8f2e-30d79118a571",
+        "name": "Heard text",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          -2700,
+          -2060
+        ],
+        "notes": "Shows what was understood, for control.",
+        "notesInFlow": true
+      },
+      {
+        "parameters": {
+          "jsCode": "\n// Nur der Betreiber darf den Sender steuern.\nconst d = $getWorkflowStaticData('global');\nif (!Array.isArray(d.erlaubte)) d.erlaubte = (d.erlaubte ? [d.erlaubte] : []);\nconst j = $json;\nif (j.istTest && (!d.testSchluessel || j.schluessel !== d.testSchluessel)) {\n  return [{ json: Object.assign({}, j, { erlaubt: false, neuerBetreiber: false }) }];\n}\nlet erlaubt = false;\nlet neu = false;\nif (d.erlaubte.length === 0 && j.chatId) {\n  d.erlaubte.push(j.chatId);\n  erlaubt = true;\n  neu = true;\n} else {\n  erlaubt = d.erlaubte.includes(j.chatId);\n}\nreturn [{ json: Object.assign({}, j, { erlaubt, neuerBetreiber: neu }) }];\n"
+        },
+        "id": "671907d1-6c21-5516-8e5f-fa9cf2e444ff",
+        "name": "Access",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          -3200,
+          -1220
+        ],
+        "notes": "Operator only",
+        "notesInFlow": true
+      },
+      {
+        "parameters": {
+          "conditions": {
+            "options": {
+              "caseSensitive": true,
+              "leftValue": "",
+              "typeValidation": "loose",
+              "version": 2
+            },
+            "combinator": "and",
+            "conditions": [
+              {
+                "id": "c1a27ce2-7a78-495e-801a-5c774e5e8a41",
+                "leftValue": "={{ $json.erlaubt }}",
+                "rightValue": "",
+                "operator": {
+                  "type": "boolean",
+                  "operation": "true",
+                  "singleValue": true
+                }
+              }
+            ]
+          },
+          "options": {}
+        },
+        "id": "73ca53d0-808b-5bfb-84cc-e4f250e120d4",
+        "name": "Allowed?",
+        "type": "n8n-nodes-base.if",
+        "typeVersion": 2.2,
+        "position": [
+          -2980,
+          -1220
+        ],
+        "notes": "No = refusal, the run ends.",
+        "notesInFlow": true
+      },
+      {
+        "parameters": {
+          "jsCode": "\nconst j = $json;\nreturn [{ json: Object.assign({}, j, { antwort: j.neuerBetreiber\n  ? '\\u2705 Diesen Chat als Betreiber eingetragen. Schreib einfach, was laufen soll.'\n  : '\\u26d4 Kein Zugang. Dieser Bot ist auf den Betreiber beschraenkt.' }) }];\n"
+        },
+        "id": "196ee650-677c-51a4-b5a8-411002d2b16e",
+        "name": "No access",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          -2980,
+          -1500
+        ],
+        "notes": "Short refusal.",
+        "notesInFlow": true
+      },
+      {
+        "parameters": {
+          "conditions": {
+            "options": {
+              "caseSensitive": true,
+              "leftValue": "",
+              "typeValidation": "loose",
+              "version": 2
+            },
+            "combinator": "and",
+            "conditions": [
+              {
+                "id": "d760cf5b-d041-46eb-b4f4-cd14e2b708c6",
+                "leftValue": "={{ !!($json.text || '').trim() }}",
+                "rightValue": "",
+                "operator": {
+                  "type": "boolean",
+                  "operation": "true",
+                  "singleValue": true
+                }
+              }
+            ]
+          },
+          "options": {}
+        },
+        "id": "f00d60aa-990d-54ea-8619-ff0f1c46b5bf",
+        "name": "Text present?",
+        "type": "n8n-nodes-base.if",
+        "typeVersion": 2.2,
+        "position": [
+          -2100,
+          838
+        ],
+        "notes": "No = button, image or sticker without text.",
+        "notesInFlow": true
+      },
+      {
+        "parameters": {
+          "jsCode": "\n// Nachricht ohne Text (Knopfdruck, Bild, Sticker) - nichts zu steuern.\nconst j = $('Input').first().json;\nreturn [{ json: { chatId: j.chatId,\n  antwort: 'Das habe ich nicht verstanden. Schreib zum Beispiel: spiele Juliet von Modern Talking.',\n  tastatur: null } }];\n"
+        },
+        "id": "f93d7814-944b-5c88-9d24-3247dde78a20",
+        "name": "No text",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          -2100,
+          -700
+        ],
+        "notes": "Short question back for messages without text.",
+        "notesInFlow": true
+      },
+      {
+        "parameters": {
+          "jsCode": "\n// Die letzte Antwort des Bots nur bei einer kurzen Zustimmung voranstellen - daran\n// haengt \"ja, mach das\". Bei allen anderen Nachrichten wuerde sie die Analyse\n// verwirren (ein Stimmungswunsch landete damit einmal bei \"kein Auftrag\").\nconst d = $getWorkflowStaticData('global');\nconst j = $json || {};\nconst text = String(j.text || '').trim();\nconst n = text.toLowerCase();\nconst zustimmung = /^(ja|j|jap|ok|okay|gerne|genau|richtig|passt|gut|los|mach das|mach es|mach weiter|ja bitte|ja gerne|ja mach|einverstanden|bestaetigt|bestätigt|bitte mach)\\b/.test(n)\n  && n.split(/\\s+/).length <= 6;\nconst vorher = zustimmung ? String(d.letzteAntwort || '').trim() : '';\nconst auftrag = (vorher ? 'Deine letzte Antwort: ' + vorher + '\\n' : '') + text;\nreturn [{ json: Object.assign({}, j, { auftrag: auftrag }) }];\n"
+        },
+        "id": "e2922176-f91e-5c23-9e82-987a683e5b59",
+        "name": "Task",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          -1880,
+          838
+        ],
+        "notes": "Context for the analysis",
+        "notesInFlow": true
+      },
+      {
+        "parameters": {
+          "jsCode": "\n// Gehoert die Nachricht zu einem Dienst? Dann uebernimmt das jeweilige Modul im\n// Dienst radio-tts (playlist.py fuer Wiedergabelisten, meldungen.py fuer das\n// Postfach des Suchbots und die Ansagen). Nur eindeutige Faelle werden dorthin\n// geleitet, alles andere laeuft wie bisher durch Analyse und Agent.\nconst j = $json || {};\nconst KNOPF = /^(?:p[0-9]{1,2}|pa|pk|pf|px|l[0-9]{1,2}|j|n|v)$/;\n// Knoepfe der Meldungs-Karte: m<kennung> = vorlesen, x<kennung> = verwerfen\nconst MELDUNG_KNOPF = /^([mx])(m[0-9]{6}-[0-9]{4})$/;\nconst LISTENWORT = /(playlist|wiedergabeliste)/i;\nconst LISTE = /\\b(liste|listen)\\b/i;\nconst TUN = /\\b(bau\\w*|erstell\\w*|erzeug\\w*|anlegen|mach\\w*|nimm\\w*|fueg\\w*|füg\\w*|hinzu|spiel\\w*|start\\w*|lass\\w*|leer\\w*|entleer\\w*|loesch\\w*|lösch\\w*|entfern\\w*|benenn\\w*|nenn\\w*|umbenenn\\w*|zeig\\w*|inhalt|welche\\w*|was ist|gibt es|sind|starten|abspielen|an hoeren|anhoeren)\\b/i;\nconst text = String(j.text || '');\nconst roh = String(j.knopfRoh || '');\nlet art = '';\nlet kennung = '';\nif (j.isCallback) {\n  const meldung = MELDUNG_KNOPF.exec(roh);\n  if (meldung) {\n    art = meldung[1] === 'm' ? 'meldung-ansagen' : 'meldung-verwerfen';\n    kennung = meldung[2];\n  } else if (KNOPF.test(roh)) {\n    art = 'listen-knopf';\n  }\n}\nif (!art && text && (LISTENWORT.test(text) || (LISTE.test(text) && TUN.test(text)))) {\n  art = 'listen-befehl';\n}\nreturn [{ json: Object.assign({}, j, { dienstArt: art, meldungKennung: kennung }) }];\n"
+        },
+        "id": "15f13620-29e6-5fda-bd95-ac2317b57b62",
+        "name": "Service kind",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          -2760,
+          578
+        ],
+        "notes": "Button or text for a service?",
+        "notesInFlow": true
+      },
+      {
+        "parameters": {
+          "conditions": {
+            "options": {
+              "caseSensitive": true,
+              "leftValue": "",
+              "typeValidation": "loose",
+              "version": 2
+            },
+            "combinator": "and",
+            "conditions": [
+              {
+                "id": "a4fef4ff-a892-4b93-8028-8428c8454cd6",
+                "leftValue": "={{ !!$json.dienstArt }}",
+                "rightValue": "",
+                "operator": {
+                  "type": "boolean",
+                  "operation": "true",
+                  "singleValue": true
+                }
+              }
+            ]
+          },
+          "options": {}
+        },
+        "id": "f76329f9-cfd7-5142-9e06-eb6b870d2cfa",
+        "name": "Service?",
+        "type": "n8n-nodes-base.if",
+        "typeVersion": 2.2,
+        "position": [
+          -2540,
+          578
+        ],
+        "notes": "Yes = its own service branch",
+        "notesInFlow": true
+      },
+      {
+        "parameters": {
+          "conditions": {
+            "options": {
+              "caseSensitive": true,
+              "leftValue": "",
+              "typeValidation": "loose",
+              "version": 2
+            },
+            "combinator": "and",
+            "conditions": [
+              {
+                "id": "45c846ec-ac6d-4dac-875f-721654701a3f",
+                "leftValue": "={{ String($json.dienstArt).indexOf('meldung') === 0 }}",
+                "rightValue": "",
+                "operator": {
+                  "type": "boolean",
+                  "operation": "true",
+                  "singleValue": true
+                }
+              }
+            ]
+          },
+          "options": {}
+        },
+        "id": "83734147-6679-5426-b78b-1b018db33ec2",
+        "name": "Message?",
+        "type": "n8n-nodes-base.if",
+        "typeVersion": 2.2,
+        "position": [
+          -2320,
+          838
+        ],
+        "notes": "Message or playlist?",
+        "notesInFlow": true
+      },
+      {
+        "parameters": {
+          "method": "POST",
+          "url": "={{ $json.dienstArt === 'meldung-verwerfen' ? $('Configuration').first().json.konfig.dienst.adresse + '/meldungen/erledigt' : $('Configuration').first().json.konfig.dienst.adresse + '/ansage/meldung' }}",
+          "sendHeaders": true,
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "name": "X-Meldung-Schluessel",
+                "value": "={{ $('Configuration').first().json.konfig.dienst.schluessel }}"
+              }
+            ]
+          },
+          "sendBody": true,
+          "specifyBody": "json",
+          "jsonBody": "={{ JSON.stringify($json.dienstArt === 'meldung-verwerfen' ? { ids: [$json.meldungKennung], grund: 'verworfen' } : { id: $json.meldungKennung }) }}",
+          "options": {
+            "timeout": 900000
+          }
+        },
+        "id": "932d42fe-1a6c-546b-bd43-bf1b0d1e0fcd",
+        "name": "Message service",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [
+          -2320,
+          1358
+        ],
+        "onError": "continueRegularOutput",
+        "notes": "Module meldungen.py in the service",
+        "notesInFlow": true
+      },
+      {
+        "parameters": {
+          "method": "POST",
+          "url": "={{ $json.dienstArt === 'listen-knopf' ? $('Configuration').first().json.konfig.dienst.adresse + '/playlist/knopf' : $('Configuration').first().json.konfig.dienst.adresse + '/playlist/befehl' }}",
+          "sendHeaders": true,
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              }
+            ]
+          },
+          "sendBody": true,
+          "specifyBody": "json",
+          "jsonBody": "={{ JSON.stringify({ chatId: $json.chatId, daten: $json.knopfRoh || '', text: $json.text || '' }) }}",
+          "options": {
+            "timeout": 90000
+          }
+        },
+        "id": "d66c3300-f2b2-5fe5-8b1c-6bb5b50dc13f",
+        "name": "Playlist service",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [
+          -2320,
+          1098
+        ],
+        "onError": "continueRegularOutput",
+        "notes": "Module playlist.py in the service",
+        "notesInFlow": true
+      },
+      {
+        "parameters": {
+          "jsCode": "\n// Antwort des Listen-Moduls fuer Telegram aufbereiten.\n// bearbeiten=true (Menue) laesst die Nachricht stehen und aendert nur Text und\n// Knoepfe - sonst kommt bei jedem Antippen eine neue Nachricht dazu.\n// Der Text geht mit parse_mode HTML an Telegram: spitze Klammern muessen daher\n// maskiert werden. Titel wie \"AC/DC - <Song>\" haben den Versand sonst mit\n// \"can't parse entities\" abgebrochen (am 2026-09-20 passiert).\nconst roh = $json || {};\nconst e = $('Input').first().json;\nlet text = String(roh.antwort || '').trim();\nif (!text) text = '\\u26a0\\ufe0f Das Listen-Modul hat nicht geantwortet.';\ntext = text.replace(/\\*\\*/g, '').replace(/`/g, '')\n           .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');\nconst bearbeiten = !!roh.bearbeiten && !!e.messageId;\nreturn [{ json: { chatId: e.chatId, antwort: text, tastatur: roh.tastatur || null,\n  bearbeiten, nachrichtId: e.messageId || null } }];\n"
+        },
+        "id": "8a07456b-8360-5670-a64a-c5a04aab8d67",
+        "name": "Service reply",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          -2100,
+          1358
+        ],
+        "notes": "Prepare text and buttons",
+        "notesInFlow": true
+      },
+      {
+        "parameters": {
+          "conditions": {
+            "options": {
+              "caseSensitive": true,
+              "leftValue": "",
+              "typeValidation": "loose",
+              "version": 2
+            },
+            "combinator": "and",
+            "conditions": [
+              {
+                "id": "f3953265-f6e2-4a81-98e3-695a9a62fd19",
+                "leftValue": "={{ !!$json.error }}",
+                "rightValue": "",
+                "operator": {
+                  "type": "boolean",
+                  "operation": "true",
+                  "singleValue": true
+                }
+              }
+            ]
+          },
+          "options": {}
+        },
+        "id": "ed9040da-e0fa-5316-8dc0-3113e7e1c3a0",
+        "name": "Send failed?",
+        "type": "n8n-nodes-base.if",
+        "typeVersion": 2.2,
+        "position": [
+          -1660,
+          1358
+        ],
+        "notes": "Yes = send a new message",
+        "notesInFlow": true
+      },
+      {
+        "parameters": {
+          "method": "POST",
+          "url": "={{ $('Configuration').first().json.konfig.telegram.bot + \"/sendMessage\" }}",
+          "sendHeaders": true,
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              }
+            ]
+          },
+          "sendBody": true,
+          "specifyBody": "json",
+          "jsonBody": "={{ JSON.stringify(Object.assign({ chat_id: $('Service reply').first().json.chatId, text: $('Service reply').first().json.antwort, parse_mode: 'HTML', disable_web_page_preview: true }, ($('Service reply').first().json.tastatur ? { reply_markup: $('Service reply').first().json.tastatur } : {}))) }}",
+          "options": {
+            "timeout": 20000
+          }
+        },
+        "id": "932e5733-7ece-57ba-9ad2-07070aee5124",
+        "name": "Service fallback send",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [
+          -1440,
+          1358
+        ],
+        "onError": "continueRegularOutput",
+        "notes": "Second attempt via sendMessage",
+        "notesInFlow": true
+      },
+      {
+        "parameters": {
+          "jsCode": "\n// Sammelpunkt am Ende des Dienst-Zweigs: die Antwort des Sendens weiterreichen,\n// damit der Lauf mit einer klaren Ausgabe endet (auch beim Nachsehen).\nreturn [{ json: ($json && typeof $json === 'object') ? $json : {} }];\n"
+        },
+        "id": "1e6a9978-9197-5686-954a-3c7ccba49fc4",
+        "name": "End",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          -1220,
+          1358
+        ],
+        "notes": "Output of the service branch",
+        "notesInFlow": true
+      },
+      {
+        "parameters": {
+          "method": "POST",
+          "url": "={{ $json.bearbeiten ? $('Configuration').first().json.konfig.telegram.bot + '/editMessageText' : $('Configuration').first().json.konfig.telegram.bot + '/sendMessage' }}",
+          "sendHeaders": true,
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              }
+            ]
+          },
+          "sendBody": true,
+          "specifyBody": "json",
+          "jsonBody": "={{ JSON.stringify($json.bearbeiten ? { chat_id: $json.chatId, message_id: $json.nachrichtId, text: $json.antwort, parse_mode: 'HTML', disable_web_page_preview: true, reply_markup: $json.tastatur || { inline_keyboard: [] } } : Object.assign({ chat_id: $json.chatId, text: $json.antwort, parse_mode: 'HTML', disable_web_page_preview: true }, ($json.tastatur ? { reply_markup: $json.tastatur } : {}))) }}",
+          "options": {
+            "timeout": 20000
+          }
+        },
+        "id": "438b5713-65b4-5256-917c-4c4de5604d71",
+        "name": "Service send",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [
+          -1880,
+          1358
+        ],
+        "onError": "continueRegularOutput",
+        "notes": "sendMessage / editMessageText",
+        "notesInFlow": true
+      },
+      {
+        "parameters": {
+          "jsCode": "\n// Vorschaltstufe ohne Sprachmodell. Erkannt werden:\n//   wunsch      \"spiele X\", \"wechsel song auf: X\", \"danach X\", \"X bitte\"\n//   steuerung   \"wechsel song/naechster\", \"weiter\", \"pause\", \"lauter\",\n//               \"sender neu starten/starten/stoppen\"\n//   status      \"was laeuft\", \"status\", \"wie viele hoeren zu\", Fehlermeldungen\n// Alles andere (Verwaltung, Richtungen wie \"was peppiges\", mehrere Auftraege)\n// geht unveraendert an die Analyse.\nconst eingang = $json || {};\nconst d = $getWorkflowStaticData('global');\nconst roh = String(eingang.text || '');\n\nfunction norm(t) {\n  return String(t || '').toLowerCase()\n    .replace(/ä/g, 'ae').replace(/ö/g, 'oe').replace(/ü/g, 'ue').replace(/ß/g, 'ss')\n    .replace(/[^a-z0-9: ]+/g, ' ').replace(/\\s+/g, ' ').trim();\n}\n\nconst STEUER = [\n  ['skip', /^(wechsel|wechsle|aendere|naechst\\w*|next|skip|ueberspring\\w*|spring|weiter zum naechsten|titel wechseln|song wechseln|mach den naechsten|zum naechsten)\\b[\\w\\s:]{0,14}$/],\n  ['skip', /^(song|titel|lied|track)\\s*(wechseln|ueberspringen|vor|skip)$/],\n  ['play', /^(weiter|weiter spielen|play|play weiter|abspielen|fortsetzen|weiterlaufen|mach weiter|spiel weiter)\\b[\\w\\s]{0,12}$/],\n  ['pause', /^(pause|pausieren|anhalten|halt|stopp|stop|unterbrechen|kurz pause|musik aus)\\b[\\w\\s]{0,6}$/],\n  ['lautstaerke', /^(lauter|leiser|laut|leise|volume|volumen|lautstaerke|ton lauter|ton leiser|mach lauter|mach leiser|leiser machen|lauter machen)\\b[\\w\\s]{0,10}$/],\n  ['restart', /^(neustart|restart|sender neu starten|radio neu starten|stream neu starten|starte den sender neu|starte den stream neu|sender neustarten|alles neu starten|neu starten)\\b[\\w\\s]{0,12}$/],\n  ['start', /^(sender starten|stream starten|radio starten|starte den sender|starte den stream|sender an|radio an|lauf wieder|start)\\b[\\w\\s]{0,10}$/],\n  ['stop', /^(sender stoppen|stream stoppen|radio stoppen|sender aus|radio aus|stream aus|alles stoppen|sender abschalten)\\b[\\w\\s]{0,10}$/],\n];\nconst STATUS = /^(was laeuft|was laeuft gerade|was spielt|welcher (song|titel|interpret) laeuft|was ist das fuer ein (song|titel)|status|zustand|sender status|wie ist der zustand|laeuft der (sender|stream|das radio)|laeuft das radio|laeuft der stream|wie viele (hoeren|hoerer|zuhoerer|leute|menschen)|wieviele (hoeren|hoerer|zuhoerer|leute)|wer hoert|wie ist die auslastung|programm|was kommt danach|welcher titel kommt)\\b/;\nconst FEHLER = /\\b(fehler|problem|stoerung|offline|ausgefallen|abgestuerzt|geht nicht|laeuft nicht|funktioniert nicht|klappt nicht|spinnt|haengt|kein ton|keine verbindung|down|tot)\\b/;\nconst WUNSCH_VORN = /^(spiele|spiel|leg|lege|mach|setz|setze|pack|starte|wechsel|wechsle|aendere|nimm|hoere|hor|zeig|ich will|ich moechte)\\b\\s*(mal |mir |bitte |doch )*/;\nconst WUNSCH_HINTEN = /^(danach|danach mal|spaeter|anschliessend|hinterher|als naechstes)\\b\\s*(mal |bitte )*/;\nconst WUNSCH_SUFFIX = /^[\\w\\s:]{2,40}(bitte|mal)$/;\nconst VERWALTUNG = /\\b(wiedergabeliste|playlist|anlage|anlegen|erstelle|erstellen|loesche|loeschen|entferne|nutzer|benutzer|konto|rolle|rollen|sicherung|backup|einstellung|einstellungen|bericht|report|berichte|medien|mount|streamer|webhook|speicher|zertifikat|passwort|api schluessel|zertifikate)\\b/;\nconst MEHRFACH = /\\bund\\b.*\\b(danach|dann|spaeter|anschliessend|hinterher)\\b/;\n// Postfach-Fragen (\"was gibt es fuer Meldungen\", \"was liegt im Postfach\") beantwortet\n// der Schnellweg selbst - das Modell hielt \"Meldungen\" sonst fuer Nachrichten und\n// liess ungefragt eine Nachricht im Radio sprechen (gemessen 45 s, am 2026-09-20).\nconst POSTFACH_WORT = /\\b(postfach|meldungen|mitteilungen)\\b/;\nconst POSTFACH_FRAGE = /\\b(was|welche|wieviele|wie viele|gibt es|liegen|warten|liste|zeig|alle|offen|da)\\b/;\nconst POSTFACH_VERBOT = /\\b(suche|such|hol|hole|lies|vorlesen|ansagen|sag|spiele|wetter|feed|rss|nachrichten)\\b/;\n// Stimmung, Genre, Jahrzehnt - ohne Sprachmodell auf eine Richtung des\n// Katalogdienstes abgebildet (Wortliste aus /genre/liste).\nconst RICHTUNG = {\n  peppig: 'party', peppiges: 'party', peppige: 'party', flott: 'party', flottes: 'party',\n  tempo: 'party', abgehen: 'party', party: 'party', partymusik: 'party', tanzbar: 'party',\n  tanzmusik: 'party', gutelaune: 'party', froehlich: 'party',\n  ruhig: 'ruhig', ruhiges: 'ruhig', ruhige: 'ruhig', entspannt: 'ruhig',\n  entspanntes: 'ruhig', chillig: 'chillig', chill: 'chillig', sanft: 'ruhig', locker: 'ruhig',\n  langsam: 'langsam', romantisch: 'romantisch', liebe: 'liebe', liebeslieder: 'liebe',\n  traurig: 'traurig', trauriges: 'traurig', balladen: 'balladen', ballade: 'ballade',\n  hart: 'hart', hartes: 'hart', laut: 'hart', lautes: 'hart', heftig: 'hart',\n  aggressiv: 'aggressiv', haerte: 'haerte',\n  rock: 'rock', rockig: 'rock', rockiges: 'rock', rocknroll: 'rocknroll',\n  pop: 'pop', poppig: 'pop', metal: 'metal', metallisch: 'metal', hardrock: 'hardrock',\n  disco: 'disco', eurodisco: 'eurodisco', dance: 'dance', house: 'house', trance: 'trance',\n  techno: 'techno', electronic: 'electronic', elektro: 'elektro',\n  hiphop: 'hiphop', rap: 'rap', deutschrap: 'deutschrap', germanrap: 'germanrap',\n  punk: 'punk', grunge: 'grunge', gothic: 'gothic', dark: 'dark', indie: 'indie',\n  jazz: 'jazz', blues: 'blues', soul: 'soul', funk: 'funk', reggae: 'reggae', ska: 'ska',\n  klassik: 'klassik', klassisch: 'klassisch', schlager: 'schlager', folk: 'folk',\n  country: 'country', oldies: 'oldies', deutsch: 'deutsch', deutsche: 'deutsch',\n  ndh: 'ndh', mittelalter: 'mittelalter', alternative: 'alternative', charts: 'charts',\n  '80er': '80er', '90er': '90er', '70er': '70er', achtziger: '80er', neunziger: '90er',\n};\n// Fuellwoerter, die neben einem Stimmungswort stehen duerfen (\"was Peppiges\").\nconst FUELL = ['was', 'etwas', 'irgendwas', 'mal', 'mir', 'bitte', 'doch', 'musik', 'zeug',\n  'sachen', 'kram', 'richtung', 'sorte', 'thema', 'aus', 'fuer', 'mit', 'ein', 'eine', 'einen',\n  'der', 'die', 'das', 'den', 'dem', 'sommer', 'schnell'];\nconst ZU_VIEL = ['raus', 'rein', 'weg', 'runter', 'ab', 'aus', 'alles', 'es', 'das', 'die', 'den',\n  'dem', 'der', 'sie', 'ihn', 'ihm', 'nochmal', 'genau', 'richtig', 'wieder', 'jetzt'];\n// Mengenangaben: \"spiele drei Lieder von Rammstein\" ist keine Titelsuche. Ohne diese\n// Sperre schickte der Schnellweg den ganzen Satz als Suchtext ans Werkzeug und der\n// Auftrag lief ins Leere (vorher schon so, am 2026-09-20 beim Testen aufgefallen).\nconst MENGE = /\\b(lieder|lied|songs|song|titel|tracks|track|stueck|stuecke|mehrere|einige|jeweils|ein paar|zwei|drei|vier|fuenf|sechs|sieben|acht|neun|zehn)\\b|\\d{1,2}\\s*(lieder|songs|titel|tracks|stueck)/;\n\n// Fuellwoerter und Befehlsreste wegschneiden: \"wechsel song auf: X\" -> \"X\".\nfunction saeubern(rest) {\n  let r = norm(rest);\n  for (let i = 0; i < 3; i += 1) {\n    r = r.trim();\n    r = r.replace(/^(den|die|das|dem|ein|einen|der)\\s+(song|titel|lied|track|musik|stueck)\\b/, ' ');\n    r = r.replace(/^(song|titel|lied|track|musik|stueck)\\b/, ' ');\n    r = r.replace(/^(auf|zu|an|mit|in|bei)\\b\\s*:?\\s*/, ' ');\n    r = r.replace(/^(mir|mal|bitte|doch|eben|kurz|noch|sofort|gleich|jetzt|schnell|denn)\\b\\s*/, ' ');\n    r = r.replace(/^(was|etwas|irgendwas)\\b\\s*(von|fuer|aus|mit)?\\s*/, ' ');\n    r = r.replace(/^(von|fuer|aus)\\b\\s*/, ' ');\n    r = r.replace(/\\s+(auf|an|bitte|mal|sofort|gleich|jetzt|zu|hoeren|hoere|spielen|laufen|anhoeren|raus|rein)\\b\\s*\\.?$/, ' ');\n  }\n  return r.replace(/\\s+/g, ' ').replace(/^[ :-]+|[ :-]+$/g, '');\n}\n\n// Erkannt: Merker schreiben (ohneKi/schlicht) und das Element fuer die Schleife bauen.\nfunction erkannt(art, befehl) {\n  d.lauf = { befehle: [{ nr: 1, art: befehl.art, befehl: befehl, ausgabe: '', ok: null,\n    grund: '', versuche: 0 }], fehler: '', ohneKi: true, schlicht: true };\n  return [{ json: { chatId: eingang.chatId, text: eingang.text, nr: 1, anzahl: 1,\n    art: befehl.art, befehl: befehl, kurz: art } }];\n}\n\nconst n = norm(roh);\nif (!n) return [{ json: Object.assign({}, $json, { kurz: null }) }];\nconst kern = n.replace(/^((bitte|mal|eben|schnell|jetzt|denn|den|die|das|mir|noch)\\s+)+/, '');\n\nfor (const paar of STEUER) {\n  if (paar[1].test(n) || paar[1].test(kern)) {\n    return erkannt('steuerung', { art: 'steuerung', steuerung: paar[0] });\n  }\n}\nif (POSTFACH_WORT.test(n) && POSTFACH_FRAGE.test(n) && !POSTFACH_VERBOT.test(n)) {\n  return erkannt('postfach', { art: 'postfach', frage: n });\n}\n// Ueberblick: Themen sammeln, zu denen der Bot Meldungen sucht (\"ueberblick ki,\n// raumfahrt\", \"themen: ki und raumfahrt\", auch \"ueberblick aus heise und golem\").\n// Eine Zeitangabe gibt es nicht mehr - der Beitrag waechst mit dem, was zu den\n// Themen gefunden wird.\nconst UEBERBLICK_WORT = /\\b(ueberblick|rundumblick|rundschau|nachrichten ?ueberblick|news ?ueberblick|themenueberblick)\\b/;\nconst THEMEN_WORT = /^\\s*(themen|thema)\\s*[:\\-]?\\s+\\S/;\n// \"aber lies es nicht vor\" / \"nur zeigen\" darf NICHT sprechen - dann entscheidet die\n// Analyse (art=recherche mit ansagen=false), und der Beitrag bleibt im Postfach.\nconst UEBERBLICK_OHNE_ANSAGE = /(nicht vorlesen|nicht ansagen|nicht sprechen|ohne ansage|nur (zeigen|suchen|ablegen)|nicht im radio)/;\nif ((UEBERBLICK_WORT.test(n) || THEMEN_WORT.test(n)) && n.split(' ').length <= 20\n    && !UEBERBLICK_OHNE_ANSAGE.test(n)) {\n  // Themen aus dem ORIGINAL lesen: norm() entfernt Kommas, damit waeren aus\n  // \"ki, raumfahrt\" zwei Woerter eines Themas geworden (am 2026-09-21 gemessen).\n  const original = String(roh || '');\n  // Kein \\b vor dem Umlaut: \\b ist in JavaScript ASCII-basiert und wuerde vor\n  // \"überblick\" nicht greifen.\n  const wort = /(überblick|ueberblick|rundumblick|rundschau|nachrichtenüberblick|nachrichtenueberblick|newsüberblick|themenüberblick)/i;\n  let rest = original.replace(wort, ' ');\n  if (rest === original) rest = original.replace(/^\\s*(themen|thema)\\s*[:\\-]?\\s*/i, ' ');\n  let quellen = '';\n  const aus = rest.match(/\\baus\\s+(.+)$/i);\n  if (aus) {\n    quellen = aus[1].replace(/\\b(und|sowie|plus|dem|der|die|das|den|vom)\\b/gi, ' ')\n      .replace(/\\s+/g, ' ').trim();\n    rest = rest.slice(0, aus.index);\n  }\n  const themen = rest\n    .replace(/\\b(bitte|mal|mir|gib|einen|eine|den|dem|der|die|das|zum|zu|über|ueber|themen|thema|nachrichten|news|aktuelle[nrs]?|kurze[nrs]?|neue[nrs]?|gib mir|über das|ueber das)\\b/gi, ' ')\n    .replace(/[;\\-–]+/g, ', ')\n    .replace(/\\s*,\\s*/g, ', ')\n    .replace(/\\s+/g, ' ')\n    .replace(/^[\\s,]+|[\\s,]+$/g, '')\n    .trim();\n  return erkannt('ueberblick', { art: 'ueberblick', themen: themen, quellen: quellen });\n}\nif (STATUS.test(n)) {\n  return erkannt('status', { art: 'direkt', frage: 'was laeuft gerade' });\n}\n\n// Auswahlliste: getippte Nummer oder angetippter Knopf (beides wird zu \"2\").\nif (/^\\d{1,2}$/.test(n)) {\n  return erkannt('wunsch', { art: 'direkt', suchtext: n, einreihen: false });\n}\n\n// Stimmung pur (\"was Peppiges\", \"mal was Ruhiges\") - ohne Sprachmodell auf eine\n// Richtung abgebildet. Bleibt neben dem Stimmungswort nur Fuellstoff uebrig,\n// ist es kein Titelwunsch (\"rock von nickelback\" bleibt dagegen bei der KI).\nconst ohneVerb = n.replace(WUNSCH_VORN, ' ').replace(WUNSCH_HINTEN, ' ');\nconst stimmungWorte = ohneVerb.split(' ').filter((w) => w && FUELL.indexOf(w) < 0\n  && !/^(spiele|spiel|leg|lege|mach|setz|setze|pack|starte|wechsel|wechsle|aendere|nimm|hoere|hor|zeig|ich|will|moechte|mir|bitte)$/.test(w));\nif (stimmungWorte.length === 1 && RICHTUNG[stimmungWorte[0]]) {\n  return erkannt('richtung', { art: 'direkt', richtung: RICHTUNG[stimmungWorte[0]] });\n}\n\n// Wunsch: nur wenn kein Verwaltungsauftrag, kein Doppelauftrag und kein Stimmungswunsch.\n// Zuvor die gesprochenen Formen abfangen: \"ich spiele mir etwas von X\",\n// \"was von X\", \"... von X spielen\". Ohne das landen Sprachnachrichten in der\n// kompletten KI-Kette (gemessen 163 s fuer \"Ich spiele mir etwas von Scooter.\").\nconst SPRACH_VORN = /^(ich|kannst du|kannst du mir|koenntest du|koennte ich|kann ich|mach mir|mach mal|spiel mir|spiele mir|gib mir|moechte|will|wollte|haette gern|haett gern|haette|wuerde gern|wuerde|mag)\\s+/;\nconst SPRACH_HINTEN = /\\s+(spielen|spiele|anmachen|anschmeissen|abspielen|hoeren|laufen|laufen lassen|an|rein|raus)$/;\nconst STIMMUNG_VERBOT = MENGE;\nlet gesprochen = n.replace(SPRACH_VORN, '').replace(SPRACH_HINTEN, '').trim();\n// Zweiter Durchgang fuer \"ich moechte was von X\" - nach \"ich\" folgt die Absicht.\nif (gesprochen !== n && SPRACH_VORN.test(gesprochen)) {\n  gesprochen = gesprochen.replace(SPRACH_VORN, '').replace(SPRACH_HINTEN, '').trim();\n}\nif (gesprochen !== n && !VERWALTUNG.test(gesprochen) && !MEHRFACH.test(gesprochen)) {\n  const vorn2 = gesprochen.match(WUNSCH_VORN);\n  const ohneVerb2 = gesprochen.replace(WUNSCH_VORN, ' ').replace(WUNSCH_HINTEN, ' ').trim();\n  const m2 = ohneVerb2.match(/^(?:mal |mir )*(?:was|etwas|irgendwas)\\s+(?:von|fuer|aus)\\s+(.+)$/);\n  const rest2 = vorn2 ? gesprochen.slice(vorn2[0].length) : (m2 ? m2[1] : null);\n  if (rest2 !== null) {\n    const s2 = saeubern(rest2);\n    if (s2.length >= 2 && ZU_VIEL.indexOf(s2) < 0 && s2.indexOf(' und ') < 0\n        && !STIMMUNG_VERBOT.test(s2)) {\n      return erkannt('wunsch', { art: 'direkt', suchtext: s2, einreihen: false });\n    }\n  }\n}\n\nif (!MEHRFACH.test(n) && !VERWALTUNG.test(n)) {\n  const hinten = WUNSCH_HINTEN.test(n);\n  let rest = null;\n  const vorn = n.match(WUNSCH_VORN);\n  if (vorn) rest = n.slice(vorn[0].length);\n  else if (hinten) rest = n.slice(n.match(WUNSCH_HINTEN)[0].length);\n  else if (WUNSCH_SUFFIX.test(n) && n.split(' ').length <= 5 && !FEHLER.test(n)) {\n    rest = n.replace(/\\s*(bitte|mal)$/, '');\n  }\n  if (rest !== null) {\n    const s = saeubern(rest);\n    const zahl = /^\\d{1,2}$/.test(s);\n    const worte = s.split(' ');\n    // Stimmungswunsch (\"was Peppiges\") ohne Sprachmodell auf eine Richtung abbilden.\n    // Nur wenn ausser dem Stimmungswort nichts uebrig bleibt - \"rock von nickelback\"\n    // ist dagegen ein Titelwunsch.\n    if (worte.length && worte.length <= 3) {\n      const ohneFuell = worte.filter((w) => FUELL.indexOf(w) < 0);\n      if (ohneFuell.length === 1 && RICHTUNG[ohneFuell[0]]) {\n        return erkannt('richtung', { art: 'direkt', richtung: RICHTUNG[ohneFuell[0]] });\n      }\n    }\n    if ((s.length >= 2 || zahl) && ZU_VIEL.indexOf(s) < 0 && s.indexOf(' und ') < 0\n        && !MENGE.test(s)) {\n      return erkannt('wunsch', { art: 'direkt', suchtext: s, einreihen: hinten });\n    }\n  }\n}\n\n// Fehlermeldung: kurzer Bericht ohne Auftragswort -> Statusbericht statt Modell.\nif (FEHLER.test(n) && n.split(' ').length <= 8) {\n  return erkannt('status', { art: 'direkt', frage: 'was laeuft gerade' });\n}\n// Nicht erkannt: das Element UNVERAENDERT weitergeben - daran haengt der Auftragstext\n// fuer die Analyse (fehlte er, bekam das Modell \"undefined\" und lieferte keinen Plan).\nreturn [{ json: Object.assign({}, $json, { kurz: null }) }];\n"
+        },
+        "id": "7fd254c6-c5d4-57fa-8d0b-869ff54ebfe3",
+        "name": "Short way?",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          -1800,
+          -128
+        ],
+        "notes": "Stage 0: without language model",
+        "notesInFlow": true
+      },
+      {
+        "parameters": {
+          "conditions": {
+            "options": {
+              "caseSensitive": true,
+              "leftValue": "",
+              "typeValidation": "loose",
+              "version": 2
+            },
+            "combinator": "and",
+            "conditions": [
+              {
+                "id": "5ed1adeb-81f9-412a-885a-d1bc20e3f0ae",
+                "leftValue": "={{ !!$json.kurz }}",
+                "rightValue": "",
+                "operator": {
+                  "type": "boolean",
+                  "operation": "true",
+                  "singleValue": true
+                }
+              }
+            ]
+          },
+          "options": {}
+        },
+        "id": "5c017c3b-761a-5e82-bda3-4c999e886289",
+        "name": "Shortcut?",
+        "type": "n8n-nodes-base.if",
+        "typeVersion": 2.2,
+        "position": [
+          -1580,
+          -128
+        ],
+        "notes": "Yes = execute directly",
+        "notesInFlow": true
+      },
+      {
+        "parameters": {
+          "method": "POST",
+          "url": "={{ $('Configuration').first().json.konfig.sprachmodell.v1 + \"/chat/completions\" }}",
+          "sendHeaders": true,
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "name": "Authorization",
+                "value": "={{ 'Bearer ' + $('Configuration').first().json.konfig.sprachmodell.schluessel }}"
+              }
+            ]
+          },
+          "sendBody": true,
+          "specifyBody": "json",
+          "jsonBody": "={{ JSON.stringify({ model: $('Configuration').first().json.konfig.sprachmodell.modell, messages: [{ role: 'system', content: $('Configuration').first().json.konfig.aufgaben.planen }, { role: 'user', content: $json.auftrag + '\\n/no_think' }], temperature: 0.2, reasoning_effort: 'none', max_tokens: 3000 }) }}",
+          "options": {
+            "timeout": 120000
+          }
+        },
+        "id": "c7694f6d-d22d-5fac-a46d-92357be741d0",
+        "name": "Plan",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [
+          -1360,
+          -128
+        ],
+        "retryOnFail": true,
+        "maxTries": 2,
+        "waitBetweenTries": 3000,
+        "onError": "continueRegularOutput",
+        "notes": "Stage 1: plan from the text",
+        "notesInFlow": true
+      },
+      {
+        "parameters": {
+          "jsCode": "\n// Antwort eines direkten Modellaufrufs in das Feld \"output\" legen - die folgenden\n// Knoten lesen alle \"output\" (so wie frueher beim Agenten).\nconst j = $json || {};\nconst wahl = (j.choices && j.choices[0]) || {};\nconst text = (wahl.message && wahl.message.content) || j.output || j.text || '';\nreturn [{ json: Object.assign({}, j, { output: String(text || '') }) }];\n"
+        },
+        "id": "3b3658a4-f94f-5366-8a94-4e3902b8456f",
+        "name": "Plan reply",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          -1140,
+          -128
+        ],
+        "notes": "Extracts the model's text.",
+        "notesInFlow": true
+      },
+      {
+        "parameters": {
+          "conditions": {
+            "options": {
+              "caseSensitive": true,
+              "leftValue": "",
+              "typeValidation": "loose",
+              "version": 2
+            },
+            "combinator": "and",
+            "conditions": [
+              {
+                "id": "4bcf0dd9-4dd9-42cb-87bd-f7bb99352581",
+                "leftValue": "={{ String($json.output || '').trim().length > 10 }}",
+                "rightValue": "",
+                "operator": {
+                  "type": "boolean",
+                  "operation": "true",
+                  "singleValue": true
+                }
+              }
+            ]
+          },
+          "options": {}
+        },
+        "id": "5a917351-7eb8-5390-a23e-22beb045eefe",
+        "name": "Plan present?",
+        "type": "n8n-nodes-base.if",
+        "typeVersion": 2.2,
+        "position": [
+          -920,
+          -128
+        ],
+        "notes": "Empty = plan once more",
+        "notesInFlow": true
+      },
+      {
+        "parameters": {
+          "jsCode": "\n// Die Analyse hat nichts Brauchbares geliefert (das Modell antwortet gelegentlich\n// leer). Nochmal versuchen und dabei den urspruenglichen Auftrag erneut vorlegen.\nconst d = $getWorkflowStaticData('global');\nd.planVersuche = (d.planVersuche || 0) + 1;\nconst j = $('Task').first().json;\nreturn [{ json: Object.assign({}, j, { versuche: d.planVersuche }) }];\n"
+        },
+        "id": "b75d631a-e239-5cb3-b2cd-eeaed87036fd",
+        "name": "Remember plan",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          -1360,
+          132
+        ],
+        "notes": "Counts the attempts (max. 3)",
+        "notesInFlow": true
+      },
+      {
+        "parameters": {
+          "conditions": {
+            "options": {
+              "caseSensitive": true,
+              "leftValue": "",
+              "typeValidation": "loose",
+              "version": 2
+            },
+            "combinator": "and",
+            "conditions": [
+              {
+                "id": "6d6c5676-1bd4-4c98-a43d-240140229321",
+                "leftValue": "={{ Number($json.versuche || 0) < 3 }}",
+                "rightValue": "",
+                "operator": {
+                  "type": "boolean",
+                  "operation": "true",
+                  "singleValue": true
+                }
+              }
+            ]
+          },
+          "options": {}
+        },
+        "id": "a6b8e79b-819d-53fe-a34f-62c211903a64",
+        "name": "Plan again?",
+        "type": "n8n-nodes-base.if",
+        "typeVersion": 2.2,
+        "position": [
+          -1140,
+          132
+        ],
+        "notes": "Yes = new attempt, no = fallback via execution.",
+        "notesInFlow": true
+      },
+      {
+        "parameters": {
+          "jsCode": "\n// Die Antwort der Analyse in einzelne Befehle zerlegen. Klappt das nicht, wird der\n// Text als ein Befehl weitergereicht (dann uebernimmt der Ersatzweg) - ein Auftrag\n// darf nicht daran scheitern, dass das Modell kein sauberes JSON liefert.\nconst eingang = $('Input').first().json;\nconst roh = String(($json && ($json.output || $json.text)) || '').trim();\n\nfunction zerlegen(text) {\n  const start = text.indexOf('{');\n  const ende = text.lastIndexOf('}');\n  if (start === -1 || ende <= start) return null;\n  try {\n    const j = JSON.parse(text.slice(start, ende + 1));\n    return Array.isArray(j.befehle) ? j.befehle : null;\n  } catch (e) { return null; }\n}\n\nconst d = $getWorkflowStaticData('global');\nd.planVersuche = 0;\nd.lauf = { befehle: [], fehler: '' };\n\nlet befehle = zerlegen(roh);\nif (!befehle) {\n  // Kein brauchbares JSON: den Text selbst als Befehl nehmen, ohne Sprachmodell\n  // ausfuehrbar (art=direkt). Vorher die Befehlswoerter wegschneiden, sonst sucht\n  // das Radio nach \"spiele\" und \"von\" und liefert irgendwelche Titel.\n  d.lauf.fehler = roh ? 'Analyse unlesbar' : (roh === '' ? 'Analyse lieferte nichts' : 'Analyse fehlgeschlagen');\n  const rohText = String(eingang.text || '').trim();\n  const einreihen = /(danach|anschliessend|hinterher|spaeter|anschliessend)/i.test(rohText);\n  const sauber = rohText\n    .replace(/\\b(bitte|mal|doch|sofort|gleich|jetzt|danach|anschliessend|hinterher|spaeter|einmal)\\b/gi, ' ')\n    .replace(/^\\s*(spiele|spiel|leg|lege|mach|setz|setze|pack|starte|nimm|will|moechte|ich)\\s+/i, '')\n    .replace(/^\\s*(mir|mal)\\s+/i, '')\n    .replace(/^\\s*(was|etwas|was von|was fuer)\\s+/i, '')\n    .replace(/\\s+/g, ' ')\n    .trim();\n  befehle = [{ art: 'direkt', suchtext: sauber || rohText, einreihen: einreihen }];\n}\nif (!befehle.length) {\n  // Kein Auftrag: ohne Sprachmodell, ohne Schleife und ohne Zustandsabfrage antworten.\n  d.lauf = { befehle: [], fehler: '', ohneKi: true, schlicht: true, leer: true };\n  return [{ json: { chatId: eingang.chatId, leer: true, anzahl: 0 } }];\n}\n\nconst ausgabe = [];\n// Hoechstens zehn Aufgaben je Nachricht - mehr waere weder zu lesen noch schnell.\nconst AUFGABEN_MAX = 10;\nlet musik = 0;\nlet uebrig = 0;\nbefehlSchleife:\nfor (let i = 0; i < befehle.length; i += 1) {\n  const b = befehle[i] || {};\n  const art = String(b.art || '').toLowerCase();\n  if (!['spielen', 'richtung', 'programm', 'recherche', 'verwalten', 'direkt'].includes(art)) continue;\n  if (ausgabe.length >= AUFGABEN_MAX) { uebrig += 1; continue; }\n  // Mehrere Musikwuensche in einer Nachricht: der ERSTE laeuft sofort, alle weiteren\n  // werden eingereiht. Sonst schneidet jeder Wunsch den vorigen ab, und die Pruefung\n  // meldet die ersten als nicht erledigt (am 2026-09-20 gemessen).\n  if (art === 'spielen' || art === 'richtung') {\n    if (musik > 0) b.einreihen = true;\n    musik += 1;\n  }\n  d.lauf.befehle.push({ nr: i + 1, art: art, befehl: b, ausgabe: '', ok: null, grund: '', versuche: 0 });\n  ausgabe.push({ json: {\n    chatId: eingang.chatId,\n    text: eingang.text,\n    nr: i + 1,\n    anzahl: befehle.length,\n    art: art,\n    befehl: b,\n  } });\n}\nif (uebrig) {\n  d.lauf.fehler = (d.lauf.fehler ? d.lauf.fehler + '; ' : '')\n    + 'Nur die ersten ' + AUFGABEN_MAX + ' Aufgaben bearbeitet';\n}\nif (!ausgabe.length) {\n  return [{ json: { chatId: eingang.chatId, anzahl: 0, nr: 0, befehl: {},\n    antwort: 'Ich habe darin keinen Auftrag erkannt.' } }];\n}\nreturn ausgabe;\n"
+        },
+        "id": "fba79062-5875-5714-a1bf-7620a10b63c9",
+        "name": "Read commands",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          -680,
+          -128
+        ],
+        "notes": "One item per command",
+        "notesInFlow": true
+      },
+      {
+        "parameters": {
+          "conditions": {
+            "options": {
+              "caseSensitive": true,
+              "leftValue": "",
+              "typeValidation": "loose",
+              "version": 2
+            },
+            "combinator": "and",
+            "conditions": [
+              {
+                "id": "805d182c-90d9-4323-b308-fae7598ba7af",
+                "leftValue": "={{ !$json.leer }}",
+                "rightValue": "",
+                "operator": {
+                  "type": "boolean",
+                  "operation": "true",
+                  "singleValue": true
+                }
+              }
+            ]
+          },
+          "options": {}
+        },
+        "id": "5c73ce51-a3cb-594e-b457-8f760bff438e",
+        "name": "Command present?",
+        "type": "n8n-nodes-base.if",
+        "typeVersion": 2.2,
+        "position": [
+          -460,
+          -128
+        ],
+        "notes": "Empty = straight to the reply",
+        "notesInFlow": true
+      },
+      {
+        "parameters": {
+          "batchSize": 1,
+          "options": {}
+        },
+        "id": "cad21cc2-8628-5725-bf16-ab50faae9cad",
+        "name": "Loop",
+        "type": "n8n-nodes-base.splitInBatches",
+        "typeVersion": 3,
+        "position": [
+          -700,
+          960
+        ],
+        "notes": "0 = done, 1 = continue",
+        "notesInFlow": true
+      },
+      {
+        "parameters": {
+          "promptType": "define",
+          "text": "={{ 'Befehl: ' + JSON.stringify($json.befehl) + '\\n/no_think' }}",
+          "options": {
+            "systemMessage": "={{ $('Configuration').first().json.konfig.aufgaben.ausfuehren }}"
+          },
+          "hasOutputParser": false
+        },
+        "id": "0ecaa758-fed6-5d2c-afb4-6024f3bddd68",
+        "name": "Execute",
+        "type": "@n8n/n8n-nodes-langchain.agent",
+        "typeVersion": 2.2,
+        "position": [
+          80,
+          1480
+        ],
+        "retryOnFail": true,
+        "maxTries": 2,
+        "waitBetweenTries": 3000,
+        "onError": "continueRegularOutput",
+        "notes": "One command per pass",
+        "notesInFlow": true
+      },
+      {
+        "parameters": {
+          "model": {
+            "__rl": true,
+            "value": "={{ $('Configuration').first().json.konfig.sprachmodell.modell }}",
+            "mode": "id"
+          },
+          "options": {
+            "temperature": 0.2,
+            "maxTokens": 3000
+          }
+        },
+        "id": "e8505484-4db4-51f2-9054-aa5302244518",
+        "name": "Language model execute",
+        "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+        "typeVersion": 1.2,
+        "position": [
+          80,
+          2000
+        ],
+        "credentials": {
+          "openAiApi": {
+            "id": "DEINE-OPENAIAPI-KENNUNG",
+            "name": "Ollama (OpenAI-Schnittstelle)"
+          }
+        },
+        "notes": "Language model for 'Execute' (Ollama via the OpenAI interface).",
+        "notesInFlow": true
+      },
+      {
+        "parameters": {
+          "jsCode": "\n// Ergebnis des Befehls am Merker festhalten.\nconst d = $getWorkflowStaticData('global');\nconst nr = Number($('Loop').first().json.nr || 0);\nconst text = String(($json && ($json.output || $json.text)) || '').trim();\nconst eintrag = (d.lauf && d.lauf.befehle || []).find((x) => x.nr === nr);\nif (eintrag) {\n  // Eine leere Antwort darf eine brauchbare Ausgabe NICHT loeschen. Am 2026-09-20 hat\n  // der zweite Versuch die Auswahlliste (\"Welchen Titel soll ich spielen?\") mit\n  // \"(keine Ausgabe)\" ueberschrieben - der Nutzer sah die Liste nie.\n  const alt = String(eintrag.ausgabe || '').trim();\n  if (text) eintrag.ausgabe = text;\n  else if (!alt || alt === '(keine Ausgabe)') eintrag.ausgabe = '(keine Ausgabe)';\n  eintrag.versuche = (eintrag.versuche || 0) + 1;\n  if (Array.isArray($json.auswahl) && $json.auswahl.length) eintrag.auswahl = $json.auswahl;\n}\nreturn [{ json: { nr: nr, fertig: true } }];\n"
+        },
+        "id": "ad5692aa-d00c-5848-aad7-6f66a586a9bc",
+        "name": "Collect result",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          300,
+          1480
+        ],
+        "notes": "Writes the output into the store, then back into the loop.",
+        "notesInFlow": true
+      },
+      {
+        "parameters": {
+          "method": "GET",
+          "url": "={{ $('Configuration').first().json.konfig.sender.adresse + \"/api/nowplaying/1\" }}",
+          "sendHeaders": true,
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "X-API-Key",
+                "value": "={{ $('Configuration').first().json.konfig.sender.schluessel }}"
+              }
+            ]
+          },
+          "options": {
+            "timeout": 20000
+          }
+        },
+        "id": "6e59da81-5cf8-571d-aa5b-8552b28f11e3",
+        "name": "Fetch status",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [
+          880,
+          960
+        ],
+        "onError": "continueRegularOutput",
+        "notes": "What is playing - evidence for the check.",
+        "notesInFlow": true
+      },
+      {
+        "parameters": {
+          "method": "GET",
+          "url": "={{ $('Configuration').first().json.konfig.sender.adresse + \"/api/station/1\" + \"/queue\" }}",
+          "sendHeaders": true,
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "X-API-Key",
+                "value": "={{ $('Configuration').first().json.konfig.sender.schluessel }}"
+              }
+            ]
+          },
+          "options": {
+            "timeout": 20000
+          }
+        },
+        "id": "44ef93ed-81c3-5b97-a81b-87b892e3b963",
+        "name": "Fetch queue",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [
+          1100,
+          960
+        ],
+        "onError": "continueRegularOutput",
+        "notes": "What is queued - evidence for the check.",
+        "notesInFlow": true
+      },
+      {
+        "parameters": {
+          "jsCode": "\n// Zustand des Senders als Beleg fuer die Pruefung.\nconst d = $getWorkflowStaticData('global');\nconst jetzt = $('Fetch status').first().json || {};\nconst wartend = $('Fetch queue').all().map((i) => i.json || {});\nconst song = (jetzt.now_playing && jetzt.now_playing.song) || {};\nconst naechste = ((jetzt.playing_next || {}).song || {}).text || '';\nconst inWarteschlange = wartend.map((x) => (x.song && x.song.text) || '').filter(Boolean);\nconst liste = (d.lauf && d.lauf.befehle) || [];\n// Klarer Fehler: jede Ausgabe ist eine Fehlermeldung oder leer - dann braucht es\n// kein Sprachmodell fuer das Urteil (Regelurteil in \"Pruefung lesen\").\nconst klarFehler = liste.length > 0 && liste.every((b) => {\n  const a = String(b.ausgabe || '').trim();\n  return !a || a === '(keine Ausgabe)' || /^(FEHLER|KEINE TREFFER|Es steht keine Auswahlliste|Die Nummer)/i.test(a);\n});\n// Klar erledigt: jedes Werkzeug meldet seinen Erfolg selbst mit \"OK: ...\". Dann\n// braucht es kein Sprachmodell fuer das Urteil - es wuerde nur bestaetigen, was\n// schon belegt ist (kostete am 2026-09-20 gemessen 99 s je Ansage, weil das\n// Modell den erfolgreichen Befehl mehrfach als \"nicht ok\" einstufte).\nconst klarErledigt = liste.length > 0 && liste.every((b) => /^OK:/i.test(String(b.ausgabe || '').trim()));\nreturn [{ json: {\n  chatId: $('Input').first().json.chatId,\n  befehle: liste,\n  ohneKi: !!(d.lauf && d.lauf.ohneKi) || klarErledigt,\n  klarerFehler: klarFehler,\n  lage: {\n    laeuft: song.text || 'unbekannt',\n    danach: naechste,\n    warteschlange: inWarteschlange.slice(0, 5),\n  },\n} }];\n"
+        },
+        "id": "6a0e3c3b-a68b-57d0-9059-ddb69549d0c1",
+        "name": "Commands and status",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          1320,
+          960
+        ],
+        "notes": "Outputs + station state",
+        "notesInFlow": true
+      },
+      {
+        "parameters": {
+          "conditions": {
+            "options": {
+              "caseSensitive": true,
+              "leftValue": "",
+              "typeValidation": "loose",
+              "version": 2
+            },
+            "combinator": "and",
+            "conditions": [
+              {
+                "id": "88c1330c-66d3-4c78-a8de-e2d9c9a23c20",
+                "leftValue": "={{ !$json.ohneKi && !$json.klarerFehler }}",
+                "rightValue": "",
+                "operator": {
+                  "type": "boolean",
+                  "operation": "true",
+                  "singleValue": true
+                }
+              }
+            ]
+          },
+          "options": {}
+        },
+        "id": "9fba251a-e1b8-50bb-b7d1-9421ca8791db",
+        "name": "Check?",
+        "type": "n8n-nodes-base.if",
+        "typeVersion": 2.2,
+        "position": [
+          1540,
+          960
+        ],
+        "notes": "No = judgement by rules",
+        "notesInFlow": true
+      },
+      {
+        "parameters": {
+          "method": "POST",
+          "url": "={{ $('Configuration').first().json.konfig.sprachmodell.v1 + \"/chat/completions\" }}",
+          "sendHeaders": true,
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "name": "Authorization",
+                "value": "={{ 'Bearer ' + $('Configuration').first().json.konfig.sprachmodell.schluessel }}"
+              }
+            ]
+          },
+          "sendBody": true,
+          "specifyBody": "json",
+          "jsonBody": "={{ JSON.stringify({ model: $('Configuration').first().json.konfig.sprachmodell.modell, messages: [{ role: 'system', content: $('Configuration').first().json.konfig.aufgaben.pruefen }, { role: 'user', content: 'Befehle und Ausgaben: ' + JSON.stringify($json.befehle) + '\\nZustand des Senders: ' + JSON.stringify($json.lage) + '\\n/no_think' }], temperature: 0.1, reasoning_effort: 'none', max_tokens: 4000 }) }}",
+          "options": {
+            "timeout": 120000
+          }
+        },
+        "id": "3aa0f32c-5da6-5a4c-8904-f777f207316a",
+        "name": "Check",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [
+          1540,
+          1220
+        ],
+        "retryOnFail": true,
+        "maxTries": 2,
+        "waitBetweenTries": 3000,
+        "onError": "continueRegularOutput",
+        "notes": "Stage 3: verdict per command",
+        "notesInFlow": true
+      },
+      {
+        "parameters": {
+          "jsCode": "\n// Antwort eines direkten Modellaufrufs in das Feld \"output\" legen - die folgenden\n// Knoten lesen alle \"output\" (so wie frueher beim Agenten).\nconst j = $json || {};\nconst wahl = (j.choices && j.choices[0]) || {};\nconst text = (wahl.message && wahl.message.content) || j.output || j.text || '';\nreturn [{ json: Object.assign({}, j, { output: String(text || '') }) }];\n"
+        },
+        "id": "8b2260ad-94e3-507a-98e5-d1bd5354963b",
+        "name": "Check reply",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          1760,
+          1220
+        ],
+        "notes": "Extracts the model's verdict.",
+        "notesInFlow": true
+      },
+      {
+        "parameters": {
+          "jsCode": "\n// Ergebnis der Pruefung in den Merker schreiben und die fehlgeschlagenen Befehle\n// fuer den Nachfass-Durchgang weitergeben.\n//\n// Das Sprachmodell urteilt. Liefert es nichts (leere Antwort, kein JSON), greift\n// ein Regelurteil - sonst ginge ein misslungener Befehl als gelungen durch.\nconst d = $getWorkflowStaticData('global');\nconst roh = String(($json && ($json.output || $json.text)) || '').trim();\nconst liste = (d.lauf && d.lauf.befehle) || [];\nconst lage = ($('Commands and status').first().json || {}).lage || {};\nconst STOERUNG = /fehler|nicht moeglich|konnte nicht|nicht gefunden|keine treffer|trockenlauf|rueckfrage|welchen|welche|unbekannt/i;\n\nfunction zerlegen(text) {\n  const start = text.indexOf('{');\n  const ende = text.lastIndexOf('}');\n  if (start === -1 || ende <= start) return null;\n  try {\n    const j = JSON.parse(text.slice(start, ende + 1));\n    return Array.isArray(j.pruefung) ? j.pruefung : null;\n  } catch (e) { return null; }\n}\n\nfunction worte(text) {\n  return String(text || '').toLowerCase().split(/[^a-z0-9]+/).filter((w) => w.length > 2);\n}\n\nfunction urteil(b) {\n  const a = String(b.ausgabe || '').trim();\n  if (!a || a === '(keine Ausgabe)') return { ok: false, grund: 'keine Ausgabe' };\n  const b2 = b.befehl || {};\n  // Trockenlauf bei noch nicht bestaetigtem Verwaltungsauftrag ist der Regelfall.\n  const trocken = b.art === 'verwalten' && b2.bestaetigt !== true && /trockenlauf/i.test(a);\n  if (trocken) return { ok: true, grund: '' };\n  if (STOERUNG.test(a)) return { ok: false, grund: a.slice(0, 150) };\n  if (b.art === 'spielen') {\n    const w = worte(b2.suchtext);\n    const genannt = w.length && w.some((x) => String(a).toLowerCase().includes(x));\n    // Nennt die Ausgabe den gewuenschten Titel, gilt der Befehl als erledigt - der\n    // Sender meldet den laufenden Titel mit Verzoegerung.\n    if (genannt) return { ok: true, grund: '' };\n    if (b2.einreihen === true) {\n      const wartend = (lage.warteschlange || []).join(' ').toLowerCase();\n      if (w.length && !w.some((x) => wartend.includes(x))) {\n        return { ok: false, grund: 'nicht in der Warteschlange' };\n      }\n    } else {\n      const laeuft = String(lage.laeuft || '').toLowerCase();\n      if (w.length && !w.some((x) => laeuft.includes(x))) {\n        return { ok: false, grund: 'der Sender spielt \"' + (lage.laeuft || '?') + '\"' };\n      }\n    }\n  }\n  return { ok: true, grund: '' };\n}\n\nconst pruefung = zerlegen(roh);\nconst gelesen = {};\nfor (const e of pruefung || []) gelesen[Number(e.nr)] = e;\n\nfor (const b of liste) {\n  const e = gelesen[Number(b.nr)];\n  if (e) {\n    b.ok = e.ok === true;\n    b.grund = String(e.grund || '');\n  } else {\n    const u = urteil(b);\n    b.ok = u.ok;\n    b.grund = u.grund;\n  }\n  const leer = !String(b.ausgabe || '').trim() || String(b.ausgabe || '').trim() === '(keine Ausgabe)';\n  if (b.ok && leer) { b.ok = false; b.grund = b.grund || 'keine Ausgabe'; }\n  if (b.ok) b.grund = '';\n}\n\n// Eine Rueckfrage an den Nutzer ist kein Fehlschlag: sie wird angezeigt (mit Knoepfen),\n// aber NICHT nachgefasst.\nconst FRAGE_WORT = /\\?|welchen|welche|welches|soll ich|frage kurz|bitte waehlen|mehrere (titel|treffer|moeglichkeiten)/i;\nconst STOER_WORT = /fehler|nicht moeglich|konnte nicht|nicht gefunden|keine treffer|unbekannt|abgelehnt/i;\nfor (const b of liste) {\n  const a = String(b.ausgabe || '').trim();\n  // Eine Frage an den Nutzer ist kein Fehlschlag: sie wird gezeigt (mit Knoepfen),\n  // aber nicht nachgefasst - der zweite Versuch hatte die Liste geloescht.\n  b.frage = !!(a && b.art !== 'verwalten' && !STOER_WORT.test(a) && FRAGE_WORT.test(a));\n  if (b.frage) b.grund = b.grund || 'Rueckfrage an den Nutzer';\n}\nconst offen = (d.lauf && d.lauf.ohneKi)\n  // Kurzbefehl (ohne Sprachmodell ausgefuehrt): Urteil nach Regeln, kein zweiter Versuch.\n  ? []\n  : liste.filter((b) => b.ok === false && !b.frage && (b.versuche || 0) < 2);\nconst ausgabe = offen.map((b) => ({ json: { chatId: $json.chatId, nr: b.nr, art: b.art,\n  befehl: b.befehl, grund: b.grund, versuche: b.versuche || 0 } }));\nreturn ausgabe.length ? ausgabe : [{ json: { chatId: $json.chatId, nr: 0, nichts_zu_tun: true } }];\n"
+        },
+        "id": "812fb4df-e9fe-5392-82f3-7e3a2c98a98a",
+        "name": "Read check",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          1980,
+          960
+        ],
+        "notes": "ok and grund per command",
+        "notesInFlow": true
+      },
+      {
+        "parameters": {
+          "conditions": {
+            "options": {
+              "caseSensitive": true,
+              "leftValue": "",
+              "typeValidation": "loose",
+              "version": 2
+            },
+            "combinator": "and",
+            "conditions": [
+              {
+                "id": "d8fcd978-5074-4520-9f93-04d4d3eecdc6",
+                "leftValue": "={{ !$json.nichts_zu_tun }}",
+                "rightValue": "",
+                "operator": {
+                  "type": "boolean",
+                  "operation": "true",
+                  "singleValue": true
+                }
+              }
+            ]
+          },
+          "options": {}
+        },
+        "id": "c3b2abd0-4d68-599f-8085-cc7b530af799",
+        "name": "Retry?",
+        "type": "n8n-nodes-base.if",
+        "typeVersion": 2.2,
+        "position": [
+          2200,
+          960
+        ],
+        "notes": "Yes = second attempt",
+        "notesInFlow": true
+      },
+      {
+        "parameters": {
+          "batchSize": 1,
+          "options": {}
+        },
+        "id": "e1751fc4-109a-5d46-83d2-11fc1b56561a",
+        "name": "Loop 2",
+        "type": "n8n-nodes-base.splitInBatches",
+        "typeVersion": 3,
+        "position": [
+          2420,
+          960
+        ],
+        "notes": "Follow-up pass",
+        "notesInFlow": true
+      },
+      {
+        "parameters": {
+          "promptType": "define",
+          "text": "={{ 'Befehl: ' + JSON.stringify($json.befehl) + '\\nDer erste Versuch hat nicht geklappt: ' + $json.grund + '\\nVersuche es erneut - wenn moeglich auf einem anderen Weg. Antworte in einem kurzen deutschen Satz.\\n/no_think' }}",
+          "options": {
+            "systemMessage": "={{ $('Configuration').first().json.konfig.aufgaben.ausfuehren }}"
+          },
+          "hasOutputParser": false
+        },
+        "id": "8ed745ae-0ddb-5b6c-a990-46cc6ca77e73",
+        "name": "Retry work",
+        "type": "@n8n/n8n-nodes-langchain.agent",
+        "typeVersion": 2.2,
+        "position": [
+          2420,
+          1220
+        ],
+        "retryOnFail": true,
+        "maxTries": 2,
+        "waitBetweenTries": 3000,
+        "onError": "continueRegularOutput",
+        "notes": "Second attempt per command",
+        "notesInFlow": true
+      },
+      {
+        "parameters": {
+          "model": {
+            "__rl": true,
+            "value": "={{ $('Configuration').first().json.konfig.sprachmodell.modell }}",
+            "mode": "id"
+          },
+          "options": {
+            "temperature": 0.3,
+            "maxTokens": 3000
+          }
+        },
+        "id": "8e2a2540-465a-516a-ac14-fcf3b55627de",
+        "name": "Language model retry",
+        "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+        "typeVersion": 1.2,
+        "position": [
+          2420,
+          1480
+        ],
+        "credentials": {
+          "openAiApi": {
+            "id": "DEINE-OPENAIAPI-KENNUNG",
+            "name": "Ollama (OpenAI-Schnittstelle)"
+          }
+        },
+        "notes": "Language model for 'Retry work'.",
+        "notesInFlow": true
+      },
+      {
+        "parameters": {
+          "jsCode": "\n// Ergebnis des Nachfass-Durchgangs am Merker festhalten.\nconst d = $getWorkflowStaticData('global');\nconst item = $('Loop 2').first().json;\nconst text = String(($json && ($json.output || $json.text)) || '').trim();\nconst eintrag = (d.lauf && d.lauf.befehle || []).find((x) => x.nr === Number(item.nr));\nif (eintrag) {\n  const alt = String(eintrag.ausgabe || '').trim();\n  if (text) eintrag.ausgabe = text;\n  else if (!alt || alt === '(keine Ausgabe)') eintrag.ausgabe = '(keine Ausgabe)';\n  eintrag.versuche = (eintrag.versuche || 0) + 1;\n  if (Array.isArray($json.auswahl) && $json.auswahl.length) eintrag.auswahl = $json.auswahl;\n  // Der zweite Versuch ist der gueltige Stand - aber nur, wenn er etwas gesagt hat.\n  if (text) {\n    eintrag.ok = !/fehler|nicht moeglich|konnte nicht|nicht gefunden|keine treffer|welchen|welche/i.test(text);\n    eintrag.grund = eintrag.ok ? '' : text;\n  } else {\n    eintrag.ok = false;\n    eintrag.grund = eintrag.grund || 'Nachfassen brachte keine Antwort';\n  }\n}\nreturn [{ json: { nr: item.nr, fertig: true } }];\n"
+        },
+        "id": "a7590b35-d16e-5787-921c-459871897219",
+        "name": "Collect follow-up",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          2640,
+          1220
+        ],
+        "notes": "Writes the second attempt's output into the store.",
+        "notesInFlow": true
+      },
+      {
+        "parameters": {
+          "jsCode": "\n// Zusammenfassung aller Befehle - Erfolg und Misserfolg getrennt.\nconst d = $getWorkflowStaticData('global');\nconst liste = (d.lauf && d.lauf.befehle) || [];\n// schlicht = ohne Sprachmodell ausgefuehrt (Kurzbefehl): Antwort ohne Zeichen davor.\nconst schlicht = !!(d.lauf && d.lauf.schlicht);\nconst zeilen = [];\nfor (const b of liste) {\n  // Eine Auswahlliste darf nicht abgeschnitten werden: bei 300 Zeichen fehlten die\n  // letzten Kandidaten (am 2026-09-20 gesehen - die Liste endete bei \"5\"). Bei vielen\n  // Aufgaben wird dagegen kuerzer gehalten, sonst wird die Nachricht zu lang.\n  const grenze = b.frage ? 1200 : (liste.length > 4 ? 160 : 300);\n  const t = (b.ausgabe || '(keine Ausgabe)').replace(/[ \\t]+/g, ' ').slice(0, grenze);\n  const zeichen = b.ok === false ? (b.frage ? '\\u2753 ' : '\\u26a0\\ufe0f ') : '\\u2705 ';\n  zeilen.push(schlicht ? t : (zeichen + t));\n}\nif (!zeilen.length) zeilen.push('Ich habe darin keinen Auftrag erkannt.');\nconst offen = liste.filter((b) => b.ok === false && !b.frage);\nif (!schlicht && offen.length) {\n  zeilen.push('Nicht erledigt: ' + offen.map((b) => 'Nr. ' + b.nr).join(', ')\n    + ' - sag es noch einmal, dann versuche ich es anders.');\n}\nif (!schlicht && liste.some((b) => b.frage)) {\n  zeilen.push('Tippe den passenden Knopf oder antworte mit der Nummer.');\n}\nconst fehler = (d.lauf && d.lauf.fehler) || '';\nif (fehler) zeilen.push('(' + fehler + ')');\nconst gesamt = zeilen.join('\\n');\n// Auswahlliste als anklickbare Knoepfe: callback_data \"w\" + Nummer (kurz genug,\n// Telegram erlaubt dort 1-64 Bytes). Der Knopfdruck kommt als Nummer zurueck.\n// Auswahlliste fuer Knoepfe: entweder vom Werkzeug (\"auswahl\") oder aus der\n// nummerierten Liste im Text. Das Werkzeug kann seine Liste nur im Text mitgeben,\n// wenn ein Sprachmodell dazwischen sass - dann bauen wir die Knoepfe hier.\nconst ausListe = (t) => {\n  // Erst zeilenweise (so soll es sein), sonst aus einer zusammengezogenen Zeile\n  // (\"1. A, 2. B\") - kleine Modelle ziehen Listen gern in eine Zeile.\n  const zeilenweise = String(t || '').split('\\n')\n    .map((z) => z.trim().match(/^(\\d{1,2})[.)]\\s+(\\S.*)$/)).filter(Boolean).map((m) => m[2]);\n  const roh = zeilenweise.length >= 2 ? zeilenweise\n    : String(t || '').replace(/\\s+/g, ' ').split(/(?:^|[\\s,;])\\(?(\\d{1,2})[.)]\\s+/).slice(2).filter((_, i) => i % 2 === 0);\n  return roh.map((z) => String(z)\n      .split(/\\s*(?:welchen|welche|welches|frage kurz|tippe|bitte waehlen|sag mir|soll ich)\\b/i)[0]\n      .replace(/[,;]\\s*$/, '').replace(/\\s*\\([^)]*\\)\\s*$/, '').trim())\n    .filter(Boolean);\n};\n// Knoepfe aus dem Text nur fuer Titelwahlen: eine Postfachliste (\"1. ... | 2. ...\")\n// darf keine Knoepfe bekommen - \"w1\" waere dort als Liedwunsch missverstanden.\nconst mitListe = liste.find((b) => Array.isArray(b.auswahl) && b.auswahl.length)\n  || liste.find((b) => b.frage && b.art === 'spielen' && ausListe(b.ausgabe).length >= 2);\nconst eintraege = mitListe\n  ? ((Array.isArray(mitListe.auswahl) && mitListe.auswahl.length)\n      ? mitListe.auswahl : ausListe(mitListe.ausgabe))\n  : [];\nconst tastatur = eintraege.length >= 2\n  ? { inline_keyboard: eintraege.map((t, i) => ([{\n      text: String(t).slice(0, 60), callback_data: 'w' + (i + 1) }])) }\n  : null;\n// Fuer die naechste Nachricht merken: daran haengt \"ja, mach das\".\nd.letzteAntwort = gesamt;\nreturn [{ json: { chatId: $('Input').first().json.chatId, antwort: gesamt,\n  tastatur: tastatur } }];\n"
+        },
+        "id": "1c80111f-e557-5803-b212-1ea3aeff28e6",
+        "name": "Build reply",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          2900,
+          960
+        ],
+        "notes": "Summarise + buttons",
+        "notesInFlow": true
+      },
+      {
+        "parameters": {
+          "jsCode": "\n// Antwort fuer Telegram aufbereiten (HTML, keine Sternchen).\nlet text = String($json.antwort || '').trim();\nif (!text) text = 'Das habe ich nicht verstanden. Sag zum Beispiel: spiele Juliet von Modern Talking.';\ntext = text.replace(/\\*\\*/g, '').replace(/^#+\\s*/gm, '').replace(/`/g, '');\nreturn [{ json: { chatId: $json.chatId || $('Input').first().json.chatId, antwort: text,\n  tastatur: $json.tastatur || null } }];\n"
+        },
+        "id": "5ad57c85-ee32-5f9e-a769-ab91e280a33a",
+        "name": "Reply",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          3120,
+          960
+        ],
+        "notes": "Prepares the text for Telegram (HTML, without asterisks).",
+        "notesInFlow": true
+      },
+      {
+        "parameters": {
+          "method": "POST",
+          "url": "={{ $('Configuration').first().json.konfig.telegram.bot + \"/sendMessage\" }}",
+          "sendHeaders": true,
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              }
+            ]
+          },
+          "sendBody": true,
+          "specifyBody": "json",
+          "jsonBody": "={{ JSON.stringify(Object.assign({ chat_id: $json.chatId, text: $json.antwort, parse_mode: 'HTML', disable_web_page_preview: true }, ($json.tastatur ? { reply_markup: $json.tastatur } : {}))) }}",
+          "options": {
+            "timeout": 20000
+          }
+        },
+        "id": "e8ca9c76-3b01-573c-9fa0-7ed0c2dca12c",
+        "name": "Send",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [
+          3340,
+          960
+        ],
+        "onError": "continueRegularOutput",
+        "notes": "sendMessage (HTML)",
+        "notesInFlow": true
+      },
+      {
+        "parameters": {
+          "rule": {
+            "interval": [
+              {
+                "field": "minutes",
+                "minutesInterval": 5
+              }
+            ]
+          }
+        },
+        "id": "7652f957-7651-5159-b6e0-143d7eeea67c",
+        "name": "Schedule messages",
+        "type": "n8n-nodes-base.scheduleTrigger",
+        "typeVersion": 1.2,
+        "position": [
+          -2760,
+          1768
+        ],
+        "webhookId": "8f01c7fc-131f-5e4e-bdb1-a1556db3c100",
+        "notes": "Every 5 minutes: poll the inbox.",
+        "notesInFlow": true
+      },
+      {
+        "parameters": {
+          "method": "GET",
+          "url": "={{ $('Configuration').first().json.konfig.dienst.adresse + \"/meldungen/offen\" }}",
+          "sendQuery": true,
+          "queryParameters": {
+            "parameters": [
+              {
+                "name": "anzahl",
+                "value": "3"
+              },
+              {
+                "name": "nur_neue",
+                "value": "1"
+              }
+            ]
+          },
+          "sendHeaders": true,
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "name": "X-Meldung-Schluessel",
+                "value": "={{ $('Configuration').first().json.konfig.dienst.schluessel }}"
+              }
+            ]
+          },
+          "options": {
+            "timeout": 20000
+          }
+        },
+        "id": "9f898727-18c0-558b-beae-e25398536c74",
+        "name": "Fetch messages",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [
+          -2540,
+          1768
+        ],
+        "onError": "continueRegularOutput",
+        "notes": "Fetches new messages from the inbox (nur_neue=1 = not yet offered).",
+        "notesInFlow": true
+      },
+      {
+        "parameters": {
+          "conditions": {
+            "options": {
+              "caseSensitive": true,
+              "leftValue": "",
+              "typeValidation": "loose",
+              "version": 2
+            },
+            "combinator": "and",
+            "conditions": [
+              {
+                "id": "ed2bda30-1ebb-4809-bd2b-038e92bebbca",
+                "leftValue": "={{ Number($json.offen || 0) > 0 }}",
+                "rightValue": "",
+                "operator": {
+                  "type": "boolean",
+                  "operation": "true",
+                  "singleValue": true
+                }
+              }
+            ]
+          },
+          "options": {}
+        },
+        "id": "b78af915-8737-5869-a1f9-a9b54ad4765d",
+        "name": "Message present?",
+        "type": "n8n-nodes-base.if",
+        "typeVersion": 2.2,
+        "position": [
+          -2320,
+          1768
+        ],
+        "notes": "No = nothing new, the run ends here.",
+        "notesInFlow": true
+      },
+      {
+        "parameters": {
+          "jsCode": "\n// Baut aus den neuen Meldungen eine Telegram-Karte mit Knoepfen. Der Text geht\n// mit parse_mode HTML raus, deshalb werden spitze Klammern maskiert.\nconst d = $json || {};\nconst offen = Array.isArray(d.meldungen) ? d.meldungen : [];\nif (!offen.length) return [{ json: { leer: true } }];\n\nconst zeichen = { wetter: '\\u26c5', nachrichten: '\\U0001f4f0', rss: '\\U0001f4e1',\n  verkehr: '\\U0001f6a7', hinweis: '\\U0001f4a1', musik: '\\U0001f3b5', sonstiges: '\\U0001f4dd' };\nconst kopfe = { wetter: 'Wetter', nachrichten: 'Nachrichten', rss: 'Feed',\n  verkehr: 'Verkehr', hinweis: 'Hinweis', musik: 'Musik', sonstiges: 'Meldung' };\nconst entkommen = (s) => String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');\n\nconst m = offen[0];\nconst kopf = kopfe[m.art] || 'Meldung';\nconst zeilen = [\n  (zeichen[m.art] || '\\U0001f4dd') + ' <b>' + (m.wichtig ? 'Wichtig: ' : '') + entkommen(kopf) + '</b>',\n];\nif (m.titel) zeilen.push('<i>' + entkommen(m.titel) + '</i>');\nzeilen.push('');\nzeilen.push(entkommen(String(m.text || '').slice(0, 600)));\nzeilen.push('');\nzeilen.push('Sprechen lassen (' + String(m.vorschau || '').length + ' Zeichen Vorschau) oder verwerfen?');\nif (offen.length > 1) zeilen.push('(' + (offen.length - 1) + ' weitere Meldung(en) im Postfach)');\n\nconst tastatur = { inline_keyboard: [[\n  { text: '\\u25b6\\ufe0f Vorlesen', callback_data: 'm' + m.id },\n  { text: '\\U0001f5d1\\ufe0f Verwerfen', callback_data: 'x' + m.id },\n]] };\n// Die Kennung wird spaeter als \"angeboten\" gemerkt (kein zweites Angebot).\nconst angeboten = offen.map((e) => e.id);\n\nconst merker = $getWorkflowStaticData('global');\nconst erlaubte = Array.isArray(merker.erlaubte) ? merker.erlaubte\n  : (merker.erlaubte ? [merker.erlaubte] : []);\nreturn [{ json: { chatId: String(erlaubte[0] || ''),\n  antwort: zeilen.join('\\n'), tastatur: tastatur, bearbeiten: false,\n  nachrichtId: null, angeboten: angeboten,\n  vorschau: String(m.vorschau || m.text || '').slice(0, 400) } }];\n"
+        },
+        "id": "0d5d301f-29ab-52ff-8a0c-1a83db505282",
+        "name": "Message card",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          -2100,
+          1768
+        ],
+        "notes": "Build a card with buttons",
+        "notesInFlow": true
+      },
+      {
+        "parameters": {
+          "conditions": {
+            "options": {
+              "caseSensitive": true,
+              "leftValue": "",
+              "typeValidation": "loose",
+              "version": 2
+            },
+            "combinator": "and",
+            "conditions": [
+              {
+                "id": "03511d7d-78f3-4a35-859d-bac41ee826b0",
+                "leftValue": "={{ $('Message card').isExecuted }}",
+                "rightValue": "",
+                "operator": {
+                  "type": "boolean",
+                  "operation": "true",
+                  "singleValue": true
+                }
+              }
+            ]
+          },
+          "options": {}
+        },
+        "id": "f6f9c2c6-bd74-5814-bc8a-3ee944706d3e",
+        "name": "Offer?",
+        "type": "n8n-nodes-base.if",
+        "typeVersion": 2.2,
+        "position": [
+          -1880,
+          1768
+        ],
+        "notes": "Only on the schedule path",
+        "notesInFlow": true
+      },
+      {
+        "parameters": {
+          "method": "POST",
+          "url": "={{ $('Configuration').first().json.konfig.dienst.adresse + \"/meldungen/angeboten\" }}",
+          "sendHeaders": true,
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "name": "X-Meldung-Schluessel",
+                "value": "={{ $('Configuration').first().json.konfig.dienst.schluessel }}"
+              }
+            ]
+          },
+          "sendBody": true,
+          "specifyBody": "json",
+          "jsonBody": "={{ JSON.stringify({ ids: ($('Message card').isExecuted ? $('Message card').first().json.angeboten : []) }) }}",
+          "options": {
+            "timeout": 20000
+          }
+        },
+        "id": "75bb666c-9607-5385-9131-aeda035df6fb",
+        "name": "Offer message",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [
+          -1660,
+          1768
+        ],
+        "onError": "continueRegularOutput",
+        "notes": "Mark as offered",
+        "notesInFlow": true
+      },
+      {
+        "parameters": {
+          "name": "titel_suchen",
+          "description": "={{ $('Configuration').first().json.konfig.aufgaben.werkzeuge.titel_suchen }}",
+          "source": "database",
+          "workflowId": {
+            "__rl": true,
+            "value": "RadioWerkzeugEN",
+            "mode": "list",
+            "cachedResultName": "Werkzeug - Radio"
+          },
+          "workflowInputs": {
+            "mappingMode": "defineBelow",
+            "value": {
+              "suchtext": "={{ $fromAI(\"suchtext\", \"Interpret und/oder Titel, z. B. Modern Talking Juliet. Oder eine Nummer aus der letzten Auswahlliste, z. B. 2\", \"string\") }}",
+              "einreihen": "={{ $fromAI(\"einreihen\", \"true, wenn der Titel nur eingereiht werden soll (nicht sofort laufen)\", \"boolean\", false) }}"
+            },
+            "matchingColumns": [],
+            "schema": [
+              {
+                "id": "suchtext",
+                "displayName": "suchtext",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true,
+                "removed": false
+              },
+              {
+                "id": "einreihen",
+                "displayName": "einreihen",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "boolean",
+                "canBeUsedToMatch": true,
+                "removed": false
+              }
+            ],
+            "attemptToConvertTypes": false,
+            "convertFieldsToString": false
+          }
+        },
+        "id": "f5a23430-879d-530e-81e9-b4a917d24259",
+        "name": "Tool title search",
+        "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+        "typeVersion": 2.2,
+        "position": [
+          740,
+          2200
+        ],
+        "notes": "Tool `titel_suchen` for Execute and Retry work.",
+        "notesInFlow": true
+      },
+      {
+        "parameters": {
+          "name": "richtung_suchen",
+          "description": "={{ $('Configuration').first().json.konfig.aufgaben.werkzeuge.richtung_suchen }}",
+          "source": "database",
+          "workflowId": {
+            "__rl": true,
+            "value": "RadioWerkzeugEN",
+            "mode": "list",
+            "cachedResultName": "Werkzeug - Radio"
+          },
+          "workflowInputs": {
+            "mappingMode": "defineBelow",
+            "value": {
+              "richtung": "={{ $fromAI(\"richtung\", \"Stimmung, Genre oder Jahrzehnt - eines von: party, dance, rock, pop, metal, hiphop, electronic, disco, punk, grunge, folk, blues, jazz, klassik, schlager, deutschrap, ruhig, hart, 90er, 80er\", \"string\") }}",
+              "einreihen": "={{ $fromAI(\"einreihen\", \"true, wenn der Titel nur eingereiht werden soll (nicht sofort laufen)\", \"boolean\", false) }}"
+            },
+            "matchingColumns": [],
+            "schema": [
+              {
+                "id": "richtung",
+                "displayName": "richtung",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true,
+                "removed": false
+              },
+              {
+                "id": "einreihen",
+                "displayName": "einreihen",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "boolean",
+                "canBeUsedToMatch": true,
+                "removed": false
+              }
+            ],
+            "attemptToConvertTypes": false,
+            "convertFieldsToString": false
+          }
+        },
+        "id": "4bad5b50-f683-5991-b9eb-f48c67fbd384",
+        "name": "Tool direction search",
+        "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+        "typeVersion": 2.2,
+        "position": [
+          940,
+          2200
+        ],
+        "notes": "Tool `richtung_suchen` for Execute and Retry work.",
+        "notesInFlow": true
+      },
+      {
+        "parameters": {
+          "name": "was_laeuft",
+          "description": "={{ $('Configuration').first().json.konfig.aufgaben.werkzeuge.was_laeuft }}",
+          "source": "database",
+          "workflowId": {
+            "__rl": true,
+            "value": "RadioWerkzeugEN",
+            "mode": "list",
+            "cachedResultName": "Werkzeug - Radio"
+          },
+          "workflowInputs": {
+            "mappingMode": "defineBelow",
+            "value": {
+              "frage": "={{ $fromAI(\"frage\", \"Was der Nutzer wissen will, z. B. welcher Titel laeuft, was danach kommt, wie viele Zuhoerer\", \"string\", \"was laeuft gerade\") }}"
+            },
+            "matchingColumns": [],
+            "schema": [
+              {
+                "id": "frage",
+                "displayName": "frage",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true,
+                "removed": false
+              }
+            ],
+            "attemptToConvertTypes": false,
+            "convertFieldsToString": false
+          }
+        },
+        "id": "7d30cbe2-2fb5-5c56-8828-c8dd46e50422",
+        "name": "Tool what's playing",
+        "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+        "typeVersion": 2.2,
+        "position": [
+          1140,
+          2200
+        ],
+        "notes": "Tool `was_laeuft` for Execute and Retry work.",
+        "notesInFlow": true
+      },
+      {
+        "parameters": {
+          "name": "azura_endpunkte",
+          "description": "={{ $('Configuration').first().json.konfig.aufgaben.werkzeuge.azura_endpunkte }}",
+          "source": "database",
+          "workflowId": {
+            "__rl": true,
+            "value": "AzuraWerkzeugEN",
+            "mode": "list",
+            "cachedResultName": "Werkzeug - AzuraCast"
+          },
+          "workflowInputs": {
+            "mappingMode": "defineBelow",
+            "value": {
+              "suche": "={{ $fromAI(\"suche\", \"Stichwort zur gesuchten Adresse, z. B. playlist\", \"string\") }}"
+            },
+            "matchingColumns": [],
+            "schema": [
+              {
+                "id": "suche",
+                "displayName": "suche",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true,
+                "removed": false
+              }
+            ],
+            "attemptToConvertTypes": false,
+            "convertFieldsToString": false
+          }
+        },
+        "id": "5eed1c65-1df8-5b8c-92a0-72ae8b3c8e2a",
+        "name": "Tool Azura addresses",
+        "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+        "typeVersion": 2.2,
+        "position": [
+          1340,
+          2200
+        ],
+        "notes": "Tool `azura_endpunkte` for Execute and Retry work.",
+        "notesInFlow": true
+      },
+      {
+        "parameters": {
+          "name": "azura_aufruf",
+          "description": "={{ $('Configuration').first().json.konfig.aufgaben.werkzeuge.azura_aufruf }}",
+          "source": "database",
+          "workflowId": {
+            "__rl": true,
+            "value": "AzuraWerkzeugEN",
+            "mode": "list",
+            "cachedResultName": "Werkzeug - AzuraCast"
+          },
+          "workflowInputs": {
+            "mappingMode": "defineBelow",
+            "value": {
+              "methode": "={{ $fromAI(\"methode\", \"GET zum Lesen, POST/PUT/DELETE zum Aendern\", \"string\", \"GET\") }}",
+              "pfad": "={{ $fromAI(\"pfad\", \"Vollstaendiger Pfad mit /api/, z. B. /api/station/1/playlists\", \"string\") }}",
+              "koerper": "={{ $fromAI(\"koerper\", \"JSON-Koerper beim Schreiben, z. B. {\\\"name\\\":\\\"Neu\\\",\\\"type\\\":\\\"default\\\"}\", \"string\", \"\") }}",
+              "bestaetigt": "={{ $fromAI(\"bestaetigt\", \"true, wenn der Betreiber das Aendern ausdruecklich erlaubt hat\", \"boolean\", false) }}"
+            },
+            "matchingColumns": [],
+            "schema": [
+              {
+                "id": "methode",
+                "displayName": "methode",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true,
+                "removed": false
+              },
+              {
+                "id": "pfad",
+                "displayName": "pfad",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true,
+                "removed": false
+              },
+              {
+                "id": "koerper",
+                "displayName": "koerper",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true,
+                "removed": false
+              },
+              {
+                "id": "bestaetigt",
+                "displayName": "bestaetigt",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "boolean",
+                "canBeUsedToMatch": true,
+                "removed": false
+              }
+            ],
+            "attemptToConvertTypes": false,
+            "convertFieldsToString": false
+          }
+        },
+        "id": "b4d7e15c-f137-5959-89e1-41a59157e9ae",
+        "name": "Tool Azura call",
+        "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+        "typeVersion": 2.2,
+        "position": [
+          1540,
+          2200
+        ],
+        "notes": "Tool `azura_aufruf` for Execute and Retry work.",
+        "notesInFlow": true
+      },
+      {
+        "parameters": {
+          "name": "azura_ueberblick",
+          "description": "={{ $('Configuration').first().json.konfig.aufgaben.werkzeuge.azura_ueberblick }}",
+          "source": "database",
+          "workflowId": {
+            "__rl": true,
+            "value": "AzuraWerkzeugEN",
+            "mode": "list",
+            "cachedResultName": "Werkzeug - AzuraCast"
+          },
+          "workflowInputs": {
+            "mappingMode": "defineBelow",
+            "value": {
+              "frage": "={{ $fromAI(\"frage\", \"Was der Betreiber wissen will, z. B. Zustand oder Wiedergabelisten\", \"string\", \"Ueberblick\") }}"
+            },
+            "matchingColumns": [],
+            "schema": [
+              {
+                "id": "frage",
+                "displayName": "frage",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true,
+                "removed": false
+              }
+            ],
+            "attemptToConvertTypes": false,
+            "convertFieldsToString": false
+          }
+        },
+        "id": "272a2393-b287-5b77-bb6e-0ffdfef1c28d",
+        "name": "Tool Azura overview",
+        "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+        "typeVersion": 2.2,
+        "position": [
+          1740,
+          2200
+        ],
+        "notes": "Tool `azura_ueberblick` for Execute and Retry work.",
+        "notesInFlow": true
+      },
+      {
+        "parameters": {
+          "name": "meldungen",
+          "description": "={{ $('Configuration').first().json.konfig.aufgaben.werkzeuge.meldungen }}",
+          "source": "database",
+          "workflowId": {
+            "__rl": true,
+            "value": "MeldungenWerkzeugEN",
+            "mode": "list",
+            "cachedResultName": "Werkzeug - Meldungen"
+          },
+          "workflowInputs": {
+            "mappingMode": "defineBelow",
+            "value": {
+              "auftrag": "={{ $fromAI(\"auftrag\", \"anzeigen (offene Meldungen), lesen (Sprechtext), ansagen (live sprechen), verwerfen oder text (freier Text)\", \"string\", \"anzeigen\") }}",
+              "kennung": "={{ $fromAI(\"kennung\", \"Kennung der Meldung, z. B. m260920-0007 (bei lesen, ansagen, verwerfen)\", \"string\", \"\") }}",
+              "text": "={{ $fromAI(\"text\", \"Freier Ansagetext (nur bei auftrag=text)\", \"string\", \"\") }}"
+            },
+            "matchingColumns": [],
+            "schema": [
+              {
+                "id": "auftrag",
+                "displayName": "auftrag",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true,
+                "removed": false
+              },
+              {
+                "id": "kennung",
+                "displayName": "kennung",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true,
+                "removed": false
+              },
+              {
+                "id": "text",
+                "displayName": "text",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true,
+                "removed": false
+              }
+            ],
+            "attemptToConvertTypes": false,
+            "convertFieldsToString": false
+          }
+        },
+        "id": "abf43475-eb3e-5dce-babe-d0ec8302be8d",
+        "name": "Tool messages",
+        "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+        "typeVersion": 2.2,
+        "position": [
+          1960,
+          2200
+        ],
+        "notes": "Tool `meldungen`: inbox and announcements.",
+        "notesInFlow": true
+      },
+      {
+        "parameters": {
+          "name": "recherche",
+          "description": "={{ $('Configuration').first().json.konfig.aufgaben.werkzeuge.recherche }}",
+          "source": "database",
+          "workflowId": {
+            "__rl": true,
+            "value": "MeldungenWerkzeugEN",
+            "mode": "list",
+            "cachedResultName": "Werkzeug - Meldungen"
+          },
+          "workflowInputs": {
+            "mappingMode": "defineBelow",
+            "value": {
+              "art": "={{ $fromAI(\"art\", \"wetter, nachrichten, rss, wikipedia oder ueberblick\", \"string\", \"wetter\") }}",
+              "wort": "={{ $fromAI(\"wort\", \"Ort beim Wetter, Stichwort bei wikipedia, Feed-Adresse oder Kurzname bei rss\", \"string\", \"\") }}",
+              "themen": "={{ $fromAI(\"themen\", \"Nur beim Ueberblick: Themen, zu denen Meldungen gesucht werden, z. B. 'ki, raumfahrt' (leer = stehende Themen des Senders bzw. die neuesten Meldungen)\", \"string\", \"\") }}",
+              "quellen": "={{ $fromAI(\"quellen\", \"Nur beim Ueberblick: gewuenschte Quellen, z. B. 'heise golem' oder 'alle' (leer = Standard)\", \"string\", \"\") }}",
+              "ansagen": "={{ $fromAI(\"ansagen\", \"true = sofort im Radio ansagen, false = nur ablegen und im Telegram zeigen\", \"boolean\", true) }}"
+            },
+            "matchingColumns": [],
+            "schema": [
+              {
+                "id": "art",
+                "displayName": "art",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true,
+                "removed": false
+              },
+              {
+                "id": "wort",
+                "displayName": "wort",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true,
+                "removed": false
+              },
+              {
+                "id": "themen",
+                "displayName": "themen",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true,
+                "removed": false
+              },
+              {
+                "id": "quellen",
+                "displayName": "quellen",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true,
+                "removed": false
+              },
+              {
+                "id": "ansagen",
+                "displayName": "ansagen",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "boolean",
+                "canBeUsedToMatch": true,
+                "removed": false
+              }
+            ],
+            "attemptToConvertTypes": false,
+            "convertFieldsToString": false
+          }
+        },
+        "id": "a755f9de-a55a-5a6b-8aae-b79a75cc3ee6",
+        "name": "Tool research",
+        "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+        "typeVersion": 2.2,
+        "position": [
+          2180,
+          2200
+        ],
+        "notes": "Tool `recherche`: weather, news, feed, short info.",
+        "notesInFlow": true
+      },
+      {
+        "parameters": {
+          "source": "database",
+          "workflowId": {
+            "__rl": true,
+            "value": "RadioWerkzeugEN",
+            "mode": "list",
+            "cachedResultName": "Werkzeug - Radio"
+          },
+          "workflowInputs": {
+            "mappingMode": "defineBelow",
+            "value": {
+              "suchtext": "={{ $json.befehl.suchtext || '' }}",
+              "richtung": "={{ $json.befehl.richtung || '' }}",
+              "frage": "={{ $json.befehl.frage || '' }}",
+              "einreihen": "={{ $json.befehl.einreihen === true }}"
+            },
+            "matchingColumns": [],
+            "schema": [
+              {
+                "id": "suchtext",
+                "displayName": "suchtext",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true,
+                "removed": false
+              },
+              {
+                "id": "richtung",
+                "displayName": "richtung",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true,
+                "removed": false
+              },
+              {
+                "id": "einreihen",
+                "displayName": "einreihen",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "boolean",
+                "canBeUsedToMatch": true,
+                "removed": false
+              }
+            ],
+            "attemptToConvertTypes": false,
+            "convertFieldsToString": false
+          },
+          "mode": "once",
+          "options": {
+            "waitForSubWorkflow": true
+          }
+        },
+        "id": "ac057512-752a-58c9-85d7-3a5db197a79b",
+        "name": "Fallback tool",
+        "type": "n8n-nodes-base.executeWorkflow",
+        "typeVersion": 1.2,
+        "position": [
+          -140,
+          700
+        ],
+        "notes": "Tool plays by itself",
+        "notesInFlow": true
+      },
+      {
+        "parameters": {
+          "conditions": {
+            "options": {
+              "caseSensitive": true,
+              "leftValue": "",
+              "typeValidation": "loose",
+              "version": 2
+            },
+            "combinator": "and",
+            "conditions": [
+              {
+                "id": "8ae68601-15a8-4b81-a56e-a88295606fb4",
+                "leftValue": "={{ $json.art === 'direkt' }}",
+                "rightValue": "",
+                "operator": {
+                  "type": "boolean",
+                  "operation": "true",
+                  "singleValue": true
+                }
+              }
+            ]
+          },
+          "options": {}
+        },
+        "id": "754ae70b-58d3-56fa-945e-32d6a83eb27c",
+        "name": "Direct or AI?",
+        "type": "n8n-nodes-base.if",
+        "typeVersion": 2.2,
+        "position": [
+          -420,
+          960
+        ],
+        "notes": "Yes = fallback path without model",
+        "notesInFlow": true
+      },
+      {
+        "parameters": {
+          "conditions": {
+            "options": {
+              "caseSensitive": true,
+              "leftValue": "",
+              "typeValidation": "loose",
+              "version": 2
+            },
+            "combinator": "and",
+            "conditions": [
+              {
+                "id": "0ec3b5cd-1f73-42c0-9eff-be059e737eb6",
+                "leftValue": "={{ $json.art === 'steuerung' }}",
+                "rightValue": "",
+                "operator": {
+                  "type": "boolean",
+                  "operation": "true",
+                  "singleValue": true
+                }
+              }
+            ]
+          },
+          "options": {}
+        },
+        "id": "d7cdd868-fbad-5bf1-88be-87186e6174d0",
+        "name": "Controls?",
+        "type": "n8n-nodes-base.if",
+        "typeVersion": 2.2,
+        "position": [
+          -140,
+          960
+        ],
+        "notes": "Yes = fixed addresses",
+        "notesInFlow": true
+      },
+      {
+        "parameters": {
+          "conditions": {
+            "options": {
+              "caseSensitive": true,
+              "leftValue": "",
+              "typeValidation": "loose",
+              "version": 2
+            },
+            "combinator": "and",
+            "conditions": [
+              {
+                "id": "718357f8-f163-473f-b166-411f2c1dcf2a",
+                "leftValue": "={{ $json.art === 'postfach' }}",
+                "rightValue": "",
+                "operator": {
+                  "type": "boolean",
+                  "operation": "true",
+                  "singleValue": true
+                }
+              }
+            ]
+          },
+          "options": {}
+        },
+        "id": "0dfe2b3f-6e25-52ee-a924-4447cd77dff5",
+        "name": "Inbox?",
+        "type": "n8n-nodes-base.if",
+        "typeVersion": 2.2,
+        "position": [
+          -140,
+          1220
+        ],
+        "notes": "Yes = question about the inbox",
+        "notesInFlow": true
+      },
+      {
+        "parameters": {
+          "method": "GET",
+          "url": "={{ $('Configuration').first().json.konfig.dienst.adresse + \"/meldungen/offen\" }}",
+          "sendQuery": true,
+          "queryParameters": {
+            "parameters": [
+              {
+                "name": "anzahl",
+                "value": "5"
+              }
+            ]
+          },
+          "sendHeaders": true,
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "name": "X-Meldung-Schluessel",
+                "value": "={{ $('Configuration').first().json.konfig.dienst.schluessel }}"
+              }
+            ]
+          },
+          "options": {
+            "timeout": 20000
+          }
+        },
+        "id": "dce24025-dd47-5656-b28e-f637df4254ea",
+        "name": "Fetch inbox",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [
+          80,
+          1220
+        ],
+        "onError": "continueRegularOutput",
+        "notes": "Fetch open messages",
+        "notesInFlow": true
+      },
+      {
+        "parameters": {
+          "jsCode": "\n// Antwort auf eine Postfach-Frage - ohne Sprachmodell, ohne Ansage.\nconst d = $getWorkflowStaticData('global');\nconst item = $('Loop').first().json || {};\nconst r = $json || {};\nconst liste = Array.isArray(r.meldungen) ? r.meldungen : [];\n\nlet text = '';\nif (r.error) {\n  text = 'FEHLER: Das Postfach ist nicht erreichbar.';\n} else if (!liste.length) {\n  text = 'Im Postfach liegt nichts Offenes.';\n} else {\n  const zeilen = liste.map((m, i) => (i + 1) + '. ' + (m.wichtig ? 'WICHTIG ' : '')\n    + (m.titel || String(m.text || '').slice(0, 60)) + ' (' + (m.art || 'Meldung')\n    + ', Kennung ' + m.id + ')');\n  text = 'Im Postfach ' + liste.length + ' offene Meldung(en): ' + zeilen.join(' | ')\n    + '. Zum Vorlesen nenne einfach den Titel.';\n}\n\n// Der Text geht mit parse_mode HTML nach Telegram - spitze Klammern aus\n// Ueberschriften wuerden den Versand sonst abbrechen (siehe Postfach-Probe).\ntext = text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');\n\nconst nr = Number(item.nr || 1);\nconst eintrag = (d.lauf && d.lauf.befehle || []).find((x) => x.nr === nr);\nif (eintrag) {\n  eintrag.ausgabe = text;\n  eintrag.ok = !r.error;\n  eintrag.versuche = (eintrag.versuche || 0) + 1;\n}\nreturn [{ json: { nr: nr, fertig: true } }];\n"
+        },
+        "id": "60e0f961-a074-5a7b-a386-00211dbf4090",
+        "name": "Inbox reply",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          300,
+          1220
+        ],
+        "notes": "List as text",
+        "notesInFlow": true
+      },
+      {
+        "parameters": {
+          "conditions": {
+            "options": {
+              "caseSensitive": true,
+              "leftValue": "",
+              "typeValidation": "loose",
+              "version": 2
+            },
+            "combinator": "and",
+            "conditions": [
+              {
+                "id": "95193c5e-39b5-49eb-8d30-5d56c6cae613",
+                "leftValue": "={{ $json.art === 'ueberblick' }}",
+                "rightValue": "",
+                "operator": {
+                  "type": "boolean",
+                  "operation": "true",
+                  "singleValue": true
+                }
+              }
+            ]
+          },
+          "options": {}
+        },
+        "id": "fa6ba45c-ba7b-5549-8259-4d6e9458c80b",
+        "name": "Overview?",
+        "type": "n8n-nodes-base.if",
+        "typeVersion": 2.2,
+        "position": [
+          -140,
+          1480
+        ],
+        "notes": "Yes = source overview",
+        "notesInFlow": true
+      },
+      {
+        "parameters": {
+          "method": "POST",
+          "url": "={{ $('Configuration').first().json.konfig.dienst.adresse + \"/recherche\" }}",
+          "sendHeaders": true,
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "name": "X-Meldung-Schluessel",
+                "value": "={{ $('Configuration').first().json.konfig.dienst.schluessel }}"
+              }
+            ]
+          },
+          "sendBody": true,
+          "specifyBody": "json",
+          "jsonBody": "={{ JSON.stringify({ art: 'ueberblick', quellen: String($json.befehl.quellen || ''), themen: String($json.befehl.themen || ''), ansagen: true }) }}",
+          "options": {
+            "timeout": 900000
+          }
+        },
+        "id": "b2613d26-86d7-52b5-82c2-7f47fa145336",
+        "name": "Fetch overview",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [
+          80,
+          1740
+        ],
+        "onError": "continueRegularOutput",
+        "notes": "Fetch the piece and speak it",
+        "notesInFlow": true
+      },
+      {
+        "parameters": {
+          "jsCode": "\n// Antwort des Ueberblicks festhalten (Stufe 2, Kurzweg ohne Sprachmodell).\n// Der Dienst hat den Beitrag zu diesem Zeitpunkt schon gesprochen - hier kommt nur\n// noch die Meldung zurueck, die in den Merker und damit in die Antwort geht.\nconst d = $getWorkflowStaticData('global');\nconst item = $('Loop').first().json || {};\nconst r = $json || {};\nlet text = '';\nif (r.error) {\n  text = 'FEHLER: Der Ueberblick liess sich nicht holen.';\n} else {\n  const dauer = Number(r.dauer_sekunden || 0);\n  const minuten = dauer ? (dauer / 60).toFixed(1).replace('.', ',') : '';\n  const themen = Array.isArray(r.themen) ? r.themen : [];\n  const quellen = Array.isArray(r.quellen) ? r.quellen.length : 0;\n  text = String(r.antwort || '').trim()\n    || ('Ueberblick ' + (r.gesagt ? 'gesagt' : 'vorbereitet')\n        + (minuten ? ' (' + minuten + ' Min' : '')\n        + (themen.length ? (minuten ? ', Themen ' : ' (Themen ') + themen.join(', ') : '')\n        + (quellen ? ', ' + quellen + ' Quellen' : '')\n        + ((minuten || themen.length || quellen) ? ')' : ''));\n  if (Array.isArray(r.ausgefallen) && r.ausgefallen.length) {\n    text += ' (' + r.ausgefallen.join(', ') + ' nicht erreichbar)';\n  }\n}\n// Der Text geht mit parse_mode HTML nach Telegram - spitze Klammern maskieren.\ntext = text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');\nconst nr = Number(item.nr || 1);\nconst eintrag = (d.lauf && d.lauf.befehle || []).find((x) => x.nr === nr);\nif (eintrag) {\n  eintrag.ausgabe = text;\n  eintrag.ok = !r.error;\n  eintrag.versuche = (eintrag.versuche || 0) + 1;\n}\nreturn [{ json: { nr: nr, fertig: true } }];\n"
+        },
+        "id": "e2c864bd-7726-56ac-b2ea-00b062b2272e",
+        "name": "Overview reply",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          300,
+          1740
+        ],
+        "notes": "Writes the output into the store, then back into the loop.",
+        "notesInFlow": true
+      },
+      {
+        "parameters": {
+          "method": "={{ ['pause', 'lautstaerke'].includes($json.befehl.steuerung) ? 'GET' : 'POST' }}",
+          "url": "={{ ['pause', 'lautstaerke'].includes($json.befehl.steuerung) ? $('Configuration').first().json.konfig.sender.api + '/status' : $('Configuration').first().json.konfig.sender.api + '/backend/' + $json.befehl.steuerung }}",
+          "sendHeaders": true,
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "X-API-Key",
+                "value": "={{ $('Configuration').first().json.konfig.sender.schluessel }}"
+              }
+            ]
+          },
+          "options": {
+            "timeout": 20000
+          }
+        },
+        "id": "a98f30e0-5f66-544b-bab5-ac9eb220c827",
+        "name": "Short controls",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [
+          80,
+          960
+        ],
+        "onError": "continueRegularOutput",
+        "notes": "Next track, start/stop/restart - fixed addresses, no model.",
+        "notesInFlow": true
+      },
+      {
+        "parameters": {
+          "jsCode": "\n// Antwort auf einen Kurzbefehl (Basissteuerung) - ohne Sprachmodell.\nconst d = $getWorkflowStaticData('global');\nconst item = $('Loop').first().json || {};\nconst aktion = String((item.befehl || {}).steuerung || '');\nconst r = $json || {};\nconst fehler = !!r.error || r.success === false;\n\nlet text = '';\nif (aktion === 'pause') {\n  text = 'Am Sender gibt es kein Pausieren - anhalten kann jedes Geraet selbst. '\n    + 'Sag \"weiter\", wenn der Sendeteil weiterspielen soll, oder \"naechster Titel\".';\n} else if (aktion === 'lautstaerke') {\n  text = 'Die Lautstaerke stellt jedes Geraet selbst ein - am Sender laesst sie sich nicht aendern.';\n} else if (aktion === 'skip') {\n  text = fehler ? 'FEHLER: Der Sender nimmt den Sprung nicht an.' : 'Naechster Titel laeuft an.';\n} else if (aktion === 'play') {\n  text = fehler ? 'FEHLER: Der Sendeteil laeuft nicht an.' : 'Der Sendeteil laeuft.';\n} else if (aktion === 'start') {\n  text = fehler ? 'FEHLER: Der Sendeteil liess sich nicht starten.' : 'Der Sendeteil ist gestartet.';\n} else if (aktion === 'stop') {\n  text = fehler ? 'FEHLER: Der Sendeteil liess sich nicht stoppen.' : 'Der Sendeteil ist gestoppt.';\n} else if (aktion === 'restart') {\n  text = fehler ? 'FEHLER: Der Sendeteil liess sich nicht neu starten.'\n    : 'Der Sendeteil wurde neu gestartet.';\n} else {\n  text = fehler ? 'FEHLER: Der Befehl kam nicht durch.' : 'Erledigt.';\n}\n\nconst nr = Number(item.nr || 1);\nconst eintrag = (d.lauf && d.lauf.befehle || []).find((x) => x.nr === nr);\nif (eintrag) {\n  eintrag.ausgabe = text;\n  eintrag.ok = !fehler;\n  eintrag.versuche = (eintrag.versuche || 0) + 1;\n}\nreturn [{ json: { nr: nr, fertig: true } }];\n"
+        },
+        "id": "6dcb0264-b7fb-5238-ba93-642decfbedcc",
+        "name": "Controls reply",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          300,
+          960
+        ],
+        "notes": "Phrases the station's reply.",
+        "notesInFlow": true
+      },
+      {
+        "parameters": {
+          "jsCode": "\n// Ergebnis des Ersatzwegs festhalten. Das Radio-Werkzeug antwortet mit \"ergebnis\",\n// ein Sprachmodell mit \"output\" - beides beruecksichtigen.\nconst d = $getWorkflowStaticData('global');\nconst nr = Number($('Loop').first().json.nr || 0);\nconst text = String(($json && ($json.ergebnis || $json.output || $json.text)) || '').trim();\nconst eintrag = (d.lauf && d.lauf.befehle || []).find((x) => x.nr === nr);\nif (eintrag) {\n  // Eine leere Antwort darf eine brauchbare Ausgabe NICHT loeschen. Am 2026-09-20 hat\n  // der zweite Versuch die Auswahlliste (\"Welchen Titel soll ich spielen?\") mit\n  // \"(keine Ausgabe)\" ueberschrieben - der Nutzer sah die Liste nie.\n  const alt = String(eintrag.ausgabe || '').trim();\n  if (text) eintrag.ausgabe = text;\n  else if (!alt || alt === '(keine Ausgabe)') eintrag.ausgabe = '(keine Ausgabe)';\n  eintrag.versuche = (eintrag.versuche || 0) + 1;\n  if (Array.isArray($json.auswahl) && $json.auswahl.length) eintrag.auswahl = $json.auswahl;\n}\nreturn [{ json: { nr: nr, fertig: true } }];\n"
+        },
+        "id": "2f8c15b3-1e43-5f4f-bedf-45801a8bfdfe",
+        "name": "Fallback reply",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          80,
+          700
+        ],
+        "notes": "Writes the output into the store, then back into the loop.",
+        "notesInFlow": true
+      },
+      {
+        "parameters": {
+          "method": "POST",
+          "url": "={{ $('Configuration').first().json.konfig.telegram.bot + \"/sendMessage\" }}",
+          "sendHeaders": true,
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              }
+            ]
+          },
+          "sendBody": true,
+          "specifyBody": "json",
+          "jsonBody": "={{ JSON.stringify({ chat_id: $json.chatId, text: $json.antwort, parse_mode: 'HTML', disable_web_page_preview: true }) }}",
+          "options": {
+            "timeout": 20000
+          }
+        },
+        "id": "e29a1215-168d-5ebb-bc7d-31aaaefb3e37",
+        "name": "Send (short note)",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [
+          -1880,
+          -700
+        ],
+        "onError": "continueRegularOutput",
+        "notes": "Short path, same call",
+        "notesInFlow": true
+      },
+      {
+        "parameters": {
+          "source": "database",
+          "workflowId": {
+            "__rl": true,
+            "value": "KonfigurationEN",
+            "mode": "list",
+            "cachedResultName": "Konfiguration - alle Werte"
+          },
+          "workflowInputs": {
+            "mappingMode": "defineBelow",
+            "value": {
+              "eingang": "={{ JSON.stringify($json) }}"
+            },
+            "matchingColumns": [],
+            "schema": [
+              {
+                "id": "eingang",
+                "displayName": "eingang",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true,
+                "removed": false
+              }
+            ],
+            "attemptToConvertTypes": false,
+            "convertFieldsToString": false
+          }
+        },
+        "id": "49e4d623-eef1-507b-9c70-577e5fd46559",
+        "name": "Configuration",
+        "type": "n8n-nodes-base.executeWorkflow",
+        "typeVersion": 1.2,
+        "position": [
+          -4200,
+          -700
+        ],
+        "notes": "All values in one place",
+        "notesInFlow": true
+      },
+      {
+        "parameters": {
+          "conditions": {
+            "options": {
+              "caseSensitive": true,
+              "leftValue": "",
+              "typeValidation": "loose",
+              "version": 2
+            },
+            "combinator": "and",
+            "conditions": [
+              {
+                "id": "d23f2976-86f3-43a2-b2a3-f1807fc18b3a",
+                "leftValue": "={{ !!( $json.body || $json.message || $json.callback_query || $json.edited_message ) }}",
+                "rightValue": "",
+                "operator": {
+                  "type": "boolean",
+                  "operation": "true",
+                  "singleValue": true
+                }
+              }
+            ]
+          },
+          "options": {}
+        },
+        "id": "f150ebba-5aa3-575f-9145-17356efacdc9",
+        "name": "Plan switch?",
+        "type": "n8n-nodes-base.if",
+        "typeVersion": 2.2,
+        "position": [
+          -4200,
+          -520
+        ],
+        "notes": "Message or schedule?",
+        "notesInFlow": true
+      },
+      {
+        "parameters": {
+          "content": "## Voice message (own branch above)\nFetch the file, convert it, recognise it (Whisper on the ai server).\nRecognised: on to **Access** - otherwise short feedback.",
+          "height": 376,
+          "width": 1470,
+          "color": 1
+        },
+        "id": "833914b5-e508-58a0-9684-8ecea97dd7b8",
+        "name": "Note voice message",
+        "type": "n8n-nodes-base.stickyNote",
+        "typeVersion": 1,
+        "position": [
+          -3890,
+          -2194
+        ]
+      },
+      {
+        "parameters": {
+          "content": "## Entry and access\nTwo entry points; only the operator gets through (list `erlaubte`).\nThe short paths send via **Send (short note)**.",
+          "height": 1302,
+          "width": 2690,
+          "color": 2
+        },
+        "id": "c6f427bd-c63c-56d6-a3f9-b093bfdca2de",
+        "name": "Note entry",
+        "type": "n8n-nodes-base.stickyNote",
+        "typeVersion": 1,
+        "position": [
+          -4290,
+          -1634
+        ]
+      },
+      {
+        "parameters": {
+          "content": "## Services: playlists and messages\nButton or text -> **Service kind** -> **Message?** -> module in the radio-tts service.\nLists remember the selection, messages arrive as a card with buttons.\nText messages continue via **Text present?** into the analysis.",
+          "height": 1138,
+          "width": 1910,
+          "color": 3
+        },
+        "id": "178e0eb1-10e2-5723-9912-525671b7cdce",
+        "name": "Note services",
+        "type": "n8n-nodes-base.stickyNote",
+        "typeVersion": 1,
+        "position": [
+          -2850,
+          426
+        ]
+      },
+      {
+        "parameters": {
+          "content": "## Inbox (search bot -> moderator)\nEvery 5 minutes: fetch new messages and present them as a card with buttons.\n**Offer message** marks them as offered - no second offer.",
+          "height": 394,
+          "width": 1470,
+          "color": 4
+        },
+        "id": "04782fc5-0494-5df8-a5d9-4920d8f50dd0",
+        "name": "Note inbox",
+        "type": "n8n-nodes-base.stickyNote",
+        "typeVersion": 1,
+        "position": [
+          -2850,
+          1634
+        ]
+      },
+      {
+        "parameters": {
+          "content": "## Stage 0 and stage 1: understand and plan\n**Short way?** recognises simple commands without a model, **Shortcut?** sends them\nstraight into execution. Otherwise **Plan** splits the instruction into single commands.",
+          "height": 618,
+          "width": 1780,
+          "color": 5
+        },
+        "id": "6c4c9f53-8191-528a-a856-12822b53f025",
+        "name": "Note analysis",
+        "type": "n8n-nodes-base.stickyNote",
+        "typeVersion": 1,
+        "position": [
+          -1890,
+          -262
+        ]
+      },
+      {
+        "parameters": {
+          "content": "## Stage 2: execution in the loop\nOne command per pass - output 0 = done, output 1 = continue.\nThree paths: fallback without model, fixed controls, agent with tools.",
+          "height": 1676,
+          "width": 1370,
+          "color": 6
+        },
+        "id": "f93ff417-7a64-5200-9c3e-88daa80ad897",
+        "name": "Note execution",
+        "type": "n8n-nodes-base.stickyNote",
+        "typeVersion": 1,
+        "position": [
+          -790,
+          566
+        ]
+      },
+      {
+        "parameters": {
+          "content": "## Tools (sub-interfaces of the agent)\nOne node per tool; it calls the tool workflow via `executeWorkflow`.\nFile paths and station calls stay there - the model never sees them.",
+          "height": 376,
+          "width": 1810,
+          "color": 6
+        },
+        "id": "8a94e11a-f07f-52a9-b56b-a13a63f0e974",
+        "name": "Note tools",
+        "type": "n8n-nodes-base.stickyNote",
+        "typeVersion": 1,
+        "position": [
+          650,
+          2066
+        ]
+      },
+      {
+        "parameters": {
+          "content": "## Stage 3: check, retry and reply\n**Fetch status** and **Fetch queue** provide evidence of the station state, **Check**\njudges each command. **Retry?** starts exactly one second attempt per command.\n**Build reply** summarises and builds the buttons, **Send** posts via HTML.",
+          "height": 878,
+          "width": 2830,
+          "color": 7
+        },
+        "id": "f192c406-5cc1-5c29-976c-d38b2496721a",
+        "name": "Note check",
+        "type": "n8n-nodes-base.stickyNote",
+        "typeVersion": 1,
+        "position": [
+          790,
+          808
+        ]
+      },
+      {
+        "parameters": {
+          "content": "## Radio - Telegram Agent (Deadline Beats)\nWhat the bot can do: song requests, direction requests, skip/pause/status, playlists,\ninbox, research (weather, news, RSS) and announcements on air.\nEverything comes from Telegram and goes back there.\n\nThe path of a message: entry -> stage 0/1 analysis -> stage 2 execution ->\nstage 3 check -> reply. Voice messages run through Whisper at the top,\nservices and inbox hang off to the side. Each node carries its purpose as a\nnote under its name, each frame explains one stage.\n\nFrame colours: 1 voice message | 2 entry | 3 services | 4 inbox |\n5 stage 0+1 | 6 stage 2 + tools | 7 stage 3 + reply\n\nCreated by werkzeuge/agent-wf-bauen.py - never change by hand.\nChange: agent-patchen.sh --inhalt ... then agent-einspielen-nur.sh.\nDocs: README.md sections 8 to 12 and werkzeuge/README.md.",
+          "height": 364,
+          "width": 661,
+          "color": 7
+        },
+        "id": "ea40ccc5-0687-5a10-b5a4-342e8bedb891",
+        "name": "Note overview",
+        "type": "n8n-nodes-base.stickyNote",
+        "typeVersion": 1,
+        "position": [
+          -4290,
+          -2638
+        ]
+      },
+      {
+        "parameters": {
+          "content": "## Radio - Telegram Agent\nThe bot: Telegram entry -> stage 0/1 (understand and plan) -> stage 2 (execute) -> stage 3 (reply).\nThe plan is the source of the layout: radio/werkzeuge/agent-wf-bauen.py (ANORDNUNG, BEREICHE, KURZNOTIZ).\nChange: agent-patchen.sh --aufraeumen -> agent-einspielen-nur.sh /tmp/radio-agent-neu.json -> docker restart n8n\nCheck: anordnung-pruefen.py (0 findings), code-pruefen.py (0 faulty code nodes), TESTEN.md\nDescription: README.md, ARCHITEKTUR.md, FAEHIGKEITEN.md, BETRIEB.md, TESTEN.md, STOERUNGEN.md, VERSIONEN.md\nPicture by picture: ANHANG/n8n-oberflaeche.html  (project folder Ai_Radio_Moderator_Bot)",
+          "height": 236,
+          "width": 1150,
+          "color": 2
+        },
+        "id": "494dc11a-0e44-571f-835f-ec94f02827ea",
+        "name": "Note docs",
+        "type": "n8n-nodes-base.stickyNote",
+        "typeVersion": 1,
+        "position": [
+          -4200,
+          -2954
+        ]
+      }
+    ],
+    "connections": {
+      "Telegram Trigger": {
+        "main": [
+          [
+            {
+              "node": "Configuration",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Test input": {
+        "main": [
+          [
+            {
+              "node": "Configuration",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Input": {
+        "main": [
+          [
+            {
+              "node": "Voice message?",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Voice message?": {
+        "main": [
+          [
+            {
+              "node": "Fetch file",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Access",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Fetch file": {
+        "main": [
+          [
+            {
+              "node": "Download audio",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Download audio": {
+        "main": [
+          [
+            {
+              "node": "Convert",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Convert": {
+        "main": [
+          [
+            {
+              "node": "Transcript",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Transcript": {
+        "main": [
+          [
+            {
+              "node": "Understood?",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Understood?": {
+        "main": [
+          [
+            {
+              "node": "Access",
+              "type": "main",
+              "index": 0
+            },
+            {
+              "node": "Heard text",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Send (short note)",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Heard text": {
+        "main": [
+          [
+            {
+              "node": "Send (short note)",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Access": {
+        "main": [
+          [
+            {
+              "node": "Allowed?",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Allowed?": {
+        "main": [
+          [
+            {
+              "node": "Service kind",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "No access",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Service kind": {
+        "main": [
+          [
+            {
+              "node": "Service?",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Service?": {
+        "main": [
+          [
+            {
+              "node": "Message?",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Text present?",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Message?": {
+        "main": [
+          [
+            {
+              "node": "Message service",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Playlist service",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Playlist service": {
+        "main": [
+          [
+            {
+              "node": "Service reply",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Message service": {
+        "main": [
+          [
+            {
+              "node": "Service reply",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Service reply": {
+        "main": [
+          [
+            {
+              "node": "Service send",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Send failed?": {
+        "main": [
+          [
+            {
+              "node": "Service fallback send",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "End",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "End": {
+        "main": [
+          [],
+          []
+        ]
+      },
+      "Schedule messages": {
+        "main": [
+          [
+            {
+              "node": "Configuration",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Fetch messages": {
+        "main": [
+          [
+            {
+              "node": "Message present?",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Message present?": {
+        "main": [
+          [
+            {
+              "node": "Message card",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          []
+        ]
+      },
+      "Message card": {
+        "main": [
+          [
+            {
+              "node": "Service send",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Service send": {
+        "main": [
+          [
+            {
+              "node": "Send failed?",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Service fallback send": {
+        "main": [
+          [
+            {
+              "node": "Offer?",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Offer?": {
+        "main": [
+          [
+            {
+              "node": "Offer message",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "End",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "No access": {
+        "main": [
+          [
+            {
+              "node": "Send (short note)",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Text present?": {
+        "main": [
+          [
+            {
+              "node": "Task",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "No text",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Task": {
+        "main": [
+          [
+            {
+              "node": "Short way?",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Short way?": {
+        "main": [
+          [
+            {
+              "node": "Shortcut?",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Shortcut?": {
+        "main": [
+          [
+            {
+              "node": "Loop",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Plan",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "No text": {
+        "main": [
+          [
+            {
+              "node": "Send (short note)",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Plan": {
+        "main": [
+          [
+            {
+              "node": "Plan reply",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Plan reply": {
+        "main": [
+          [
+            {
+              "node": "Plan present?",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Plan present?": {
+        "main": [
+          [
+            {
+              "node": "Read commands",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Remember plan",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Remember plan": {
+        "main": [
+          [
+            {
+              "node": "Plan again?",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Plan again?": {
+        "main": [
+          [
+            {
+              "node": "Plan",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Read commands",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Read commands": {
+        "main": [
+          [
+            {
+              "node": "Command present?",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Command present?": {
+        "main": [
+          [
+            {
+              "node": "Loop",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Build reply",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Loop": {
+        "main": [
+          [
+            {
+              "node": "Fetch status",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Direct or AI?",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Direct or AI?": {
+        "main": [
+          [
+            {
+              "node": "Fallback tool",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Controls?",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Controls?": {
+        "main": [
+          [
+            {
+              "node": "Short controls",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Inbox?",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Inbox?": {
+        "main": [
+          [
+            {
+              "node": "Fetch inbox",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Overview?",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Overview?": {
+        "main": [
+          [
+            {
+              "node": "Fetch overview",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Execute",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Fetch overview": {
+        "main": [
+          [
+            {
+              "node": "Overview reply",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Overview reply": {
+        "main": [
+          [
+            {
+              "node": "Loop",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Fetch inbox": {
+        "main": [
+          [
+            {
+              "node": "Inbox reply",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Inbox reply": {
+        "main": [
+          [
+            {
+              "node": "Loop",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Short controls": {
+        "main": [
+          [
+            {
+              "node": "Controls reply",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Controls reply": {
+        "main": [
+          [
+            {
+              "node": "Loop",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Fallback tool": {
+        "main": [
+          [
+            {
+              "node": "Fallback reply",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Fallback reply": {
+        "main": [
+          [
+            {
+              "node": "Loop",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Execute": {
+        "main": [
+          [
+            {
+              "node": "Collect result",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Collect result": {
+        "main": [
+          [
+            {
+              "node": "Loop",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Fetch status": {
+        "main": [
+          [
+            {
+              "node": "Fetch queue",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Fetch queue": {
+        "main": [
+          [
+            {
+              "node": "Commands and status",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Commands and status": {
+        "main": [
+          [
+            {
+              "node": "Check?",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Check?": {
+        "main": [
+          [
+            {
+              "node": "Check",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Read check",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Check": {
+        "main": [
+          [
+            {
+              "node": "Check reply",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Check reply": {
+        "main": [
+          [
+            {
+              "node": "Read check",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Read check": {
+        "main": [
+          [
+            {
+              "node": "Retry?",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Retry?": {
+        "main": [
+          [
+            {
+              "node": "Loop 2",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Build reply",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Loop 2": {
+        "main": [
+          [
+            {
+              "node": "Build reply",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Retry work",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Retry work": {
+        "main": [
+          [
+            {
+              "node": "Collect follow-up",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Collect follow-up": {
+        "main": [
+          [
+            {
+              "node": "Loop 2",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Build reply": {
+        "main": [
+          [
+            {
+              "node": "Reply",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Reply": {
+        "main": [
+          [
+            {
+              "node": "Send",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Language model execute": {
+        "ai_languageModel": [
+          [
+            {
+              "node": "Execute",
+              "type": "ai_languageModel",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Language model retry": {
+        "ai_languageModel": [
+          [
+            {
+              "node": "Retry work",
+              "type": "ai_languageModel",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Tool title search": {
+        "ai_tool": [
+          [
+            {
+              "node": "Execute",
+              "type": "ai_tool",
+              "index": 0
+            },
+            {
+              "node": "Retry work",
+              "type": "ai_tool",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Tool direction search": {
+        "ai_tool": [
+          [
+            {
+              "node": "Execute",
+              "type": "ai_tool",
+              "index": 0
+            },
+            {
+              "node": "Retry work",
+              "type": "ai_tool",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Tool what's playing": {
+        "ai_tool": [
+          [
+            {
+              "node": "Execute",
+              "type": "ai_tool",
+              "index": 0
+            },
+            {
+              "node": "Retry work",
+              "type": "ai_tool",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Tool Azura addresses": {
+        "ai_tool": [
+          [
+            {
+              "node": "Execute",
+              "type": "ai_tool",
+              "index": 0
+            },
+            {
+              "node": "Retry work",
+              "type": "ai_tool",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Tool Azura call": {
+        "ai_tool": [
+          [
+            {
+              "node": "Execute",
+              "type": "ai_tool",
+              "index": 0
+            },
+            {
+              "node": "Retry work",
+              "type": "ai_tool",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Tool Azura overview": {
+        "ai_tool": [
+          [
+            {
+              "node": "Execute",
+              "type": "ai_tool",
+              "index": 0
+            },
+            {
+              "node": "Retry work",
+              "type": "ai_tool",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Tool messages": {
+        "ai_tool": [
+          [
+            {
+              "node": "Execute",
+              "type": "ai_tool",
+              "index": 0
+            },
+            {
+              "node": "Retry work",
+              "type": "ai_tool",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Tool research": {
+        "ai_tool": [
+          [
+            {
+              "node": "Execute",
+              "type": "ai_tool",
+              "index": 0
+            },
+            {
+              "node": "Retry work",
+              "type": "ai_tool",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Configuration": {
+        "main": [
+          [
+            {
+              "node": "Plan switch?",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Plan switch?": {
+        "main": [
+          [
+            {
+              "node": "Input",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Fetch messages",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    },
+    "settings": {
+      "executionOrder": "v1",
+      "saveDataSuccessExecution": "all",
+      "saveManualExecutions": true
+    },
+    "tags": [
+      {
+        "name": "Radio"
+      }
+    ]
+  }
+]

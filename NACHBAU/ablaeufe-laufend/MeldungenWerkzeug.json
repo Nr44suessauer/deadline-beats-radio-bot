@@ -1,0 +1,797 @@
+[
+  {
+    "id": "MeldungenWerkzeug",
+    "name": "Werkzeug - Meldungen",
+    "description": null,
+    "active": false,
+    "nodes": [
+      {
+        "parameters": {
+          "workflowInputs": {
+            "values": [
+              {
+                "name": "auftrag",
+                "type": "string"
+              },
+              {
+                "name": "kennung",
+                "type": "string"
+              },
+              {
+                "name": "text",
+                "type": "string"
+              },
+              {
+                "name": "art",
+                "type": "string"
+              },
+              {
+                "name": "wort",
+                "type": "string"
+              },
+              {
+                "name": "themen",
+                "type": "string"
+              },
+              {
+                "name": "quellen",
+                "type": "string"
+              },
+              {
+                "name": "ansagen",
+                "type": "boolean"
+              }
+            ]
+          },
+          "inputSource": "workflowInputs"
+        },
+        "id": "5ece1078-f0f5-5afe-a6af-9869f734839a",
+        "name": "Eingang",
+        "type": "n8n-nodes-base.executeWorkflowTrigger",
+        "typeVersion": 1.1,
+        "position": [
+          -900,
+          120
+        ],
+        "notes": "Felder des Werkzeugs: auftrag, kennung, text, art, wort, ansagen.",
+        "notesInFlow": true
+      },
+      {
+        "parameters": {
+          "conditions": {
+            "options": {
+              "caseSensitive": true,
+              "leftValue": "",
+              "typeValidation": "loose",
+              "version": 2
+            },
+            "combinator": "and",
+            "conditions": [
+              {
+                "id": "129c8efb-ab48-4469-9d18-8e8b9694e3f3",
+                "leftValue": "={{ !!String($json.art || '').trim() }}",
+                "rightValue": "",
+                "operator": {
+                  "type": "boolean",
+                  "operation": "true",
+                  "singleValue": true
+                }
+              }
+            ]
+          },
+          "options": {}
+        },
+        "id": "6433a8bc-87eb-5690-a2b6-a7cf93d1e53c",
+        "name": "Recherche?",
+        "type": "n8n-nodes-base.if",
+        "typeVersion": 2.2,
+        "position": [
+          -660,
+          120
+        ],
+        "notes": "Ja = recherchieren (art=wetter, nachrichten, rss oder wikipedia).",
+        "notesInFlow": true
+      },
+      {
+        "parameters": {
+          "method": "POST",
+          "url": "={{ $('Konfiguration').first().json.konfig.dienst.adresse + \"/recherche\" }}",
+          "sendHeaders": true,
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "name": "X-Meldung-Schluessel",
+                "value": "={{ $('Konfiguration').first().json.konfig.dienst.schluessel }}"
+              }
+            ]
+          },
+          "sendBody": true,
+          "specifyBody": "json",
+          "jsonBody": "={{ JSON.stringify({ art: String($json.art || '').trim().toLowerCase(), wort: String($json.wort || '').trim(), quellen: String($json.quellen || '').trim(), themen: String($json.themen || '').trim(), ansagen: $json.ansagen === undefined ? true : $json.ansagen === true }) }}",
+          "options": {
+            "timeout": 900000
+          }
+        },
+        "id": "474aa2e9-b68f-5dbf-aa76-32929e9491b6",
+        "name": "Recherche holen",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [
+          400,
+          -140
+        ],
+        "onError": "continueRegularOutput",
+        "notes": "Holt die Daten, legt sie als Meldung ab und sagt sie bei ansagen=true an.",
+        "notesInFlow": true
+      },
+      {
+        "parameters": {
+          "conditions": {
+            "options": {
+              "caseSensitive": true,
+              "leftValue": "",
+              "typeValidation": "loose",
+              "version": 2
+            },
+            "combinator": "and",
+            "conditions": [
+              {
+                "id": "d223e32a-7158-46fb-8824-b8166c81910f",
+                "leftValue": "={{ ['ansagen','text'].includes(String($json.auftrag || '').trim()) }}",
+                "rightValue": "",
+                "operator": {
+                  "type": "boolean",
+                  "operation": "true",
+                  "singleValue": true
+                }
+              }
+            ]
+          },
+          "options": {}
+        },
+        "id": "98ccf344-90fe-5cbe-b2c4-126e15012d79",
+        "name": "Sprechen?",
+        "type": "n8n-nodes-base.if",
+        "typeVersion": 2.2,
+        "position": [
+          -660,
+          380
+        ],
+        "notes": "Ja = eine Ansage sprechen (auftrag ansagen oder text).",
+        "notesInFlow": true
+      },
+      {
+        "parameters": {
+          "conditions": {
+            "options": {
+              "caseSensitive": true,
+              "leftValue": "",
+              "typeValidation": "loose",
+              "version": 2
+            },
+            "combinator": "and",
+            "conditions": [
+              {
+                "id": "3e81d35b-0097-4241-b905-7b8fd13e3754",
+                "leftValue": "={{ !!String($json.text || '').trim() }}",
+                "rightValue": "",
+                "operator": {
+                  "type": "boolean",
+                  "operation": "true",
+                  "singleValue": true
+                }
+              }
+            ]
+          },
+          "options": {}
+        },
+        "id": "a152b5a8-c1f4-52e3-a20b-521d02b17a71",
+        "name": "Freier Text?",
+        "type": "n8n-nodes-base.if",
+        "typeVersion": 2.2,
+        "position": [
+          -420,
+          160
+        ],
+        "notes": "Ja = freier Text, Nein = Meldung aus dem Postfach.",
+        "notesInFlow": true
+      },
+      {
+        "parameters": {
+          "method": "POST",
+          "url": "={{ $('Konfiguration').first().json.konfig.dienst.adresse + \"/ansage/text\" }}",
+          "sendHeaders": true,
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "name": "X-Meldung-Schluessel",
+                "value": "={{ $('Konfiguration').first().json.konfig.dienst.schluessel }}"
+              }
+            ]
+          },
+          "sendBody": true,
+          "specifyBody": "json",
+          "jsonBody": "={{ JSON.stringify({ text: String($json.text || '').trim() }) }}",
+          "options": {
+            "timeout": 900000
+          }
+        },
+        "id": "e0527606-9460-5781-9d7d-3e473e5d30e1",
+        "name": "Freie Ansage",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [
+          400,
+          324
+        ],
+        "onError": "continueRegularOutput",
+        "notes": "Spricht freien Text live in den Sender.",
+        "notesInFlow": true
+      },
+      {
+        "parameters": {
+          "method": "POST",
+          "url": "={{ $('Konfiguration').first().json.konfig.dienst.adresse + \"/ansage/meldung\" }}",
+          "sendHeaders": true,
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "name": "X-Meldung-Schluessel",
+                "value": "={{ $('Konfiguration').first().json.konfig.dienst.schluessel }}"
+              }
+            ]
+          },
+          "sendBody": true,
+          "specifyBody": "json",
+          "jsonBody": "={{ JSON.stringify({ id: String($json.kennung || '').trim() }) }}",
+          "options": {
+            "timeout": 900000
+          }
+        },
+        "id": "17a704d0-8f17-5f48-baca-c89ee1665fc7",
+        "name": "Meldung ansagen",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [
+          400,
+          544
+        ],
+        "onError": "continueRegularOutput",
+        "notes": "Spricht eine abgelegte Meldung live in den Sender.",
+        "notesInFlow": true
+      },
+      {
+        "parameters": {
+          "conditions": {
+            "options": {
+              "caseSensitive": true,
+              "leftValue": "",
+              "typeValidation": "loose",
+              "version": 2
+            },
+            "combinator": "and",
+            "conditions": [
+              {
+                "id": "b444d2f6-6177-4229-bbe1-84d59c753a6c",
+                "leftValue": "={{ String($json.auftrag || '').trim() === 'verwerfen' }}",
+                "rightValue": "",
+                "operator": {
+                  "type": "boolean",
+                  "operation": "true",
+                  "singleValue": true
+                }
+              }
+            ]
+          },
+          "options": {}
+        },
+        "id": "10909f94-f2be-5d87-95a3-5deb804a2fff",
+        "name": "Verwerfen?",
+        "type": "n8n-nodes-base.if",
+        "typeVersion": 2.2,
+        "position": [
+          -420,
+          620
+        ],
+        "notes": "Ja = Meldung als verworfen weglegen.",
+        "notesInFlow": true
+      },
+      {
+        "parameters": {
+          "method": "POST",
+          "url": "={{ $('Konfiguration').first().json.konfig.dienst.adresse + \"/meldungen/erledigt\" }}",
+          "sendHeaders": true,
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "name": "X-Meldung-Schluessel",
+                "value": "={{ $('Konfiguration').first().json.konfig.dienst.schluessel }}"
+              }
+            ]
+          },
+          "sendBody": true,
+          "specifyBody": "json",
+          "jsonBody": "={{ JSON.stringify({ ids: [String($json.kennung || '').trim()], grund: 'verworfen' }) }}",
+          "options": {
+            "timeout": 20000
+          }
+        },
+        "id": "1dfd7807-0849-5894-af27-f3e248375fe5",
+        "name": "Meldung verwerfen",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [
+          400,
+          972
+        ],
+        "onError": "continueRegularOutput",
+        "notes": "Setzt die Meldung auf verworfen.",
+        "notesInFlow": true
+      },
+      {
+        "parameters": {
+          "conditions": {
+            "options": {
+              "caseSensitive": true,
+              "leftValue": "",
+              "typeValidation": "loose",
+              "version": 2
+            },
+            "combinator": "and",
+            "conditions": [
+              {
+                "id": "2cfa2612-9985-4cd9-8dd3-14e49a05947c",
+                "leftValue": "={{ !!String($json.kennung || '').trim() }}",
+                "rightValue": "",
+                "operator": {
+                  "type": "boolean",
+                  "operation": "true",
+                  "singleValue": true
+                }
+              }
+            ]
+          },
+          "options": {}
+        },
+        "id": "ce8f403f-c6a7-50a9-8c57-e4e30a2ab2f0",
+        "name": "Kennung?",
+        "type": "n8n-nodes-base.if",
+        "typeVersion": 2.2,
+        "position": [
+          -420,
+          880
+        ],
+        "notes": "Ja = Sprechtext zeigen, Nein = offene Meldungen auflisten.",
+        "notesInFlow": true
+      },
+      {
+        "parameters": {
+          "method": "GET",
+          "url": "={{ $('Konfiguration').first().json.konfig.dienst.adresse + '/meldungen/text/' + String($json.kennung || '').trim() }}",
+          "sendHeaders": true,
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "name": "X-Meldung-Schluessel",
+                "value": "={{ $('Konfiguration').first().json.konfig.dienst.schluessel }}"
+              }
+            ]
+          },
+          "options": {
+            "timeout": 20000
+          }
+        },
+        "id": "e744fe82-e0b7-536c-ba19-4ff8d0d01449",
+        "name": "Sprechtext holen",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [
+          400,
+          1232
+        ],
+        "onError": "continueRegularOutput",
+        "notes": "Zeigt den Text, den der Moderator sprechen würde.",
+        "notesInFlow": true
+      },
+      {
+        "parameters": {
+          "method": "GET",
+          "url": "={{ $('Konfiguration').first().json.konfig.dienst.adresse + \"/meldungen/offen\" }}",
+          "sendQuery": true,
+          "queryParameters": {
+            "parameters": [
+              {
+                "name": "anzahl",
+                "value": "5"
+              }
+            ]
+          },
+          "sendHeaders": true,
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "name": "X-Meldung-Schluessel",
+                "value": "={{ $('Konfiguration').first().json.konfig.dienst.schluessel }}"
+              }
+            ]
+          },
+          "options": {
+            "timeout": 20000
+          }
+        },
+        "id": "72609f7c-b9da-58da-830d-d1d77f359ee8",
+        "name": "Offene holen",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [
+          400,
+          1492
+        ],
+        "onError": "continueRegularOutput",
+        "notes": "Offene Meldungen (wichtige zuerst).",
+        "notesInFlow": true
+      },
+      {
+        "parameters": {
+          "jsCode": "\n// Je nach Auftrag hat einer der Knoten geantwortet - hier nur den Text weitergeben.\nconst namen = ['Recherche holen', 'Meldung ansagen', 'Freie Ansage', 'Meldung verwerfen',\n               'Sprechtext holen', 'Offene holen'];\nlet j = {};\nlet quelle = '';\nfor (const name of namen) {\n  try {\n    const x = $(name).first().json;\n    if (x && Object.keys(x).length) { j = x; quelle = name; break; }\n  } catch (e) { /* Knoten ist nicht gelaufen */ }\n}\nif (j.error) return [{ json: { ergebnis: 'Der Meldungsdienst hat nicht geantwortet: '\n  + String(j.error.message || j.error).slice(0, 160) } }];\nif (!quelle) return [{ json: { ergebnis: 'Kein Auftrag erkannt. Moeglich sind: anzeigen, lesen, '\n  + 'ansagen, verwerfen, text.' } }];\n\nif (quelle === 'Offene holen') {\n  const liste = Array.isArray(j.meldungen) ? j.meldungen : [];\n  if (!liste.length) return [{ json: { ergebnis: 'Keine offenen Meldungen im Postfach.',\n    auswahl: [] } }];\n  const zeilen = liste.map((m, i) => (i + 1) + '. ' + (m.wichtig ? 'WICHTIG ' : '')\n    + m.art + ': ' + (m.titel || String(m.text || '').slice(0, 60)) + ' (kennung ' + m.id + ')');\n  return [{ json: { ergebnis: 'Offene Meldungen (' + j.offen + '): ' + zeilen.join(' | '),\n    auswahl: liste.map((m) => m.id) } }];\n}\nif (quelle === 'Sprechtext holen') {\n  return [{ json: { ergebnis: 'Sprechtext (' + j.zeichen + ' Zeichen): ' + j.sprechtext,\n    auswahl: [j.id] } }];\n}\nreturn [{ json: { ergebnis: String(j.antwort || j.gesprochen || 'Erledigt.').slice(0, 400),\n  auswahl: [String(j.id || '')].filter(Boolean) } }];\n"
+        },
+        "id": "5fe32c22-c416-5a99-ab2d-833f7d4fccd4",
+        "name": "Ergebnis Meldungen",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          900,
+          620
+        ],
+        "notes": "Ausgabeknoten: hier endet der Werkzeug-Ablauf.",
+        "notesInFlow": true
+      },
+      {
+        "parameters": {
+          "source": "database",
+          "workflowId": {
+            "__rl": true,
+            "value": "Konfiguration",
+            "mode": "list",
+            "cachedResultName": "Konfiguration - alle Werte"
+          },
+          "workflowInputs": {
+            "mappingMode": "defineBelow",
+            "value": {
+              "eingang": "={{ JSON.stringify($json) }}"
+            },
+            "matchingColumns": [],
+            "schema": [
+              {
+                "id": "eingang",
+                "displayName": "eingang",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true,
+                "removed": false
+              }
+            ],
+            "attemptToConvertTypes": false,
+            "convertFieldsToString": false
+          }
+        },
+        "id": "3c00b407-b4a1-59fe-b71e-7e5d5b3bbb94",
+        "name": "Konfiguration",
+        "type": "n8n-nodes-base.executeWorkflow",
+        "typeVersion": 1.2,
+        "position": [
+          -900,
+          380
+        ],
+        "notes": "Alle Adressen, Schlüssel und Aufgabentexte (Ablauf Konfiguration).",
+        "notesInFlow": true
+      },
+      {
+        "parameters": {
+          "content": "## Weichen\nRecherche, Ansage, Verwerfen oder Sprechtext - der Auftrag entscheidet.\nJede Weiche prüft ein Feld des Werkzeugs.",
+          "height": 1118,
+          "width": 920,
+          "color": 5
+        },
+        "id": "b8133aa3-9b12-5216-bc07-6f9007b1a110",
+        "name": "Notiz M Weichen",
+        "type": "n8n-nodes-base.stickyNote",
+        "typeVersion": 1,
+        "position": [
+          -990,
+          -14
+        ]
+      },
+      {
+        "parameters": {
+          "content": "## Recherche\nWetter, Nachrichten, Feed oder Kurzinfo holen, als Meldung ablegen und ansagen.",
+          "height": 394,
+          "width": 370,
+          "color": 4
+        },
+        "id": "5d54fd69-264e-52e2-b738-df2825e9863d",
+        "name": "Notiz M Recherche",
+        "type": "n8n-nodes-base.stickyNote",
+        "typeVersion": 1,
+        "position": [
+          310,
+          -274
+        ]
+      },
+      {
+        "parameters": {
+          "content": "## Ansagen\nFreien Text oder eine abgelegte Meldung live in den Sender sprechen.",
+          "height": 578,
+          "width": 370,
+          "color": 1
+        },
+        "id": "db584fef-790d-5b63-84b7-db6fef96e5c9",
+        "name": "Notiz M Ansage",
+        "type": "n8n-nodes-base.stickyNote",
+        "typeVersion": 1,
+        "position": [
+          310,
+          190
+        ]
+      },
+      {
+        "parameters": {
+          "content": "## Postfach\nOffene Meldungen auflisten, Sprechtext zeigen oder eine Meldung verwerfen.",
+          "height": 860,
+          "width": 370,
+          "color": 3
+        },
+        "id": "ab7cd96d-e5e2-56e7-8fe6-b4f827013e32",
+        "name": "Notiz M Postfach",
+        "type": "n8n-nodes-base.stickyNote",
+        "typeVersion": 1,
+        "position": [
+          310,
+          838
+        ]
+      },
+      {
+        "parameters": {
+          "content": "## Ausgabe\nHier endet der Werkzeug-Ablauf - der Text geht an den Agenten zurück.",
+          "height": 358,
+          "width": 370,
+          "color": 2
+        },
+        "id": "ba5d0a56-32ab-56b9-88c7-38dcbd4de083",
+        "name": "Notiz M Ausgabe",
+        "type": "n8n-nodes-base.stickyNote",
+        "typeVersion": 1,
+        "position": [
+          810,
+          486
+        ]
+      },
+      {
+        "parameters": {
+          "content": "## Werkzeug - Meldungen\nUnterschnittstelle für Ansage und Postfach: Recherche, freie Ansage, Meldung sprechen/verwerfen.\nSpricht über den Dienst radio-tts (Piper + DJ-Hafen), legt Meldungen im Postfach ab.\nDer Plan ist die Quelle: radio/werkzeuge/agent-wf-bauen.py (W_MELD_ANORDNUNG, W_MELD_BEREICHE).\nÄndern/Prüfen wie beim Agenten; Beschreibung: SCHNITTSTELLEN.md §1.3, FAEHIGKEITEN.md",
+          "height": 172,
+          "width": 1150,
+          "color": 2
+        },
+        "id": "99d49c01-851c-5c6f-bf45-2815b1766497",
+        "name": "Notiz Doku",
+        "type": "n8n-nodes-base.stickyNote",
+        "typeVersion": 1,
+        "position": [
+          -900,
+          -526
+        ]
+      }
+    ],
+    "connections": {
+      "Eingang": {
+        "main": [
+          [
+            {
+              "node": "Konfiguration",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Recherche?": {
+        "main": [
+          [
+            {
+              "node": "Recherche holen",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Sprechen?",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Recherche holen": {
+        "main": [
+          [
+            {
+              "node": "Ergebnis Meldungen",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Sprechen?": {
+        "main": [
+          [
+            {
+              "node": "Freier Text?",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Verwerfen?",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Freier Text?": {
+        "main": [
+          [
+            {
+              "node": "Freie Ansage",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Meldung ansagen",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Freie Ansage": {
+        "main": [
+          [
+            {
+              "node": "Ergebnis Meldungen",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Meldung ansagen": {
+        "main": [
+          [
+            {
+              "node": "Ergebnis Meldungen",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Verwerfen?": {
+        "main": [
+          [
+            {
+              "node": "Meldung verwerfen",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Kennung?",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Meldung verwerfen": {
+        "main": [
+          [
+            {
+              "node": "Ergebnis Meldungen",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Kennung?": {
+        "main": [
+          [
+            {
+              "node": "Sprechtext holen",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Offene holen",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Sprechtext holen": {
+        "main": [
+          [
+            {
+              "node": "Ergebnis Meldungen",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Offene holen": {
+        "main": [
+          [
+            {
+              "node": "Ergebnis Meldungen",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Konfiguration": {
+        "main": [
+          [
+            {
+              "node": "Recherche?",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    },
+    "settings": {
+      "executionOrder": "v1"
+    },
+    "tags": []
+  }
+]

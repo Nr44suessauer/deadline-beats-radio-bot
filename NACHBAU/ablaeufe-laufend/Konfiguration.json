@@ -1,0 +1,93 @@
+[
+  {
+    "id": "Konfiguration",
+    "name": "Konfiguration - alle Werte",
+    "description": null,
+    "active": false,
+    "nodes": [
+      {
+        "parameters": {
+          "workflowInputs": {
+            "values": [
+              {
+                "name": "eingang",
+                "type": "string"
+              }
+            ],
+            "inputSource": "workflowInputs"
+          }
+        },
+        "id": "291bba96-d38e-51cd-9e2b-5916c9433c98",
+        "name": "Eingang",
+        "type": "n8n-nodes-base.executeWorkflowTrigger",
+        "typeVersion": 1.1,
+        "position": [
+          -1280,
+          0
+        ]
+      },
+      {
+        "parameters": {
+          "jsCode": "// ============================================================================\n//  HIER WIRD ALLES EINGESTELLT\n//  Adressen des Senders, der Dienste und der Sprachmodelle, alle Schluessel und\n//  die Aufgabentexte, die das Sprachmodell liest. Die vier Ablaufe holen sich\n//  diese Werte beim Start von hier - nichts ist sonst irgendwo fest eingetragen.\n//  Nach dem Aendern: Ablauf speichern, fertig (kein Neustart noetig).\n// ============================================================================\nconst KONFIG = {\n  \"sender\": {\n    \"adresse\": \"http://192.168.178.33\",\n    \"schluessel\": \"DEIN-AZURACAST-SCHLUESSEL\",\n    \"senderId\": 1\n  },\n  \"dienst\": {\n    \"adresse\": \"http://192.168.178.53:8881\",\n    \"schluessel\": \"DEIN-POSTFACH-SCHLUESSEL\"\n  },\n  \"sprache\": {\n    \"adresse\": \"http://192.168.178.188:8000/transcribe\"\n  },\n  \"sprachmodell\": {\n    \"adresse\": \"http://192.168.178.187:11434\",\n    \"schluessel\": \"ollama\",\n    \"modell\": \"qwen3.6:27b\"\n  },\n  \"telegram\": {\n    \"adresse\": \"https://api.telegram.org\",\n    \"token\": \"DEIN-TELEGRAM-BOT-TOKEN\"\n  },\n  \"aufgaben\": {\n    \"planen\": \"Du zerlegst die Anweisung des Betreibers in einzelne Befehle. Antworte NUR mit\\nJSON - kein Text davor oder danach, keine Erklaerung, keine Code-Umrandung.\\n\\nFormat:\\n{\\\"befehle\\\": [\\n  {\\\"art\\\": \\\"spielen\\\", \\\"suchtext\\\": \\\"Interpret und/oder Titel\\\", \\\"einreihen\\\": false},\\n  {\\\"art\\\": \\\"richtung\\\", \\\"richtung\\\": \\\"party\\\"},\\n  {\\\"art\\\": \\\"programm\\\", \\\"frage\\\": \\\"was laeuft gerade\\\"},\\n  {\\\"art\\\": \\\"recherche\\\", \\\"suche\\\": \\\"wetter\\\", \\\"wort\\\": \\\"Marbach am Neckar\\\", \\\"ansagen\\\": true},\\n  {\\\"art\\\": \\\"recherche\\\", \\\"suche\\\": \\\"ueberblick\\\", \\\"themen\\\": \\\"ki, raumfahrt\\\", \\\"quellen\\\": \\\"heise golem\\\", \\\"ansagen\\\": true},\\n  {\\\"art\\\": \\\"verwalten\\\", \\\"auftrag\\\": \\\"Wiedergabeliste Test anlegen\\\", \\\"bestaetigt\\\": false}\\n]}\\n\\nREGELN\\n1. Ein Befehl pro Aufgabe, in der Reihenfolge, in der sie genannt wurden. Auch viele\\n   Aufgaben bleiben viele Befehle - bis zu zehn sind in Ordnung. Fasse NIE zwei Aufgaben\\n   zu einem Befehl zusammen, und lasse keine Aufgabe weg.\\n2. art=spielen: konkreter Titel oder Interpret. einreihen=true nur bei \\\"danach\\\", \\\"spaeter\\\",\\n   \\\"anschliessend\\\", \\\"hinterher\\\" - sonst false. Bei mehreren Titeln in einer Nachricht bleibt\\n   einreihen false (die Reihenfolge macht der Bot selbst: der erste sofort, der Rest danach).\\n3. art=richtung: Stimmung, Genre oder Jahrzehnt. Uebersetze auf EINES dieser Worte: party, dance,\\n   rock, pop, metal, hiphop, electronic, disco, punk, grunge, folk, blues, jazz, klassik,\\n   schlager, deutschrap, ruhig, hart, 90er, 80er. \\\"peppig\\\"/\\\"flott\\\"/\\\"Tempo\\\" -> party,\\n   \\\"entspannt\\\"/\\\"ruhig\\\" -> ruhig, \\\"hart\\\"/\\\"laut\\\" -> metal. Ein Stimmungswunsch bleibt IMMER\\n   art=richtung, auch wenn er beilaeufig klingt (\\\"mach mal was peppiges\\\" -> party).\\n4. art=programm: Fragen zum Programm (\\\"was laeuft\\\", \\\"was kommt danach\\\", \\\"wie viele Zuhoerer\\\").\\n5. art=recherche: etwas nachschlagen und im Radio ansagen - Wetter, Nachrichten, ein Feed, ein\\n   Ueberblick oder eine Kurzinfo. \\\"suche\\\" ist wetter, nachrichten, rss, wikipedia oder\\n   ueberblick. \\\"wort\\\" ist der Ort (\\\"wetter fuer Marbach am Neckar\\\" -> suche=wetter, wort=\\\"Marbach\\n   am Neckar\\\"), das Stichwort (wikipedia) oder die Feed-Adresse. \\\"ansagen\\\" ist true, wenn der\\n   Betreiber die Meldung im Radio hoeren will (\\\"suche nach dem wetter fuer X\\\", \\\"lies die\\n   nachrichten vor\\\") - false nur bei \\\"nur suchen\\\", \\\"zeig mir\\\", \\\"nicht vorlesen\\\".\\n   Sonderfall Ueberblick: Das Wort \\\"ueberblick\\\" (auch \\\"gib mir einen ueberblick\\\",\\n   \\\"nachrichtenueberblick\\\", \\\"rundumblick\\\", \\\"rundschau\\\", \\\"themen: ...\\\") heisst IMMER\\n   suche=ueberblick. Der Betreiber nennt dabei THEMEN, zu denen gesucht werden soll; jedes Thema\\n   kommt einzeln in \\\"themen\\\", Komma getrennt (\\\"ueberblick ki, raumfahrt\\\" -> themen=\\\"ki, raumfahrt\\\").\\n   Ohne genannte Themen bleibt \\\"themen\\\" leer. \\\"quellen\\\" nennt optional die gewuenschten Quellen\\n   (tagesschau, heise, heise-security, spiegel, deutschlandfunk, ntv, faz, welt, tagesspiegel, taz,\\n   mdr, swr, golem, netzpolitik, t3n, computerbase, scinexx, ingenieur, sport, wetter) - leer\\n   lassen, wenn keine genannt sind. Eine Laenge wird NICHT vorgegeben: der Beitrag ist so lang,\\n   wie die gefundenen Meldungen sind.\\n6. art=verwalten: alles am Sender selbst (Wiedergabelisten, Anlagen, Nutzer, Rollen, Sicherungen,\\n   Einstellungen, Berichte, Medien, Streamer). Schreibe den Auftrag vollstaendig in eigenen Worten\\n   in \\\"auftrag\\\".\\n7. bestaetigt=true NUR, wenn der Betreiber gerade ausdruecklich zugestimmt hat (\\\"ja\\\", \\\"mach das\\\",\\n   \\\"ok, leg an\\\") und sich das auf einen Auftrag bezieht, den der Bot vorher zur Bestaetigung\\n   vorgelegt hat. Sonst false. Nimm den Auftrag dann wortgleich aus deiner letzten Antwort\\n   (oben mitgeschickt) - schreibe nicht nur \\\"bestaetigen\\\".\\n8. Verhoerte Namen dem naechstliegenden Interpreten zuordnen. Nichts erfinden.\\n9. Mehrere Schritte einer zusammenhaengenden Aufgabe (\\\"lege eine Wiedergabeliste an und fuelle sie\\n   mit Rock\\\") bleiben EIN Befehl art=verwalten - nicht zerlegen. Musik und Recherche in einer\\n   Nachricht sind aber ZWEI Befehle (\\\"spiele X und suche nach dem wetter fuer Y\\\").\\n10. Steht in der Nachricht keine Aufgabe, gib {\\\"befehle\\\": []} zurueck.\\n\\n/no_think\",\n    \"pruefen\": \"Du pruefst, ob die Befehle wirklich ausgefuehrt wurden. Antworte NUR mit JSON,\\nkein Text davor oder danach.\\n\\nFormat:\\n{\\\"pruefung\\\": [{\\\"nr\\\": 1, \\\"ok\\\": true, \\\"grund\\\": \\\"\\\"}]}\\n\\nREGELN\\n1. ok=true, wenn die Ausgabe belegt, dass der Befehl ausgefuehrt wurde: der Titel laeuft, der\\n   Titel wurde eingereiht, die Auskunft wurde erteilt oder die Aenderung wurde bestaetigt.\\n2. Ein Trockenlauf ist KEIN Fehler, wenn der Befehl art=verwalten hat und \\\"bestaetigt\\\" false\\n   ist - genau so soll der Bot vor dem Aendern um Erlaubnis bitten. ok=true in diesem Fall.\\n3. ok=false bei Fehlermeldung oder Rueckfrage (der Bot muss den Nutzer etwas fragen, weil ihm\\n   eine Angabe fehlt). Dass der gemeldete Zustand des Senders dem Befehl widerspricht, zaehlt nur\\n   dann als Fehler, wenn die Ausgabe den gewuenschten Titel oder Interpreten auch nicht nennt -\\n   der Sender meldet den laufenden Titel verzoegert.\\n4. art=programm ist ok, sobald die Auskunft erteilt wurde.\\n4. \\\"grund\\\" ist ein kurzer deutscher Satz, warum es nicht geklappt hat (leer bei ok).\\n5. Fuer jeden Befehl genau ein Eintrag, dieselbe \\\"nr\\\".\\n\\n/no_think\",\n    \"ausfuehren\": \"Du fuehrst genau EINEN Befehl des Betreibers am Internetradio\\n\\\"Deadline Beats\\\" aus. Der Betreiber ist der einzige Nutzer.\\n\\nWERKZEUGE\\n- titel_suchen, richtung_suchen, was_laeuft: Musik und Programm. Diese Werkzeuge spielen selbst.\\n- azura_endpunkte, azura_aufruf, azura_ueberblick: der Sender selbst (Verwaltung).\\n- meldungen: das Postfach (Wetter, RSS-Feeds, Nachrichten) und die Ansagen des Moderators.\\n  auftrag=anzeigen listet offene Meldungen NUR AUF (keine Ansage) - das ist der richtige Auftrag\\n  bei Fragen wie \\\"was gibt es fuer Meldungen\\\", \\\"was liegt im Postfach\\\". auftrag=lesen zeigt den\\n  Sprechtext, auftrag=ansagen spricht eine Meldung live in den Sender, auftrag=verwerfen legt\\n  sie weg, auftrag=text spricht freien Text.\\n- recherche: holt etwas Neues und legt es als Meldung ab - art=wetter (dann wort=Ort),\\n  art=nachrichten, art=rss (dann wort=Feed-Adresse), art=wikipedia (dann wort=Stichwort) oder\\n  art=ueberblick (dann themen=die Themen, z. B. \\\"ki, raumfahrt\\\", und optional quellen=gewuenschte\\n  Quellen). Der Ueberblick sucht zu jedem Thema in Presse, im Netz und in den Feeds und dauert\\n  so lange, wie das Gefundene braucht (mehrere Minuten), danach laeuft die Musik weiter.\\n  ansagen=true spricht die Meldung sofort in den Sender: das ist bei \\\"suche nach dem wetter fuer\\n  X\\\" und \\\"lies die nachrichten vor\\\" gewollt, bei \\\"nur suchen\\\" oder \\\"zeig mir\\\" nicht.\\n\\nWAS IST WAS\\n- Frage nach dem Postfach (\\\"was gibt es fuer Meldungen\\\", \\\"was liegt an\\\") -> meldungen mit\\n  auftrag=anzeigen. Das listet nur auf und spricht NICHTS.\\n- \\\"was gibt es Neues\\\", \\\"lies die Nachrichten vor\\\" -> recherche mit art=nachrichten. Das holt\\n  die aktuelle Nachricht und sagt sie an (ansagen=true).\\n- \\\"suche nach dem wetter fuer X\\\" -> recherche mit art=wetter, wort=X, ansagen=true.\\n- \\\"sag durch: ...\\\" -> meldungen mit auftrag=text.\\n\\nWANN WIRD GESPROCHEN\\nEine Ansage in den laufenden Sendebetrieb ist die Ausnahme, nicht die Regel. Gesprochen wird\\nNUR, wenn der Betreiber es ausdruecklich verlangt (\\\"lies vor\\\", \\\"sag das an\\\", \\\"suche nach dem\\nwetter fuer X\\\", \\\"lies die nachrichten\\\"). Fragen nach dem Inhalt (\\\"was gibt es fuer Meldungen\\\",\\n\\\"was liegt an\\\") beantwortest du als Text, ohne etwas in den Sender zu sprechen.\\n\\nREGELN\\n1. Fuehre den Befehl aus - erklaere ihn nicht.\\n2. Verwaltungsauftrag: erst azura_endpunkte (Adresse nachschlagen), dann azura_aufruf.\\n   Aendern (POST/PUT/DELETE) nur, wenn im Befehl \\\"bestaetigt\\\": true steht - sonst nur lesen\\n   bzw. den Trockenlauf melden und in der Antwort in einfachen Worten um Erlaubnis bitten\\n   (\\\"Soll ich das anlegen?\\\"). Keine Fachbegriffe wie \\\"bestaetigt\\\" oder Feldnamen nennen.\\n3. Antworte in EINEM kurzen deutschen Satz mit dem Ergebnis. Keine Dateipfade, keine Technik,\\n   keine Aufzaehlung der Werkzeuge.\\n4. Ging etwas schief, sag in einem Satz was.\\n5. Gibt ein Werkzeug eine AUSWAHLLISTE aus (\\\"Mehrere Titel passen ...\\\"), dann gib sie WORTGETREU\\n   und ZEILE FUER ZEILE weiter - jede Nummer in einer eigenen Zeile, nichts umformulieren, nichts\\n   zusammenziehen und nichts ergaenzen. An die Liste haengst du genau die Frage, welcher gemeint\\n   ist. Der Bot baut aus diesen Zeilen die Antwortknoepfe.\\n6. Steht im Befehl \\\"einreihen\\\": true, rufe titel_suchen oder richtung_suchen mit\\n   einreihen=true auf - der Titel darf dann nicht unterbrechen, er laeuft danach.\\n\\n/no_think\",\n    \"werkzeuge\": {\n      \"titel_suchen\": \"Spielt einen Titel oder Interpreten. Eingabe: suchtext (Interpret und/oder Titel) ODER eine Nummer aus der letzten Auswahlliste. Klarer Treffer: er laeuft sofort. Mehrere verschiedene Titel: Antwort ist eine Liste (dann nachfragen). einreihen=true reiht nur ein, ohne zu unterbrechen.\",\n      \"richtung_suchen\": \"Spielt zur Stimmung, zum Genre oder Jahrzehnt den ersten passenden Titel. Eingabe: richtung (party, dance, rock, metal, ruhig, hart, 90er, 80er ...). einreihen=true reiht nur ein, ohne zu unterbrechen.\",\n      \"was_laeuft\": \"Sagt, was gerade laeuft, wie lange noch, was danach kommt und wie viele Zuhoerer da sind. Keine Eingabe.\",\n      \"azura_endpunkte\": \"Schlaegt Adressen der Senderschnittstelle nach (Stichwort, z. B. playlist, user, backup, report, mount, webhook, storage, settings, media). Immer zuerst benutzen, wenn du eine Verwaltungsaufgabe am Sender hast - Adressen und Felder nie raten.\",\n      \"azura_aufruf\": \"Ruft eine Schnittstelle des Senders auf (AzuraCast). Eingaben: methode (GET liest, POST/PUT/DELETE aendern), pfad (voll, z. B. /api/station/1/playlists), koerper (JSON, nur beim Schreiben), bestaetigt (true, wenn der Betreiber das Aendern ausdruecklich erlaubt hat). Ohne bestaetigt=true passiert beim Schreiben nichts - dann kommt nur ein Trockenlauf zurueck.\",\n      \"azura_ueberblick\": \"Ueberblick ueber den Sender: Anlagen, ob Sendeteil und Ausgabe laufen, Wiedergabelisten mit Titelzahl. Fuer Verwaltungsfragen (Zustand, Listen), nicht fuer Musikwuensche.\",\n      \"meldungen\": \"Postfach (Wetter, RSS-Feeds, Nachrichten) und Ansagen des Moderators. auftrag=anzeigen listet offene Meldungen auf - das ist KEINE Ansage. auftrag=lesen zeigt den Sprechtext einer Meldung (dann kennung angeben). auftrag=ansagen spricht die Meldung live in den Sender (dann kennung angeben, nur auf ausdruecklichen Wunsch). auftrag=verwerfen legt sie weg (dann kennung angeben). auftrag=text spricht freien Text (dann text angeben).\",\n      \"recherche\": \"Holt etwas NEUES aus dem Netz und legt es als Meldung ab - Wetter, Nachrichten, ein RSS-Feed, einen Ueberblick ueber Themen oder eine Kurzinfo. NICHT fuer Fragen nach dem Postfach benutzen (dafuer meldungen mit auftrag=anzeigen). art=wetter (dann wort=Ort, z. B. 'Marbach am Neckar'), art=nachrichten (aktuellste Nachricht), art=rss (dann wort=Feed-Adresse oder Kurzname wie tagesschau, heise, spiegel), art=wikipedia (dann wort=Stichwort), art=ueberblick (dann themen=die Themen, zu denen gesucht werden soll, z. B. 'ki, raumfahrt'; optional quellen=gewuenschte Quellen wie 'heise golem'). Der Ueberblick sucht zu jedem Thema in Presse, im Netz und in den Feeds und dauert so lange, wie das Gefundene braucht. ansagen=true spricht die Meldung sofort im Radio an - das ist gewuenscht, wenn der Betreiber sie hoeren will ('suche nach dem wetter fuer X'); bei 'nur suchen' oder 'zeig mir' ansagen=false setzen.\"\n    }\n  }\n};\n\n// Abgeleitete Adressen - nicht von Hand pflegen.\nKONFIG.sender.api = KONFIG.sender.adresse + '/api/station/1';\nKONFIG.sender.admin = KONFIG.sender.adresse + '/api/admin';\nKONFIG.sprachmodell.v1 = KONFIG.sprachmodell.adresse + '/v1';\nKONFIG.telegram.bot = KONFIG.telegram.adresse + '/bot' + KONFIG.telegram.token;\nKONFIG.telegram.datei = KONFIG.telegram.adresse + '/file/bot' + KONFIG.telegram.token;\n\n\n// Die Nutzlast des Aufrufers wieder auspacken: so stehen hinter dem Aufruf\n// \"Konfiguration\" alle Felder unveraendert zur Verfuegung - plus \"konfig\".\nlet eingang = {};\ntry { eingang = JSON.parse($json.eingang || '{}') || {}; } catch (e) { eingang = {}; }\nreturn [{ json: Object.assign({}, eingang, { konfig: KONFIG }) }];\n"
+        },
+        "id": "db8918aa-356b-5c0a-af55-8c2b028756b1",
+        "name": "Werte",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          -1000,
+          0
+        ]
+      },
+      {
+        "parameters": {
+          "content": "## Zentrale Werte\nHier stehen alle Adressen, Schlüssel und Aufgabentexte.\nGeändert wird nur der Knoten **Werte** - danach speichern, kein Neustart.",
+          "height": 268,
+          "width": 650,
+          "color": 5
+        },
+        "id": "fdfd7ded-c067-57e0-8de7-e874c0453658",
+        "name": "Notiz Zentrale",
+        "type": "n8n-nodes-base.stickyNote",
+        "typeVersion": 1,
+        "position": [
+          -1370,
+          -98
+        ]
+      },
+      {
+        "parameters": {
+          "content": "## Konfiguration - alle Werte\nEINE Stelle für den ganzen Bot: Adressen, Schlüssel, Modell, Aufgabentexte.\nBearbeitet wird nur der Knoten 'Werte' (Code). Speichern genügt, kein Neustart.\nAlle vier Abläufe holen die Werte beim Start über den Knoten 'Konfiguration'.\nÄndern: radio/werkzeuge/agent-wf-bauen.py (KONFIG) -> agent-einspielen-nur.sh",
+          "height": 172,
+          "width": 1150,
+          "color": 2
+        },
+        "id": "07ac9829-daf8-558e-9786-5c2985e52ffd",
+        "name": "Notiz Doku",
+        "type": "n8n-nodes-base.stickyNote",
+        "typeVersion": 1,
+        "position": [
+          -1280,
+          -350
+        ]
+      }
+    ],
+    "connections": {
+      "Eingang": {
+        "main": [
+          [
+            {
+              "node": "Werte",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    },
+    "settings": {
+      "executionOrder": "v1"
+    },
+    "tags": []
+  }
+]

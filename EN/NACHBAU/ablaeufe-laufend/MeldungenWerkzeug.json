@@ -1,0 +1,797 @@
+[
+  {
+    "id": "MeldungenWerkzeugEN",
+    "name": "Tool - Messages (EN)",
+    "description": null,
+    "active": false,
+    "nodes": [
+      {
+        "parameters": {
+          "workflowInputs": {
+            "values": [
+              {
+                "name": "auftrag",
+                "type": "string"
+              },
+              {
+                "name": "kennung",
+                "type": "string"
+              },
+              {
+                "name": "text",
+                "type": "string"
+              },
+              {
+                "name": "art",
+                "type": "string"
+              },
+              {
+                "name": "wort",
+                "type": "string"
+              },
+              {
+                "name": "themen",
+                "type": "string"
+              },
+              {
+                "name": "quellen",
+                "type": "string"
+              },
+              {
+                "name": "ansagen",
+                "type": "boolean"
+              }
+            ]
+          },
+          "inputSource": "workflowInputs"
+        },
+        "id": "8539979b-c465-5d73-bc11-cc72c77c2b71",
+        "name": "Entry",
+        "type": "n8n-nodes-base.executeWorkflowTrigger",
+        "typeVersion": 1.1,
+        "position": [
+          -900,
+          120
+        ],
+        "notes": "Tool fields: auftrag, kennung, text, art, wort, ansagen.",
+        "notesInFlow": true
+      },
+      {
+        "parameters": {
+          "conditions": {
+            "options": {
+              "caseSensitive": true,
+              "leftValue": "",
+              "typeValidation": "loose",
+              "version": 2
+            },
+            "combinator": "and",
+            "conditions": [
+              {
+                "id": "129c8efb-ab48-4469-9d18-8e8b9694e3f3",
+                "leftValue": "={{ !!String($json.art || '').trim() }}",
+                "rightValue": "",
+                "operator": {
+                  "type": "boolean",
+                  "operation": "true",
+                  "singleValue": true
+                }
+              }
+            ]
+          },
+          "options": {}
+        },
+        "id": "8f35cf59-eb5c-5f22-bb7c-37a5ef0ab7a3",
+        "name": "Research?",
+        "type": "n8n-nodes-base.if",
+        "typeVersion": 2.2,
+        "position": [
+          -660,
+          120
+        ],
+        "notes": "Yes = research (art=wetter, nachrichten, rss or wikipedia).",
+        "notesInFlow": true
+      },
+      {
+        "parameters": {
+          "method": "POST",
+          "url": "={{ $('Configuration').first().json.konfig.dienst.adresse + \"/recherche\" }}",
+          "sendHeaders": true,
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "name": "X-Meldung-Schluessel",
+                "value": "={{ $('Configuration').first().json.konfig.dienst.schluessel }}"
+              }
+            ]
+          },
+          "sendBody": true,
+          "specifyBody": "json",
+          "jsonBody": "={{ JSON.stringify({ art: String($json.art || '').trim().toLowerCase(), wort: String($json.wort || '').trim(), quellen: String($json.quellen || '').trim(), themen: String($json.themen || '').trim(), ansagen: $json.ansagen === undefined ? true : $json.ansagen === true }) }}",
+          "options": {
+            "timeout": 900000
+          }
+        },
+        "id": "f117bb85-e894-5cec-9df4-e47b59bd10eb",
+        "name": "Fetch research",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [
+          400,
+          -140
+        ],
+        "onError": "continueRegularOutput",
+        "notes": "Fetches the data, files it as a message and announces it when ansagen=true.",
+        "notesInFlow": true
+      },
+      {
+        "parameters": {
+          "conditions": {
+            "options": {
+              "caseSensitive": true,
+              "leftValue": "",
+              "typeValidation": "loose",
+              "version": 2
+            },
+            "combinator": "and",
+            "conditions": [
+              {
+                "id": "d223e32a-7158-46fb-8824-b8166c81910f",
+                "leftValue": "={{ ['ansagen','text'].includes(String($json.auftrag || '').trim()) }}",
+                "rightValue": "",
+                "operator": {
+                  "type": "boolean",
+                  "operation": "true",
+                  "singleValue": true
+                }
+              }
+            ]
+          },
+          "options": {}
+        },
+        "id": "481ef2fd-1c23-5edb-b95a-1b33b79526ac",
+        "name": "Speak?",
+        "type": "n8n-nodes-base.if",
+        "typeVersion": 2.2,
+        "position": [
+          -660,
+          380
+        ],
+        "notes": "Yes = speak an announcement (auftrag ansagen or text).",
+        "notesInFlow": true
+      },
+      {
+        "parameters": {
+          "conditions": {
+            "options": {
+              "caseSensitive": true,
+              "leftValue": "",
+              "typeValidation": "loose",
+              "version": 2
+            },
+            "combinator": "and",
+            "conditions": [
+              {
+                "id": "3e81d35b-0097-4241-b905-7b8fd13e3754",
+                "leftValue": "={{ !!String($json.text || '').trim() }}",
+                "rightValue": "",
+                "operator": {
+                  "type": "boolean",
+                  "operation": "true",
+                  "singleValue": true
+                }
+              }
+            ]
+          },
+          "options": {}
+        },
+        "id": "3488e543-44d9-56a6-aff0-85e8d68024be",
+        "name": "Free text?",
+        "type": "n8n-nodes-base.if",
+        "typeVersion": 2.2,
+        "position": [
+          -420,
+          160
+        ],
+        "notes": "Yes = free text, no = message from the inbox.",
+        "notesInFlow": true
+      },
+      {
+        "parameters": {
+          "method": "POST",
+          "url": "={{ $('Configuration').first().json.konfig.dienst.adresse + \"/ansage/text\" }}",
+          "sendHeaders": true,
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "name": "X-Meldung-Schluessel",
+                "value": "={{ $('Configuration').first().json.konfig.dienst.schluessel }}"
+              }
+            ]
+          },
+          "sendBody": true,
+          "specifyBody": "json",
+          "jsonBody": "={{ JSON.stringify({ text: String($json.text || '').trim() }) }}",
+          "options": {
+            "timeout": 900000
+          }
+        },
+        "id": "fc86c524-a233-5250-9360-81ed38c100b6",
+        "name": "Free announcement",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [
+          400,
+          324
+        ],
+        "onError": "continueRegularOutput",
+        "notes": "Speaks free text live on air.",
+        "notesInFlow": true
+      },
+      {
+        "parameters": {
+          "method": "POST",
+          "url": "={{ $('Configuration').first().json.konfig.dienst.adresse + \"/ansage/meldung\" }}",
+          "sendHeaders": true,
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "name": "X-Meldung-Schluessel",
+                "value": "={{ $('Configuration').first().json.konfig.dienst.schluessel }}"
+              }
+            ]
+          },
+          "sendBody": true,
+          "specifyBody": "json",
+          "jsonBody": "={{ JSON.stringify({ id: String($json.kennung || '').trim() }) }}",
+          "options": {
+            "timeout": 900000
+          }
+        },
+        "id": "a4ac200b-fb8c-59b3-a024-60d6032dfbb3",
+        "name": "Announce message",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [
+          400,
+          544
+        ],
+        "onError": "continueRegularOutput",
+        "notes": "Speaks a stored message live on air.",
+        "notesInFlow": true
+      },
+      {
+        "parameters": {
+          "conditions": {
+            "options": {
+              "caseSensitive": true,
+              "leftValue": "",
+              "typeValidation": "loose",
+              "version": 2
+            },
+            "combinator": "and",
+            "conditions": [
+              {
+                "id": "b444d2f6-6177-4229-bbe1-84d59c753a6c",
+                "leftValue": "={{ String($json.auftrag || '').trim() === 'verwerfen' }}",
+                "rightValue": "",
+                "operator": {
+                  "type": "boolean",
+                  "operation": "true",
+                  "singleValue": true
+                }
+              }
+            ]
+          },
+          "options": {}
+        },
+        "id": "87b731b6-20bd-5794-8b09-33f3cfea5a3e",
+        "name": "Discard?",
+        "type": "n8n-nodes-base.if",
+        "typeVersion": 2.2,
+        "position": [
+          -420,
+          620
+        ],
+        "notes": "Yes = set the message aside as discarded.",
+        "notesInFlow": true
+      },
+      {
+        "parameters": {
+          "method": "POST",
+          "url": "={{ $('Configuration').first().json.konfig.dienst.adresse + \"/meldungen/erledigt\" }}",
+          "sendHeaders": true,
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "name": "X-Meldung-Schluessel",
+                "value": "={{ $('Configuration').first().json.konfig.dienst.schluessel }}"
+              }
+            ]
+          },
+          "sendBody": true,
+          "specifyBody": "json",
+          "jsonBody": "={{ JSON.stringify({ ids: [String($json.kennung || '').trim()], grund: 'verworfen' }) }}",
+          "options": {
+            "timeout": 20000
+          }
+        },
+        "id": "3f814cae-44e2-5154-a0b2-8fd8862db048",
+        "name": "Discard message",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [
+          400,
+          972
+        ],
+        "onError": "continueRegularOutput",
+        "notes": "Marks the message as discarded.",
+        "notesInFlow": true
+      },
+      {
+        "parameters": {
+          "conditions": {
+            "options": {
+              "caseSensitive": true,
+              "leftValue": "",
+              "typeValidation": "loose",
+              "version": 2
+            },
+            "combinator": "and",
+            "conditions": [
+              {
+                "id": "2cfa2612-9985-4cd9-8dd3-14e49a05947c",
+                "leftValue": "={{ !!String($json.kennung || '').trim() }}",
+                "rightValue": "",
+                "operator": {
+                  "type": "boolean",
+                  "operation": "true",
+                  "singleValue": true
+                }
+              }
+            ]
+          },
+          "options": {}
+        },
+        "id": "7510181d-8064-5c67-b813-576fcc5292c1",
+        "name": "ID?",
+        "type": "n8n-nodes-base.if",
+        "typeVersion": 2.2,
+        "position": [
+          -420,
+          880
+        ],
+        "notes": "Yes = show the speech text, no = list open messages.",
+        "notesInFlow": true
+      },
+      {
+        "parameters": {
+          "method": "GET",
+          "url": "={{ $('Configuration').first().json.konfig.dienst.adresse + '/meldungen/text/' + String($json.kennung || '').trim() }}",
+          "sendHeaders": true,
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "name": "X-Meldung-Schluessel",
+                "value": "={{ $('Configuration').first().json.konfig.dienst.schluessel }}"
+              }
+            ]
+          },
+          "options": {
+            "timeout": 20000
+          }
+        },
+        "id": "774b1e6a-e631-539f-a5da-69829858e0df",
+        "name": "Fetch speech text",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [
+          400,
+          1232
+        ],
+        "onError": "continueRegularOutput",
+        "notes": "Shows the text the moderator would speak.",
+        "notesInFlow": true
+      },
+      {
+        "parameters": {
+          "method": "GET",
+          "url": "={{ $('Configuration').first().json.konfig.dienst.adresse + \"/meldungen/offen\" }}",
+          "sendQuery": true,
+          "queryParameters": {
+            "parameters": [
+              {
+                "name": "anzahl",
+                "value": "5"
+              }
+            ]
+          },
+          "sendHeaders": true,
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "name": "X-Meldung-Schluessel",
+                "value": "={{ $('Configuration').first().json.konfig.dienst.schluessel }}"
+              }
+            ]
+          },
+          "options": {
+            "timeout": 20000
+          }
+        },
+        "id": "201d3ecc-8269-5f6a-842b-c6f220cf3a7d",
+        "name": "Fetch open ones",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [
+          400,
+          1492
+        ],
+        "onError": "continueRegularOutput",
+        "notes": "Open messages (important ones first).",
+        "notesInFlow": true
+      },
+      {
+        "parameters": {
+          "jsCode": "\n// Je nach Auftrag hat einer der Knoten geantwortet - hier nur den Text weitergeben.\nconst namen = ['Recherche holen', 'Meldung ansagen', 'Freie Ansage', 'Meldung verwerfen',\n               'Sprechtext holen', 'Offene holen'];\nlet j = {};\nlet quelle = '';\nfor (const name of namen) {\n  try {\n    const x = $(name).first().json;\n    if (x && Object.keys(x).length) { j = x; quelle = name; break; }\n  } catch (e) { /* Knoten ist nicht gelaufen */ }\n}\nif (j.error) return [{ json: { ergebnis: 'Der Meldungsdienst hat nicht geantwortet: '\n  + String(j.error.message || j.error).slice(0, 160) } }];\nif (!quelle) return [{ json: { ergebnis: 'Kein Auftrag erkannt. Moeglich sind: anzeigen, lesen, '\n  + 'ansagen, verwerfen, text.' } }];\n\nif (quelle === 'Offene holen') {\n  const liste = Array.isArray(j.meldungen) ? j.meldungen : [];\n  if (!liste.length) return [{ json: { ergebnis: 'Keine offenen Meldungen im Postfach.',\n    auswahl: [] } }];\n  const zeilen = liste.map((m, i) => (i + 1) + '. ' + (m.wichtig ? 'WICHTIG ' : '')\n    + m.art + ': ' + (m.titel || String(m.text || '').slice(0, 60)) + ' (kennung ' + m.id + ')');\n  return [{ json: { ergebnis: 'Offene Meldungen (' + j.offen + '): ' + zeilen.join(' | '),\n    auswahl: liste.map((m) => m.id) } }];\n}\nif (quelle === 'Sprechtext holen') {\n  return [{ json: { ergebnis: 'Sprechtext (' + j.zeichen + ' Zeichen): ' + j.sprechtext,\n    auswahl: [j.id] } }];\n}\nreturn [{ json: { ergebnis: String(j.antwort || j.gesprochen || 'Erledigt.').slice(0, 400),\n  auswahl: [String(j.id || '')].filter(Boolean) } }];\n"
+        },
+        "id": "90ed5eef-b147-5066-b5a9-a5a93d243631",
+        "name": "Result messages",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          900,
+          620
+        ],
+        "notes": "Output node: the tool workflow ends here.",
+        "notesInFlow": true
+      },
+      {
+        "parameters": {
+          "source": "database",
+          "workflowId": {
+            "__rl": true,
+            "value": "KonfigurationEN",
+            "mode": "list",
+            "cachedResultName": "Konfiguration - alle Werte"
+          },
+          "workflowInputs": {
+            "mappingMode": "defineBelow",
+            "value": {
+              "eingang": "={{ JSON.stringify($json) }}"
+            },
+            "matchingColumns": [],
+            "schema": [
+              {
+                "id": "eingang",
+                "displayName": "eingang",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true,
+                "removed": false
+              }
+            ],
+            "attemptToConvertTypes": false,
+            "convertFieldsToString": false
+          }
+        },
+        "id": "a18d4a82-4b72-512e-941d-cbe1052718ee",
+        "name": "Configuration",
+        "type": "n8n-nodes-base.executeWorkflow",
+        "typeVersion": 1.2,
+        "position": [
+          -900,
+          380
+        ],
+        "notes": "All addresses, keys and task texts (Configuration workflow).",
+        "notesInFlow": true
+      },
+      {
+        "parameters": {
+          "content": "## Switches\nResearch, announcement, discard or speech text - the task decides.\nEach switch checks one field of the tool.",
+          "height": 1118,
+          "width": 920,
+          "color": 5
+        },
+        "id": "0f48cca2-b951-557a-a313-5db28fec4279",
+        "name": "Note M switches",
+        "type": "n8n-nodes-base.stickyNote",
+        "typeVersion": 1,
+        "position": [
+          -990,
+          -14
+        ]
+      },
+      {
+        "parameters": {
+          "content": "## Research\nFetch weather, news, feed or a short info, file it as a message and announce it.",
+          "height": 394,
+          "width": 370,
+          "color": 4
+        },
+        "id": "ca54c930-3707-5e6e-bcca-4c21fe505402",
+        "name": "Note M research",
+        "type": "n8n-nodes-base.stickyNote",
+        "typeVersion": 1,
+        "position": [
+          310,
+          -274
+        ]
+      },
+      {
+        "parameters": {
+          "content": "## Announcements\nSpeak free text or a stored message live on air.",
+          "height": 578,
+          "width": 370,
+          "color": 1
+        },
+        "id": "11414215-91f3-56da-a56f-ea6b9cc6c33a",
+        "name": "Note M announcement",
+        "type": "n8n-nodes-base.stickyNote",
+        "typeVersion": 1,
+        "position": [
+          310,
+          190
+        ]
+      },
+      {
+        "parameters": {
+          "content": "## Inbox\nList open messages, show the speech text, or discard a message.",
+          "height": 860,
+          "width": 370,
+          "color": 3
+        },
+        "id": "1f27980e-9767-52b6-8567-1f9b7330b945",
+        "name": "Note M inbox",
+        "type": "n8n-nodes-base.stickyNote",
+        "typeVersion": 1,
+        "position": [
+          310,
+          838
+        ]
+      },
+      {
+        "parameters": {
+          "content": "## Output\nThe tool workflow ends here - the text goes back to the agent.",
+          "height": 358,
+          "width": 370,
+          "color": 2
+        },
+        "id": "90512028-01c5-5642-8ffe-2834f49b916d",
+        "name": "Note M output",
+        "type": "n8n-nodes-base.stickyNote",
+        "typeVersion": 1,
+        "position": [
+          810,
+          486
+        ]
+      },
+      {
+        "parameters": {
+          "content": "## Tool - Messages\nSub-interface for announcements and the inbox: research, free announcement, speak/discard a message.\nSpeaks via the radio-tts service (Piper + DJ mount), files messages in the inbox.\nThe plan is the source: radio/werkzeuge/agent-wf-bauen.py (W_MELD_ANORDNUNG, W_MELD_BEREICHE).\nChange/check like the agent; description: SCHNITTSTELLEN.md §1.3, FAEHIGKEITEN.md",
+          "height": 172,
+          "width": 1150,
+          "color": 2
+        },
+        "id": "f4e76569-04d1-58c2-b2a6-16a29d318efb",
+        "name": "Note docs",
+        "type": "n8n-nodes-base.stickyNote",
+        "typeVersion": 1,
+        "position": [
+          -900,
+          -526
+        ]
+      }
+    ],
+    "connections": {
+      "Entry": {
+        "main": [
+          [
+            {
+              "node": "Configuration",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Research?": {
+        "main": [
+          [
+            {
+              "node": "Fetch research",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Speak?",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Fetch research": {
+        "main": [
+          [
+            {
+              "node": "Result messages",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Speak?": {
+        "main": [
+          [
+            {
+              "node": "Free text?",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Discard?",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Free text?": {
+        "main": [
+          [
+            {
+              "node": "Free announcement",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Announce message",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Free announcement": {
+        "main": [
+          [
+            {
+              "node": "Result messages",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Announce message": {
+        "main": [
+          [
+            {
+              "node": "Result messages",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Discard?": {
+        "main": [
+          [
+            {
+              "node": "Discard message",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "ID?",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Discard message": {
+        "main": [
+          [
+            {
+              "node": "Result messages",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "ID?": {
+        "main": [
+          [
+            {
+              "node": "Fetch speech text",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Fetch open ones",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Fetch speech text": {
+        "main": [
+          [
+            {
+              "node": "Result messages",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Fetch open ones": {
+        "main": [
+          [
+            {
+              "node": "Result messages",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Configuration": {
+        "main": [
+          [
+            {
+              "node": "Research?",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    },
+    "settings": {
+      "executionOrder": "v1"
+    },
+    "tags": []
+  }
+]

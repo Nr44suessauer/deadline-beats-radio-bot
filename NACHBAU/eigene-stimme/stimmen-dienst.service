@@ -1,0 +1,15 @@
+[Unit]
+Description=Stimmen-Dienst (Film/Serie -> RVC-Dataset, Sprecher trennen)
+After=network.target applio.service
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/opt/Applio
+ExecStart=/opt/Applio/.venv/bin/python /opt/Applio/stimmen-dienst/stimmen_dienst.py --port 8890
+Restart=always
+RestartSec=5
+Environment=PYTHONUNBUFFERED=1
+
+[Install]
+WantedBy=multi-user.target

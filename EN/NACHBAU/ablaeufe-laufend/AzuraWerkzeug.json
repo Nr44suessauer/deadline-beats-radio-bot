@@ -1,0 +1,752 @@
+[
+  {
+    "id": "AzuraWerkzeugEN",
+    "name": "Tool - AzuraCast (EN)",
+    "description": null,
+    "active": false,
+    "nodes": [
+      {
+        "parameters": {
+          "workflowInputs": {
+            "values": [
+              {
+                "name": "suche",
+                "type": "string"
+              },
+              {
+                "name": "methode",
+                "type": "string"
+              },
+              {
+                "name": "pfad",
+                "type": "string"
+              },
+              {
+                "name": "koerper",
+                "type": "string"
+              },
+              {
+                "name": "bestaetigt",
+                "type": "boolean"
+              },
+              {
+                "name": "frage",
+                "type": "string"
+              }
+            ]
+          },
+          "inputSource": "workflowInputs"
+        },
+        "id": "31eb2ca3-f970-5d5a-9f23-9a165c6098b6",
+        "name": "Entry",
+        "type": "n8n-nodes-base.executeWorkflowTrigger",
+        "typeVersion": 1.1,
+        "position": [
+          -900,
+          0
+        ],
+        "notes": "Tool fields: suche, methode, pfad, koerper, bestaetigt, frage.",
+        "notesInFlow": true
+      },
+      {
+        "parameters": {
+          "conditions": {
+            "options": {
+              "caseSensitive": true,
+              "leftValue": "",
+              "typeValidation": "loose",
+              "version": 2
+            },
+            "combinator": "and",
+            "conditions": [
+              {
+                "id": "bc56b17b-e4b2-4739-950b-118e6db2a037",
+                "leftValue": "={{ !!String($json.suche || '').trim() }}",
+                "rightValue": "",
+                "operator": {
+                  "type": "boolean",
+                  "operation": "true",
+                  "singleValue": true
+                }
+              }
+            ]
+          },
+          "options": {}
+        },
+        "id": "4d0c95e4-58ea-566e-b277-237567cc5b5d",
+        "name": "Look up addresses?",
+        "type": "n8n-nodes-base.if",
+        "typeVersion": 2.2,
+        "position": [
+          -660,
+          0
+        ],
+        "notes": "Yes = look up addresses of the station API.",
+        "notesInFlow": true
+      },
+      {
+        "parameters": {
+          "method": "GET",
+          "url": "={{ $('Configuration').first().json.konfig.sender.adresse + \"/api/openapi.yml\" }}",
+          "sendHeaders": true,
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "X-API-Key",
+                "value": "={{ $('Configuration').first().json.konfig.sender.schluessel }}"
+              }
+            ]
+          },
+          "options": {
+            "timeout": 30000
+          }
+        },
+        "id": "b4d572cf-096c-513f-94f5-03f4cc6225f5",
+        "name": "Fetch description",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [
+          -420,
+          -480
+        ],
+        "onError": "continueRegularOutput",
+        "notes": "Fetch the address directory from the catalogue service.",
+        "notesInFlow": true
+      },
+      {
+        "parameters": {
+          "jsCode": "\n// Das Modell soll Adressen nicht raten: hier bekommt es die echten Pfade aus der\n// Beschreibung des Senders (Offene Schnittstelle, OpenAPI). Die Beschreibung ist\n// eine YAML-Datei mit sehr regelmaessigem Aufbau - ein Zeilenscan genuegt.\nconst roh = $json || {};\nconst text = String(typeof roh.data === 'string' ? roh.data : (roh.body || ''));\nif (!text) {\n  return [{ json: { ergebnis: 'FEHLER: Die Beschreibung des Senders kam nicht an. '\n    + 'Rufe die Adresse spaeter erneut auf.' } }];\n}\nconst eingang = $('Entry').first().json || {};\nconst suche = String(eingang.suche || '').trim().toLowerCase();\n\nconst punkte = [];\nlet pfad = '';\nlet methode = '';\nfor (const z of text.split('\\n')) {\n  const mp = z.match(/^    '(\\/[^']*)':\\s*$/);\n  if (mp) { pfad = mp[1]; methode = ''; continue; }\n  const mm = z.match(/^        (get|post|put|delete|patch):\\s*$/);\n  if (mm && pfad) { methode = mm[1].toUpperCase(); continue; }\n  const ms = z.match(/^            summary: (.*)$/);\n  if (ms && pfad && methode) {\n    punkte.push({ m: methode, p: pfad, s: ms[1].replace(/^['\"]|['\"]$/g, '').trim() });\n    methode = '';\n  }\n}\nif (!punkte.length) {\n  return [{ json: { ergebnis: 'FEHLER: Die Beschreibung des Senders liess sich nicht lesen.' } }];\n}\n\nconst treffer = punkte.filter((x) => !suche\n  || (x.p + ' ' + x.s).toLowerCase().includes(suche));\nif (!treffer.length) {\n  return [{ json: { ergebnis: 'Keine Adresse gefunden fuer \"' + suche + '\". '\n    + 'Versuche ein anderes Stichwort (playlist, user, backup, report, mount, webhook, '\n    + 'storage, settings, media).' } }];\n}\nconst zeilen = treffer.slice(0, 40).map((x, i) => (i + 1) + '. ' + x.m + ' /api' + x.p\n  + '  - ' + x.s);\nreturn [{ json: { ergebnis: 'Adressen zum Stichwort \"' + suche + '\" (' + treffer.length\n  + ' Treffer):\\n' + zeilen.join('\\n')\n  + '\\n\\nPfade immer mit /api/ beginnen lassen ({id} durch die Kennung ersetzen). '\n  + 'Lesen mit azura_aufruf und methode=GET. Schreiben nur nach Rueckfrage des Betreibers '\n  + 'und dann mit bestaetigt=true.' } }];\n"
+        },
+        "id": "cfd5fb2b-9409-5eb9-8beb-4087a9466b52",
+        "name": "Find addresses",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          -180,
+          -480
+        ],
+        "notes": "Short list of matching addresses with their fields.",
+        "notesInFlow": true
+      },
+      {
+        "parameters": {
+          "conditions": {
+            "options": {
+              "caseSensitive": true,
+              "leftValue": "",
+              "typeValidation": "loose",
+              "version": 2
+            },
+            "combinator": "and",
+            "conditions": [
+              {
+                "id": "8e1a9c58-7d2d-479b-856f-70dd89d34d45",
+                "leftValue": "={{ !!String($json.pfad || '').trim() }}",
+                "rightValue": "",
+                "operator": {
+                  "type": "boolean",
+                  "operation": "true",
+                  "singleValue": true
+                }
+              }
+            ]
+          },
+          "options": {}
+        },
+        "id": "e272dd3f-b194-546a-8793-1c0b5d32e763",
+        "name": "API call?",
+        "type": "n8n-nodes-base.if",
+        "typeVersion": 2.2,
+        "position": [
+          -420,
+          0
+        ],
+        "notes": "Yes = call an endpoint of the station.",
+        "notesInFlow": true
+      },
+      {
+        "parameters": {
+          "jsCode": "\nconst j = $('Entry').first().json || {};\nconst methode = String(j.methode || 'GET').trim().toUpperCase();\nlet pfad = String(j.pfad || '').trim();\nconst koerper = String(j.koerper || '').trim();\nconst bestaetigt = j.bestaetigt === true || String(j.bestaetigt).toLowerCase() === 'true';\nconst erlaubt = ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'];\n\nif (!erlaubt.includes(methode)) {\n  return [{ json: { bereit: false, ergebnis: 'FEHLER: \"' + methode + '\" ist keine bekannte '\n    + 'Methode. Nimm GET (lesen) oder POST/PUT/DELETE (aendern).' } }];\n}\nif (pfad && !pfad.startsWith('/')) pfad = '/' + pfad;\nif (!pfad.startsWith('/api/')) {\n  return [{ json: { bereit: false, ergebnis: 'FEHLER: Der Pfad muss mit /api/ beginnen '\n    + '(z. B. /api/station/1/playlists). Nutze azura_endpunkte zum Nachschlagen.' } }];\n}\n// Schreiben (anlegen, aendern, loeschen) nur nach Rueckfrage - ein Modell soll\n// nicht von sich aus in den Server schreiben. Ohne Bestaetigung gibt es einen\n// Trockenlauf, den der Agent dem Betreiber vorlegen kann.\nif (methode !== 'GET' && !bestaetigt) {\n  return [{ json: { bereit: false, ergebnis: 'Trockenlauf (nichts geaendert): ' + methode\n    + ' ' + pfad + (koerper ? ' mit ' + koerper.slice(0, 400) : '')\n    + '\\nFrage den Betreiber, ob das ausgefuehrt werden soll, und rufe dann erneut mit '\n    + 'bestaetigt=true auf.' } }];\n}\nreturn [{ json: { bereit: true, methode: methode, pfad: pfad, koerper: koerper } }];\n"
+        },
+        "id": "c84fdaf8-b7dc-5c8e-a3e3-9dcded769b4f",
+        "name": "Guard",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          300,
+          0
+        ],
+        "notes": "Checks method and path - write access only with bestaetigt=true.",
+        "notesInFlow": true
+      },
+      {
+        "parameters": {
+          "conditions": {
+            "options": {
+              "caseSensitive": true,
+              "leftValue": "",
+              "typeValidation": "loose",
+              "version": 2
+            },
+            "combinator": "and",
+            "conditions": [
+              {
+                "id": "78f3ad23-2b59-452f-a1de-14cf32fcfb5e",
+                "leftValue": "={{ $json.bereit }}",
+                "rightValue": "",
+                "operator": {
+                  "type": "boolean",
+                  "operation": "true",
+                  "singleValue": true
+                }
+              }
+            ]
+          },
+          "options": {}
+        },
+        "id": "900a3993-6316-547f-9329-52da868b5d1e",
+        "name": "Execute?",
+        "type": "n8n-nodes-base.if",
+        "typeVersion": 2.2,
+        "position": [
+          540,
+          0
+        ],
+        "notes": "Yes = call, no = return a dry run.",
+        "notesInFlow": true
+      },
+      {
+        "parameters": {
+          "conditions": {
+            "options": {
+              "caseSensitive": true,
+              "leftValue": "",
+              "typeValidation": "loose",
+              "version": 2
+            },
+            "combinator": "and",
+            "conditions": [
+              {
+                "id": "12f64875-ad43-41b3-82bc-68436483cf83",
+                "leftValue": "={{ $('Guard').first().json.methode === 'GET' }}",
+                "rightValue": "",
+                "operator": {
+                  "type": "boolean",
+                  "operation": "true",
+                  "singleValue": true
+                }
+              }
+            ]
+          },
+          "options": {}
+        },
+        "id": "7a68d702-cc56-56e4-a5ba-83368aecdd5d",
+        "name": "Read only?",
+        "type": "n8n-nodes-base.if",
+        "typeVersion": 2.2,
+        "position": [
+          780,
+          0
+        ],
+        "notes": "Yes = GET (read), no = change (POST/PUT/DELETE).",
+        "notesInFlow": true
+      },
+      {
+        "parameters": {
+          "method": "GET",
+          "url": "={{ $('Configuration').first().json.konfig.sender.adresse + $('Guard').first().json.pfad }}",
+          "sendHeaders": true,
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "X-API-Key",
+                "value": "={{ $('Configuration').first().json.konfig.sender.schluessel }}"
+              }
+            ]
+          },
+          "options": {
+            "timeout": 30000
+          }
+        },
+        "id": "b24eff65-4c20-564d-844e-a7266d131f59",
+        "name": "Read",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [
+          1020,
+          220
+        ],
+        "onError": "continueRegularOutput",
+        "notes": "Reads from the station.",
+        "notesInFlow": true
+      },
+      {
+        "parameters": {
+          "method": "={{ $('Guard').first().json.methode }}",
+          "url": "={{ $('Configuration').first().json.konfig.sender.adresse + $('Guard').first().json.pfad }}",
+          "sendHeaders": true,
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "X-API-Key",
+                "value": "={{ $('Configuration').first().json.konfig.sender.schluessel }}"
+              }
+            ]
+          },
+          "options": {
+            "timeout": 30000
+          },
+          "sendBody": true,
+          "specifyBody": "json",
+          "jsonBody": "={{ $('Guard').first().json.koerper || '{}' }}"
+        },
+        "id": "48c15a52-8f98-5332-9b9b-9928cb97840e",
+        "name": "Write",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [
+          1020,
+          460
+        ],
+        "onError": "continueRegularOutput",
+        "notes": "Changes the station - only after explicit confirmation.",
+        "notesInFlow": true
+      },
+      {
+        "parameters": {
+          "jsCode": "\n// Antwort des Senders in eine kurze Meldung packen. Grosse Antworten (z. B. das\n// ganze Musikarchiv) werden gekuerzt - sonst laeuft der Gespraechsspeicher voll.\nconst wache = $('Guard').first().json || {};\n// Listen-Antworten kommen als mehrere Elemente an - alle zusammenfassen.\nconst alle = $input.all().map((i) => i.json);\nconst j = alle.length === 1 ? alle[0] : alle;\nlet text;\nif (j && j.error) {\n  text = 'FEHLER: ' + JSON.stringify(j.error).slice(0, 600);\n} else if (j && typeof j.data === 'string') {\n  text = j.data;\n} else {\n  text = JSON.stringify(j);\n}\nconst gekuerzt = text.length > 4000;\nreturn [{ json: { ergebnis: 'Antwort auf ' + wache.methode + ' ' + wache.pfad\n  + (gekuerzt ? ' (gekuerzt)' : '') + ':\\n' + text.slice(0, 4000) } }];\n"
+        },
+        "id": "c203d008-372e-52e9-9f99-a525a759ddea",
+        "name": "Call result",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          1260,
+          0
+        ],
+        "notes": "Station response, summarised briefly.",
+        "notesInFlow": true
+      },
+      {
+        "parameters": {
+          "jsCode": "\n// Nichts ausgefuehrt - nur die Meldung der Wache weitergeben.\nreturn [{ json: { ergebnis: String($json.ergebnis || 'Nichts zu tun.') } }];\n"
+        },
+        "id": "51fda96e-b259-59e6-80b1-145be57f9323",
+        "name": "Dry run",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          780,
+          560
+        ],
+        "notes": "Shows what the call would do, without changing anything.",
+        "notesInFlow": true
+      },
+      {
+        "parameters": {
+          "method": "GET",
+          "url": "={{ $('Configuration').first().json.konfig.sender.adresse + \"/api/admin\" + \"/stations\" }}",
+          "sendHeaders": true,
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "X-API-Key",
+                "value": "={{ $('Configuration').first().json.konfig.sender.schluessel }}"
+              }
+            ]
+          },
+          "options": {
+            "timeout": 30000
+          }
+        },
+        "id": "cf0bc2bd-64f9-5b14-b771-a31eedc76a21",
+        "name": "Mounts",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [
+          -420,
+          1020
+        ],
+        "onError": "continueRegularOutput",
+        "notes": "Mounts and whether broadcast backend and output are running.",
+        "notesInFlow": true
+      },
+      {
+        "parameters": {
+          "method": "GET",
+          "url": "={{ $('Configuration').first().json.konfig.sender.adresse + \"/api/station/1\" + \"/status\" }}",
+          "sendHeaders": true,
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "X-API-Key",
+                "value": "={{ $('Configuration').first().json.konfig.sender.schluessel }}"
+              }
+            ]
+          },
+          "options": {
+            "timeout": 30000
+          }
+        },
+        "id": "494d01cc-b447-5f67-96e2-b6e5d3716c0d",
+        "name": "State",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [
+          -180,
+          1020
+        ],
+        "onError": "continueRegularOutput",
+        "notes": "State of broadcast backend and output.",
+        "notesInFlow": true
+      },
+      {
+        "parameters": {
+          "method": "GET",
+          "url": "={{ $('Configuration').first().json.konfig.sender.adresse + \"/api/station/1\" + \"/playlists\" }}",
+          "sendHeaders": true,
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "X-API-Key",
+                "value": "={{ $('Configuration').first().json.konfig.sender.schluessel }}"
+              }
+            ]
+          },
+          "options": {
+            "timeout": 30000
+          }
+        },
+        "id": "4cde53e2-c9e3-567a-a656-435515003f18",
+        "name": "Playlists",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [
+          60,
+          1020
+        ],
+        "onError": "continueRegularOutput",
+        "notes": "Playlists with track counts.",
+        "notesInFlow": true
+      },
+      {
+        "parameters": {
+          "jsCode": "\n// Kurzer Zustandsbericht des Senders: Anlagen, Technik, Wiedergabelisten.\n// Achtung: n8n verteilt Listen-Antworten (Anlagen, Wiedergabelisten) auf mehrere\n// Elemente - deshalb .all() und nicht .first().\nconst hole = (name) => { try { return $(name).all().map((i) => i.json || {}); } catch (e) { return []; } };\n\nconst zeilen = [];\nfor (const anlage of hole('Anlagen').slice(0, 5)) {\n  zeilen.push('- Anlage: ' + (anlage.name || '?')\n    + ' (' + (anlage.short_name || anlage.shortcode || '') + ')'\n    + (anlage.is_enabled === false ? ' [aus]' : ''));\n}\nconst zustand = hole('Zustand')[0] || {};\nzeilen.push('Technik: Sendeteil ' + (zustand.backendRunning ? 'laeuft' : 'steht')\n  + ', Ausgabe ' + (zustand.frontendRunning ? 'laeuft' : 'steht'));\nconst listen = hole('Wiedergabelisten');\nfor (const liste of listen.slice(0, 10)) {\n  zeilen.push('- Wiedergabeliste: ' + (liste.name || '?') + ' (' + (liste.type || '?') + ')'\n    + (liste.is_enabled === false ? ' [aus]' : '') + ' | Titel: ' + (liste.num_songs ?? '?'));\n}\nif (listen.length > 10) zeilen.push('- ... und ' + (listen.length - 10) + ' weitere Wiedergabelisten');\nreturn [{ json: { ergebnis: 'Ueberblick ueber den Sender:\\n' + zeilen.join('\\n') } }];\n"
+        },
+        "id": "baee8114-8ae4-5714-8a6a-0184bb721709",
+        "name": "Overview",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          300,
+          1020
+        ],
+        "notes": "Summarises the overview as text.",
+        "notesInFlow": true
+      },
+      {
+        "parameters": {
+          "source": "database",
+          "workflowId": {
+            "__rl": true,
+            "value": "KonfigurationEN",
+            "mode": "list",
+            "cachedResultName": "Konfiguration - alle Werte"
+          },
+          "workflowInputs": {
+            "mappingMode": "defineBelow",
+            "value": {
+              "eingang": "={{ JSON.stringify($json) }}"
+            },
+            "matchingColumns": [],
+            "schema": [
+              {
+                "id": "eingang",
+                "displayName": "eingang",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true,
+                "removed": false
+              }
+            ],
+            "attemptToConvertTypes": false,
+            "convertFieldsToString": false
+          }
+        },
+        "id": "bb0223af-fc6f-57cc-a91d-d02435139794",
+        "name": "Configuration",
+        "type": "n8n-nodes-base.executeWorkflow",
+        "typeVersion": 1.2,
+        "position": [
+          -900,
+          260
+        ],
+        "notes": "All addresses, keys and task texts (Configuration workflow).",
+        "notesInFlow": true
+      },
+      {
+        "parameters": {
+          "content": "## Switches\nLook up addresses, call an endpoint, or give an overview.",
+          "height": 618,
+          "width": 920,
+          "color": 5
+        },
+        "id": "99f16055-10d2-5d5c-91da-6eede7bbbbf2",
+        "name": "Note AZ switches",
+        "type": "n8n-nodes-base.stickyNote",
+        "typeVersion": 1,
+        "position": [
+          -990,
+          -116
+        ]
+      },
+      {
+        "parameters": {
+          "content": "## Branch: addresses\nSearch the catalogue service directory for addresses.",
+          "height": 340,
+          "width": 610,
+          "color": 4
+        },
+        "id": "5071650c-9e4d-511c-9e46-e8bf034575eb",
+        "name": "Note AZ addresses",
+        "type": "n8n-nodes-base.stickyNote",
+        "typeVersion": 1,
+        "position": [
+          -510,
+          -596
+        ]
+      },
+      {
+        "parameters": {
+          "content": "## Branch: call\n**Guard** checks method and path; changes only with `bestaetigt: true`.\nTwo steps: return a dry run or actually call.",
+          "height": 918,
+          "width": 1330,
+          "color": 6
+        },
+        "id": "bab34a0b-1e2a-5628-9c62-a8c91e472415",
+        "name": "Note AZ call",
+        "type": "n8n-nodes-base.stickyNote",
+        "typeVersion": 1,
+        "position": [
+          210,
+          -134
+        ]
+      },
+      {
+        "parameters": {
+          "content": "## Branch: overview\nMounts, broadcast backend, output and playlists in one text.",
+          "height": 340,
+          "width": 1090,
+          "color": 3
+        },
+        "id": "46120762-8512-5cbf-bfe0-77b3956325d2",
+        "name": "Note AZ overview",
+        "type": "n8n-nodes-base.stickyNote",
+        "typeVersion": 1,
+        "position": [
+          -510,
+          904
+        ]
+      },
+      {
+        "parameters": {
+          "content": "## Tool - AzuraCast\nSub-interface for the station: look up addresses, call an endpoint, give an overview.\nThe addresses come from the station's OpenAPI description (263 endpoints).\nThe plan is the source: radio/werkzeuge/agent-wf-bauen.py (W_ANORDNUNG_AZ, W_AZ_BEREICHE).\nChange/check like the agent; description: SCHNITTSTELLEN.md, ANHANG/n8n-oberflaeche.html",
+          "height": 172,
+          "width": 1150,
+          "color": 2
+        },
+        "id": "44288776-15a9-5ce3-886b-4f41abb82b63",
+        "name": "Note docs",
+        "type": "n8n-nodes-base.stickyNote",
+        "typeVersion": 1,
+        "position": [
+          -900,
+          -848
+        ]
+      }
+    ],
+    "connections": {
+      "Entry": {
+        "main": [
+          [
+            {
+              "node": "Configuration",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Look up addresses?": {
+        "main": [
+          [
+            {
+              "node": "Fetch description",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "API call?",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Fetch description": {
+        "main": [
+          [
+            {
+              "node": "Find addresses",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "API call?": {
+        "main": [
+          [
+            {
+              "node": "Guard",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Mounts",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Guard": {
+        "main": [
+          [
+            {
+              "node": "Execute?",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Execute?": {
+        "main": [
+          [
+            {
+              "node": "Read only?",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Dry run",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Read only?": {
+        "main": [
+          [
+            {
+              "node": "Read",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Write",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Read": {
+        "main": [
+          [
+            {
+              "node": "Call result",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Write": {
+        "main": [
+          [
+            {
+              "node": "Call result",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Mounts": {
+        "main": [
+          [
+            {
+              "node": "State",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "State": {
+        "main": [
+          [
+            {
+              "node": "Playlists",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Playlists": {
+        "main": [
+          [
+            {
+              "node": "Overview",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Configuration": {
+        "main": [
+          [
+            {
+              "node": "Look up addresses?",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    },
+    "settings": {
+      "executionOrder": "v1"
+    },
+    "tags": [
+      {
+        "name": "Radio-Werkzeug"
+      }
+    ]
+  }
+]
