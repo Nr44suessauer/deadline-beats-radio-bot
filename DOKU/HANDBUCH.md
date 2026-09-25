@@ -772,7 +772,7 @@ flowchart LR
 
 ```mermaid
 classDiagram
-  class DEINE-STIMMEStimmendienst {
+  class EigenerStimmendienst {
     <<systemd, CT 111, Port 10205>>
     Basisstimme : de-DE-AmalaNeural
     Tempo : +40 %
@@ -802,11 +802,11 @@ classDiagram
     Anzeige : DEINE-STIMME
     Ausgabe : Icecast 8000
   }
-  RadioDienst --> DEINE-STIMMEStimmendienst : holt die Stimme
+  RadioDienst --> EigenerStimmendienst : holt die Stimme
   RadioDienst --> Sender : spricht im Sendetakt hinein
 ```
 
-* Der **RadioDienst kennt nur zwei Stimmenwege**: DEINE-STIMME (Vorgabe) und `de_thorsten`
+* Der **RadioDienst kennt zwei Stimmenwege**: die eigene Stimme (auf Wunsch) und `de_thorsten`
   (Ersatz) — Piper-Stimmen bleiben über den Parameter `voice` wählbar.
 * Das **Konto `deine-stimme`** am Hafen ist der Grund, warum im Sender „DEINE-STIMME" steht.
 

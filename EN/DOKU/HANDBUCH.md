@@ -759,7 +759,7 @@ flowchart LR
 
 ```mermaid
 classDiagram
-  class YOUR-VOICEStimmendienst {
+  class OwnVoiceService {
     <<systemd, CT 111, Port 10205>>
     Basisstimme : de-DE-AmalaNeural
     Tempo : +40 %
@@ -789,11 +789,11 @@ classDiagram
     Anzeige : YOUR-VOICE
     Ausgabe : Icecast 8000
   }
-  RadioDienst --> YOUR-VOICEStimmendienst : fetches the voice
+  RadioDienst --> OwnVoiceService : fetches the voice
   RadioDienst --> Sender : spricht im Sendetakt hinein
 ```
 
-* The **Radio Service knows only two voice paths**: YOUR-VOICE (default) and `de_thorsten`
+* The **Radio Service knows two voice paths**: your own voice (on request) and `de_thorsten`
   (backup) — Piper voices remain selectable via the `voice` parameter.
 * The **account `deine-stimme`** at the harbor is the reason why "YOUR-VOICE" is displayed in the transmitter.
 

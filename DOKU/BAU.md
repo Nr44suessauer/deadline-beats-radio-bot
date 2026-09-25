@@ -195,7 +195,7 @@ zum Nachbauen für jede Serie** in `STIMME.md`.
 * **Und meine Stimmenwahl**, per Hörproben: Tonhöhe **+4**, Tempo
   **+40 %** (statt der zwischenzeitlichen Klarheitsfassung +20 %), `index_rate`
   **0,65** (Mischung aus Basisstimme und Trainingsmaterial) — das ist das feste
-  Klangbild der eigene Stimme (seit 25.09. auf Wunsch), ~**1050 Zeichen je Minute**.
+  Klangbild der eigenen Stimme (seit 25.09. auf Wunsch), ~**1050 Zeichen je Minute**.
 
 #### 3.8 24./25. September — Anzeige, Doku und der zweisprachige Bot (v20–v21)
 

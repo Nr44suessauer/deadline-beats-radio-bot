@@ -1046,7 +1046,7 @@ Fassung `radio-v27-2026-09-25-nachrichten-sauber`.
 
 ### Stimmenwahl: Standard und DEINE-STIMME auf Wunsch (2026-09-25 abends)
 
-Der Wunsch: „warum kommt nicht mehr die Stimme von deine-stimme? ich will die Wahl haben —
+Der Wunsch: „warum kommt nicht mehr die Wunschstimme? ich will die Wahl haben —
 wenn nichts gesagt wird, dann Standardstimme; wenn nach DEINE-STIMME gefragt wird, dann
 eigene Stimme."
 

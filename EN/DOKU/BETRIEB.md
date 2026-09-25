@@ -683,7 +683,7 @@ PY
 The bot speaks **with `de_thorsten` by default** (Piper, always available, no GPU).
 The own moderation voice **"YOUR-VOICE"** is used **only on explicit request**:
 
-* **Request in Telegram:** "sag durch: … **with your own voice**", "… **in der own voice**"
+* **Request in Telegram:** "sag durch: … **with your own voice**", "… **in your own voice**"
   → the bot sets `stimme=deine-stimme`; the phrase itself is **not** read out.
 * **Without a request** `stimme` stays empty → default voice (live announcement, messages,
   overview, and research).
