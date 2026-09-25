@@ -1,6 +1,6 @@
 # AI Radio Moderator Bot — Station 1 "Deadline Beats"
 
-<img src="https://media1.giphy.com/media/v1.Y2lkPTc5MGI3NjExdzc2ejN4OGF5bjhxd2R5dTM3ZzRydXdvdGIxZngwbWZvaWRsb3o3YiZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/gZDLCqO7dPIzHmRrTh/giphy.gif" align="right" width="280" alt="AI Radio Moderator Bot (GIF)">
+<img src="https://media1.giphy.com/media/v1.Y2lkPTc5MGI3NjExdzc2ejN4OGF5bjhxd2R5dTM3ZzRydXdvdGIxZngwbWZvaWRsb3o3YiZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/gZDLCqO7dPIzHmRrTh/giphy.gif" align="right" class="glfm-float-right" width="280" alt="AI Radio Moderator Bot (GIF)">
 
 Complete documentation of the bot that controls the internet radio station **Deadline Beats** via Telegram, moderates the ongoing program, and can fetch content from the internet.
 

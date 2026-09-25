@@ -1,6 +1,6 @@
 # KI-Radio-Moderator-Bot — Sender 1 „Deadline Beats“
 
-<img src="https://media1.giphy.com/media/v1.Y2lkPTc5MGI3NjExdzc2ejN4OGF5bjhxd2R5dTM3ZzRydXdvdGIxZngwbWZvaWRsb3o3YiZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/gZDLCqO7dPIzHmRrTh/giphy.gif" align="right" width="280" alt="KI-Radio-Moderator-Bot (GIF)">
+<img src="https://media1.giphy.com/media/v1.Y2lkPTc5MGI3NjExdzc2ejN4OGF5bjhxd2R5dTM3ZzRydXdvdGIxZngwbWZvaWRsb3o3YiZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/gZDLCqO7dPIzHmRrTh/giphy.gif" align="right" class="glfm-float-right" width="280" alt="KI-Radio-Moderator-Bot (GIF)">
 
 Vollständige Dokumentation des Bots, der den Internetradiosender **Deadline Beats**
 per Telegram steuert, im laufenden Programm moderiert und sich Inhalte aus dem Netz
