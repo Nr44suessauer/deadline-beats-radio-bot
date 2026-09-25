@@ -185,6 +185,8 @@ ERSETZEN: list[tuple[str, str]] = [
     # Quellenverweise aus Wikipedia ("[1]", "[ 1.1 ]") nicht vorlesen.
     (r"\[\s*\d+(?:[.,]\d+)*\s*\]", " "),
     (r"\[([^\]]*)\]", r"\1"),
+    # Agentur-Klammern sind Etiketten, kein Text ("(dpa)", "(dpa/afp)").
+    (r"\(\s*(?:dpa|afp|rtr|reuters|epd|kna|sid|ots|apa|ap)(?:[\s/,-]*[a-z]+)*\s*\)", " "),
     (r"\(([^)]*)\)", r"\1"),
     (r"\s*[\u2013\u2014]\s*", ", "),
     (r"\u00b0\s*C\b", " Grad"),
@@ -235,6 +237,13 @@ UNSPRECHBAR = re.compile(
     "[" "\U0001F000-\U0001FAFF" "\U00002600-\U000027BF" "\U0001F1E6-\U0001F1FF" "\u2b00-\u2bff" "\u2190-\u21ff" "]"
 )
 
+# Autorenzeilen der Nachrichtenfeeds sind kein Sprechtext ("... Von Stephan
+# Ueberbach." stand am 2026-09-25 als Satz in der Tagesschau-Ansage). Nur am
+# ENDE und mit großen Anfangsbuchstaben - "das sagte von der Leyen" bleibt.
+AUTOR_ZEILE = re.compile(
+    r"\s+Von\s+(?:(?:[A-ZÄÖÜ][\w’'\-.]*|und)\s+){1,5}[A-ZÄÖÜ][\w’'\-.]*\.?\s*$")
+AUTOR_KURZ = re.compile(r"\s+Von\s+(?:dpa|afp|rtr|reuters|epd|kna|sid|ots)\b[^.]*\.?\s*$", re.I)
+
 
 def sprechbar(text: str) -> str:
     """Macht aus einem Meldungstext etwas, das sich sauber sprechen laesst."""
@@ -243,6 +252,8 @@ def sprechbar(text: str) -> str:
     s = UNSPRECHBAR.sub(" ", s)
     for muster, ersatz in ERSETZEN:
         s = re.sub(muster, ersatz, s, flags=re.I)
+    s = AUTOR_ZEILE.sub(" ", s)
+    s = AUTOR_KURZ.sub(" ", s)
     # Aufzaehlungen und Zeilenumbrueche zu einem Fliesstext
     s = re.sub(r"(?m)^\s*[-•·]\s*", " ", s)
     s = re.sub(r"\s+", " ", s)

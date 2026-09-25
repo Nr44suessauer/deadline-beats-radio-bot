@@ -13,7 +13,7 @@ Hier stehen alle Adressen, Schluessel und Aufgabentexte. Geaendert wird nur der 
 
 ### DDD-Webseite Konfiguration - alle Werte  ·  `Notiz Doku`
 
-EINE Stelle fuer den ganzen Bot: Adressen, Schluessel, Modell, Aufgabentexte. Bearbeitet wird nur der Knoten 'Werte' (Code). Speichern genuegt, kein Neustart. Alle vier Ablaeufe holen die Werte beim Start ueber den Knoten 'Konfiguration'. Aendern: DDD-Webseite/werkzeuge/agent-wf-bauen-ddd.py (KONFIG), dann bauen-de.sh + einspielen.sh
+EINE Stelle fuer den ganzen Bot: Adressen, Schluessel, Modell, Aufgabentexte. Bearbeitet wird nur der Knoten 'Werte' (Code). Speichern genuegt, kein Neustart. Alle vier Ablaeufe holen die Werte beim Start ueber den Knoten 'Konfiguration'. Aendern: Sender-2-Axis-Church-Radio/werkzeuge/agent-wf-bauen-ddd.py (KONFIG), dann bauen-de.sh + einspielen.sh
 
 *(Uebersichtskasten ohne Knoten)*
 
@@ -79,7 +79,7 @@ Hier endet der Werkzeug-Ablauf - der Text geht an den Agenten zurueck.
 
 ### DDD-Webseite Werkzeug Radio  ·  `Notiz Doku`
 
-Unterschnittstelle des Agenten fuer Musik: Weichen, Titel suchen, Richtung, Zustand, abspielen. Aufgerufen wird sie ueber die Werkzeugknoten des Agenten (Werkzeug Titel suchen usw.). Der Plan ist die Quelle: DDD-Webseite/werkzeuge/agent-wf-bauen-ddd.py (W_ANORDNUNG, W_BEREICHE). Aendern/Pruefen wie beim Agenten; Beschreibung: HANDBUCH.md, HANDBUCH.md, ANHANG/n8n-oberflaeche.html
+Unterschnittstelle des Agenten fuer Musik: Weichen, Titel suchen, Richtung, Zustand, abspielen. Aufgerufen wird sie ueber die Werkzeugknoten des Agenten (Werkzeug Titel suchen usw.). Der Plan ist die Quelle: Sender-2-Axis-Church-Radio/werkzeuge/agent-wf-bauen-ddd.py (W_ANORDNUNG, W_BEREICHE). Aendern/Pruefen wie beim Agenten; Beschreibung: HANDBUCH.md, HANDBUCH.md, ANHANG/n8n-oberflaeche.html
 
 *(Uebersichtskasten ohne Knoten)*
 
@@ -232,12 +232,12 @@ Je Werkzeug ein Knoten; er ruft den Werkzeug-Ablauf per `executeWorkflow` auf. D
 
 ### DDD-Webseite Bot - zweisprachiger Telegram-Agent (DE/EN)  ·  `Notiz Uebersicht`
 
-EIN Bot, EIN Chat: der Betreiber schreibt deutsch oder englisch. Die Sprache wird am Eingang erkannt (Feld `sprache`) und reist mit - Kurzbefehle, Werkzeugantworten und die Antworten des Modells folgen ihr. Inhalte (Nachrichten, Wetter) und die Verwaltungswege des Dienstes bleiben deutsch. Was der Bot kann: Musikwuensche aus der festgelegten Demo-Wiedergabeliste, "weiter" (Titelwechsel), Programmstatus, Postfach, Recherche (Wetter, Nachrichten, RSS) und Ansagen im laufenden Programm. Verwalten kann der Bot nichts: der Schluessel darf nur zuhoeren, springen und Wuensche annehmen (siehe zugangsdaten/api_key.txt). Alles kommt aus Telegram und geht dorthin zurueck - oder per REST- oder Testeingang als JSON ({"text": "..."} plus Schluessel; Antwort {ok, antwort, tastatur, sprache}). Gespielt wird auf dem Sender "Axis Church Radio" (Sender 2). Der Weg einer Nachricht: Eingang -> Stufe 0/1 Analyse -> Stufe 2 Ausfuehrung -> Stufe 3 Pruefung -> Antwort. Sprachnachrichten laufen oben durch Whisper, Dienste und Postfach haengen seitlich dran. Jeder Knoten traegt seinen Zweck als Notiz unter dem Namen, jeder Rahmen erklaert eine Stufe. Rahmenfarben: 1 Sprachnachricht | 2 Eingang | 3 Dienste | 4 Postfach | 5 Stufe 0+1 | 6 Stufe 2 + Werkzeuge | 7 Stufe 3 + Antwort Erzeugt von DDD-Webseite/werkzeuge/agent-wf-bauen-ddd.py - nie von Hand aendern. Aendern: bauen.sh, pruefen.sh, einspielen.sh. Doku: README.md (deutsch) und EN/README.md (englisch).
+EIN Bot, EIN Chat: der Betreiber schreibt deutsch oder englisch. Die Sprache wird am Eingang erkannt (Feld `sprache`) und reist mit - Kurzbefehle, Werkzeugantworten und die Antworten des Modells folgen ihr. Inhalte (Nachrichten, Wetter) und die Verwaltungswege des Dienstes bleiben deutsch. Was der Bot kann: Musikwuensche aus der festgelegten Demo-Wiedergabeliste, "weiter" (Titelwechsel), Programmstatus, Postfach, Recherche (Wetter, Nachrichten, RSS) und Ansagen im laufenden Programm. Verwalten kann der Bot nichts: der Schluessel darf nur zuhoeren, springen und Wuensche annehmen (siehe zugangsdaten/api_key.txt). Alles kommt aus Telegram und geht dorthin zurueck - oder per REST- oder Testeingang als JSON ({"text": "..."} plus Schluessel; Antwort {ok, antwort, tastatur, sprache}). Gespielt wird auf dem Sender "Axis Church Radio" (Sender 2). Der Weg einer Nachricht: Eingang -> Stufe 0/1 Analyse -> Stufe 2 Ausfuehrung -> Stufe 3 Pruefung -> Antwort. Sprachnachrichten laufen oben durch Whisper, Dienste und Postfach haengen seitlich dran. Jeder Knoten traegt seinen Zweck als Notiz unter dem Namen, jeder Rahmen erklaert eine Stufe. Rahmenfarben: 1 Sprachnachricht | 2 Eingang | 3 Dienste | 4 Postfach | 5 Stufe 0+1 | 6 Stufe 2 + Werkzeuge | 7 Stufe 3 + Antwort Erzeugt von Sender-2-Axis-Church-Radio/werkzeuge/agent-wf-bauen-ddd.py - nie von Hand aendern. Aendern: bauen.sh, pruefen.sh, einspielen.sh. Doku: README.md (deutsch) und EN/README.md (englisch).
 
 *(Uebersichtskasten ohne Knoten)*
 
 ### DDD-Webseite Bot - Telegram-Agent (DE/EN) mit REST-Eingang  ·  `Notiz Doku`
 
-Der Bot: Telegram-Eingang -> Stufe 0/1 (verstehen und planen) -> Stufe 2 (ausfuehren) -> Stufe 3 (Antwort). REST-Eingang: POST .../webhook/ddd-webseite-rest mit {"text": "..."} + Schluessel - Antwort als JSON. Der Plan ist die Quelle der Anordnung: DDD-Webseite/werkzeuge/agent-wf-bauen-ddd.py (ANORDNUNG, BEREICHE, KURZNOTIZ). Aendern: bauen-de.sh (erzeugt /tmp/ddd-webseite-agent.json), dann einspielen.sh Pruefen: pruefen.sh (Anordnung + Code-Knoten), Betrieb: DDD-Webseite/README.md Beschreibung: README.md, HANDBUCH.md, HANDBUCH.md, BETRIEB.md, BETRIEB.md, BETRIEB.md, BAU.md Bild fuer Bild: ANHANG/n8n-oberflaeche.html  (Projektordner Ai_Radio_Moderator_Bot)
+Der Bot: Telegram-Eingang -> Stufe 0/1 (verstehen und planen) -> Stufe 2 (ausfuehren) -> Stufe 3 (Antwort). REST-Eingang: POST .../webhook/ddd-webseite-rest mit {"text": "..."} + Schluessel - Antwort als JSON. Der Plan ist die Quelle der Anordnung: Sender-2-Axis-Church-Radio/werkzeuge/agent-wf-bauen-ddd.py (ANORDNUNG, BEREICHE, KURZNOTIZ). Aendern: bauen-de.sh (erzeugt /tmp/ddd-webseite-agent.json), dann einspielen.sh Pruefen: pruefen.sh (Anordnung + Code-Knoten), Betrieb: Sender-2-Axis-Church-Radio/README.md Beschreibung: README.md, HANDBUCH.md, HANDBUCH.md, BETRIEB.md, BETRIEB.md, BETRIEB.md, BAU.md Bild fuer Bild: ANHANG/n8n-oberflaeche.html  (Projektordner Ai_Radio_Moderator_Bot/Sender-2-Axis-Church-Radio)
 
 *(Uebersichtskasten ohne Knoten)*

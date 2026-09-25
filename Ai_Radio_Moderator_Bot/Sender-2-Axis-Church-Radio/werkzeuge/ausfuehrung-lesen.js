@@ -2,10 +2,10 @@
 // Ergebnisse einzelner Knoten (n8n speichert flach: Verweise sind Indizes).
 //
 // Aufruf: node ausfuehrung-lesen.js <workflowId> [Knotenmustter...]
-// Beispiel: node ausfuehrung-lesen.js DDD-Webseite-Bot-DE Antwort Senden
+// Beispiel: node ausfuehrung-lesen.js DDD-Webseite-Bot Antwort Senden
 const sqlite3 = require('/usr/local/lib/node_modules/n8n/node_modules/.pnpm/sqlite3@5.1.7/node_modules/sqlite3');
 
-const wf = process.argv[2] || 'DDD-Webseite-Bot-DE';
+const wf = process.argv[2] || 'DDD-Webseite-Bot';
 const muster = process.argv.slice(3);
 const db = new sqlite3.Database('/home/node/.n8n/database.sqlite', sqlite3.OPEN_READONLY);
 

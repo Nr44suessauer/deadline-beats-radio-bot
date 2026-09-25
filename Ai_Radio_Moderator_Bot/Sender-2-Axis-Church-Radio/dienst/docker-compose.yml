@@ -13,7 +13,10 @@ services:
       - ./geheim.env
     environment:
       VOICE_DIR: /voices
-      TTS_DEFAULT_VOICE: ${TTS_DEFAULT_VOICE:-aqua}
+      # Standardstimme: seit 2026-09-25 de_thorsten (Piper, laeuft immer).
+      # Die Aqua-Stimme wird nur auf ausdruecklichen Wunsch verwendet
+      # ("... mit Aqua-Stimme" -> stimme=aqua in der Ansage-Anfrage).
+      TTS_DEFAULT_VOICE: ${TTS_DEFAULT_VOICE:-de_thorsten}
       AQUA_TTS_URL: ${AQUA_TTS_URL:-http://192.168.178.116:10205/tts}
       AQUA_ERSATZ: ${AQUA_ERSATZ:-de_thorsten}
       RECHERCHE_SEARX_URL: ${RECHERCHE_SEARX_URL:-http://192.168.178.26:8888}

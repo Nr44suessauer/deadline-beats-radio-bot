@@ -2,7 +2,7 @@
 
 > **In this edition** the service runs as container `ddd-radio` on **port 8882**
 > (station 2, “Axis Church Radio”); its source lives here in
-> `DDD-Webseite/dienst/`. The main bot keeps using `radio-tts` on port 8881 —
+> `Sender-2-Axis-Church-Radio/dienst/`. The main bot keeps using `radio-tts` on port 8881 —
 > the same code.
 
 The container does five jobs: speech output (Piper plus the dedicated
@@ -68,7 +68,7 @@ TTS_ZIEL_RMS_DB=-12.5
 `AZ_KEY` is the same key as `/var/azuracast/api_key.txt`. `KATALOG_DIR` is the
 place of `katalog.json` inside the container (volume `./daten`). The `LIVE_*`
 values are the DJ connection used for live announcements; the station shows
-the streamer account `aqua` (display name “Axis KI”). The `TTS_*` values are the
+the streamer account `aqua` (display name “Aqua”). The `TTS_*` values are the
 “variant 3” loudness chain.
 
 ## Catalogue endpoints

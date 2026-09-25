@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Erzeugt den DDD-Webseite-Bot als AI-Agent mit Werkzeugen.
 
-ABLEGER von ../../werkzeuge/agent-wf-bauen.py fuer die Webseiten-Fassung.
+ABLEGER von ../../Sender-1-Deadline-Beats/werkzeuge/agent-wf-bauen.py fuer die Webseiten-Fassung.
 Unterschiede: Sender 2 (AzuraCast "Axis Church Radio"), Ablauf-Kennungen und
 -Namen mit dem Praefix "DDD-Webseite", ein eigener Testeingang, eigene
 Telegram-Anmeldedaten; Ausgaben nach /tmp/ddd-webseite-*.json.
@@ -69,6 +69,27 @@ class Ausdruck(str):
 
     def __radd__(self, weniger):
         return Ausdruck(json.dumps(str(weniger)) + " + " + self.rumpf)
+
+
+# ---------------------------------------------------------------- Charakter
+# Der Charakter der Stimme steht als Klartext in einer Datei neben der Ausgabe
+# (Vorgabe: ../charakter.md, Umfeld "CHARAKTER_DATEI" moeglich). Zeilen mit #
+# am Anfang sind Notizen. Der Text geht in die Zentrale ("Werte" -> "charakter");
+# die Agenten der Ausfuehrung haengen ihn zur LAUFZEIT an ihren Systemtext an -
+# so wirkt eine geaenderte Datei nach dem Einspielen der Zentrale, ohne Neubau.
+HIER = os.path.dirname(os.path.abspath(__file__))
+CHARAKTER_DATEI = os.environ.get("CHARAKTER_DATEI", os.path.join(HIER, "..", "charakter.md"))
+
+
+def lese_charakter(pfad=CHARAKTER_DATEI):
+    """Charaktertext aus der Datei lesen; #-Zeilen sind Notizen und fallen weg."""
+    try:
+        with open(pfad, encoding="utf-8") as f:
+            text = f.read()
+    except OSError:
+        return ""
+    zeilen = [z for z in text.splitlines() if not z.lstrip().startswith("#")]
+    return "\n".join(zeilen).strip()
 
 
 AZ = Ausdruck(K + ".sender.adresse")
@@ -731,6 +752,17 @@ function sprache_raten(text) {
   for (const w of EN) if (t.includes(w)) en += 1;
   return en > de ? 'en' : 'de';
 }
+
+// Wunsch nach der Aqua-Stimme - in beliebiger Formulierung erkennen.
+// Beispiele: "mit Aqua-Stimme", "in der Aqua-Stimme", "als Aqua",
+// "mit Aquas Stimme", "von Aqua gesprochen". Ergebnis: 'aqua' oder ''.
+function stimme_wunsch(text) {
+  const t = String(text || '').toLowerCase();
+  if (/aqua[\s-]*stimme/.test(t)) return 'aqua';
+  if (/\b(als|von|mit)\s+aqua\b/.test(t)) return 'aqua';
+  if (/mit\s+aquas\s+stimme/.test(t)) return 'aqua';
+  return '';
+}
 """
 
 # Sprachleser fuer die Antwort-Knoten: liest die am Eingang (EINGABE_JS) bzw. an
@@ -788,6 +820,7 @@ return [{ json: {
   chatId: String((m.chat && m.chat.id) !== undefined ? m.chat.id : ''),
   text: textRoh,
   sprache: (cq || nurZahl) ? String(d.letzteSprache || 'de') : spracheJetzt,
+  stimmeWunsch: stimme_wunsch(textRoh),
   knopfRoh: knopf,
   istSprache: !!stimme,
   stimmeDateiId: stimme ? String(stimme.file_id || '') : '',
@@ -846,19 +879,19 @@ if (!sauber) {
   const letzte = String(($getWorkflowStaticData('global') || {}).letzteSprache || 'de');
   return [{ json: Object.assign({}, felder, { text: '',
     antwort: (String(felder.sprache || letzte) === 'en'
-      ? '\U0001f3a7 I did not understand that - please say it again.'
-      : '\U0001f3a7 Ich habe nichts verstanden - bitte nochmal sprechen.') }) }];
+      ? '\u{1F3A7} I did not understand that - please say it again.'
+      : '\u{1F3A7} Ich habe nichts verstanden - bitte nochmal sprechen.') }) }];
 }
 // Die Sprache kommt aus dem ERKANNTEN Text (bei Sprachnachrichten ist der
 // Originaltext leer) - sie reist ab hier als "sprache" mit.
 return [{ json: Object.assign({}, felder, { text: sauber, gehoert: sauber,
-  sprache: sprache_raten(sauber) }) }];
+  sprache: sprache_raten(sauber), stimmeWunsch: stimme_wunsch(sauber) }) }];
 """
 
 GEHOERT_JS = SPRACHE_LESEN_JS + r"""
 const j = $json;
 return [{ json: { chatId: j.chatId || $('Eingabe').item.json.chatId,
-  antwort: (EN ? '\U0001f3a7 Understood: \u00bb' : '\U0001f3a7 Verstanden: \u00bb')
+  antwort: (EN ? '\u{1F3A7} Understood: \u00bb' : '\u{1F3A7} Verstanden: \u00bb')
     + (j.gehoert || '') + '\u00ab' } }];
 """
 
@@ -926,8 +959,8 @@ const d = $json || {};
 const offen = Array.isArray(d.meldungen) ? d.meldungen : [];
 if (!offen.length) return [{ json: { leer: true } }];
 
-const zeichen = { wetter: '\u26c5', nachrichten: '\U0001f4f0', rss: '\U0001f4e1',
-  verkehr: '\U0001f6a7', hinweis: '\U0001f4a1', musik: '\U0001f3b5', sonstiges: '\U0001f4dd' };
+const zeichen = { wetter: '\u26c5', nachrichten: '\u{1F4F0}', rss: '\u{1F4E1}',
+  verkehr: '\u{1F6A7}', hinweis: '\u{1F4A1}', musik: '\u{1F3B5}', sonstiges: '\u{1F4DD}' };
 const kopfe = { wetter: 'Wetter', nachrichten: 'Nachrichten', rss: 'Feed',
   verkehr: 'Verkehr', hinweis: 'Hinweis', musik: 'Musik', sonstiges: 'Meldung' };
 const entkommen = (s) => String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
@@ -935,7 +968,7 @@ const entkommen = (s) => String(s || '').replace(/&/g, '&amp;').replace(/</g, '&
 const m = offen[0];
 const kopf = kopfe[m.art] || 'Meldung';
 const zeilen = [
-  (zeichen[m.art] || '\U0001f4dd') + ' <b>' + (m.wichtig ? 'Wichtig: ' : '') + entkommen(kopf) + '</b>',
+  (zeichen[m.art] || '\u{1F4DD}') + ' <b>' + (m.wichtig ? 'Wichtig: ' : '') + entkommen(kopf) + '</b>',
 ];
 if (m.titel) zeilen.push('<i>' + entkommen(m.titel) + '</i>');
 zeilen.push('');
@@ -946,7 +979,7 @@ if (offen.length > 1) zeilen.push('(' + (offen.length - 1) + ' weitere Meldung(e
 
 const tastatur = { inline_keyboard: [[
   { text: '\u25b6\ufe0f Vorlesen', callback_data: 'm' + m.id },
-  { text: '\U0001f5d1\ufe0f Verwerfen', callback_data: 'x' + m.id },
+  { text: '\u{1F5D1}\ufe0f Verwerfen', callback_data: 'x' + m.id },
 ]] };
 // Die Kennung wird spaeter als "angeboten" gemerkt (kein zweites Angebot).
 const angeboten = offen.map((e) => e.id);
@@ -1113,6 +1146,10 @@ for (let i = 0; i < befehle.length; i += 1) {
   // "ansage" ist freier Sprechtext ("sag durch: ..." / "announce: ...") - die
   // Ausfuehrung spricht ihn ueber das Meldungs-Werkzeug.
   if (!['spielen', 'richtung', 'programm', 'recherche', 'verwalten', 'ansage', 'direkt'].includes(art)) continue;
+  // Ausdruecklicher Stimmenwunsch ("mit Aqua-Stimme", "als Aqua", ...) - fest
+  // uebernehmen, damit er nicht vom Sprachmodell abhaengt.
+  const wunsch = String((($('Zugang').first().json || {}).stimmeWunsch) || '');
+  if (wunsch && ['ansage', 'recherche'].includes(art)) b.stimme = wunsch;
   if (ausgabe.length >= AUFGABEN_MAX) { uebrig += 1; continue; }
   // Mehrere Musikwuensche in einer Nachricht: alle gehen der Reihe nach ueber die
   // Wunsch-Schnittstelle des Senders (geplant, nicht unterbrechend).
@@ -1555,6 +1592,14 @@ auftrag, ansagen, suche ...) bleiben deutsch - sie sind nur fuer den Bot, nicht
 fuer den Betreiber. Werkzeugaufrufe der Musik (titel_suchen, richtung_suchen,
 was_laeuft) bekommen immer das Feld sprache (de oder en) mit.
 
+STIMME
+Ohne Wunsch spricht der Bot mit der Standardstimme - dann bleibt das Feld
+stimme leer. Verlangt der Betreiber ausdruecklich die Aqua-Stimme ("mit
+Aqua-Stimme", "in der Aqua-Stimme", "als Aqua", "mit Aquas Stimme"), setze
+beim Werkzeug stimme=aqua. Die Wendung gehoert NUR ins Feld stimme und wird
+NIE vorgelesen oder bestaetigt. Steht im Befehl das Feld stimme, uebernimm es
+unveraendert in den Werkzeugaufruf.
+
 WERKZEUGE
 - titel_suchen, richtung_suchen, was_laeuft: Musik und Programm. Diese Werkzeuge tragen
   Wuensche ein bzw. zeigen den Programmstand. Musik kommt NUR aus der festgelegten
@@ -1609,13 +1654,24 @@ REGELN
    und ZEILE FUER ZEILE weiter - jede Nummer in einer eigenen Zeile, nichts umformulieren, nichts
    zusammenziehen und nichts ergaenzen. An die Liste haengst du genau die Frage, welcher gemeint
    ist. Der Bot baut aus diesen Zeilen die Antwortknoepfe.
-/no_think"""
+"""
 
 AUSFUEHREN_TEXT = ("={{ 'Befehl: ' + JSON.stringify($json.befehl)"
                   + " + '\\nSprache des Betreibers: '"
                   + " + String(($('Zugang').first().json.sprache || 'de'))"
                   + " + '\\nAntworte in dieser Sprache (en = englisch, de = deutsch)"
                   + " - auch die Bestaetigung.\\n/no_think' }}")
+
+# Systemtext der Ausfuehrung: Aufgabentext + Charakter. Der Charakter haengt zur
+# LAUFZEIT an der Zentrale (Feld "charakter") - so wirkt eine geaenderte
+# Charakterdatei nach dem Einspielen der Zentrale, ohne Neubau. "/no_think"
+# bleibt der Schluss des Textes.
+SYSTEM_AUSFUEHREN = Ausdruck(
+    K + ".aufgaben.ausfuehren"
+    + " + (" + K + ".charakter ? '\\n\\nDEIN CHARAKTER (so klingst du)\\n' + " + K + ".charakter"
+    + " + '\\nBleib in dieser Rolle, ohne die Regeln oben zu verletzen: Der Befehl wird genauso "
+      "zuverlaessig ausgefuehrt, nur die Art zu sprechen ist deine.' : '')"
+    + " + '\\n/no_think'")
 
 ERGEBNIS_SAMMELN_JS = r"""
 // Ergebnis des Befehls am Merker festhalten.
@@ -1854,13 +1910,8 @@ if (!schlicht && offen.length) {
     + (EN ? ' - please say it again, I will try another way.'
           : ' - sag es noch einmal, dann versuche ich es anders.'));
 }
-if (!schlicht && liste.some((b) => b.frage)) {
-  zeilen.push(EN ? 'Tap the matching button or answer with the number.'
-    : 'Tippe den passenden Knopf oder antworte mit der Nummer.');
-}
 const fehler = (d.lauf && d.lauf.fehler) || '';
 if (fehler) zeilen.push('(' + fehler + ')');
-const gesamt = zeilen.join('\n');
 // Auswahlliste als anklickbare Knoepfe: callback_data "w" + Nummer (kurz genug,
 // Telegram erlaubt dort 1-64 Bytes). Der Knopfdruck kommt als Nummer zurueck.
 // Auswahlliste fuer Knoepfe: entweder vom Werkzeug ("auswahl") oder aus der
@@ -1890,6 +1941,14 @@ const tastatur = eintraege.length >= 2
   ? { inline_keyboard: eintraege.map((t, i) => ([{
       text: String(t).slice(0, 60), callback_data: 'w' + (i + 1) }])) }
   : null;
+// Den Knopf-Hinweis nur zeigen, wenn wirklich Knoepfe entstehen. Frueher stand er
+// bei JEDER Rueckfrage (jedes "?" in der Antwort); seit dem Charakter (2026-09-25)
+// stellt die Figur gern rhetorische Fragen - da passte der Hinweis nicht.
+if (!schlicht && tastatur && liste.some((b) => b.frage)) {
+  zeilen.push(EN ? 'Tap the matching button or answer with the number.'
+    : 'Tippe den passenden Knopf oder antworte mit der Nummer.');
+}
+const gesamt = zeilen.join('\n');
 // Fuer die naechste Nachricht merken: daran haengt "ja, mach das".
 d.letzteAntwort = gesamt;
 return [{ json: { chatId: $('Eingabe').first().json.chatId, antwort: gesamt,
@@ -1903,8 +1962,8 @@ AUFGABEN_WERKZEUGE = {
     "titel_suchen": 'Spielt einen Titel oder Interpreten aus der festgelegten Demo-Wiedergabeliste. Eingabe: suchtext (Interpret und/oder Titel) ODER eine Nummer aus der letzten Auswahlliste, plus sprache (de oder en - die Sprache des Betreibers, damit die Antwort darin zurueckkommt). Klarer Treffer: der Titel wird als Wunsch eingetragen und laeuft in Kuerze. Mehrere verschiedene Titel: Antwort ist eine Liste (dann nachfragen). Ist die Demo-Playlist noch nicht festgelegt, meldet das Werkzeug, dass Musikwuensche gesperrt sind - versuche es dann nicht erneut.',
     "richtung_suchen": 'Traegt zur Stimmung, zum Genre oder Jahrzehnt den ersten passenden Titel aus der Demo-Wiedergabeliste als Wunsch ein. Eingabe: richtung (party, dance, rock, metal, ruhig, hart, 90er, 80er ...) plus sprache (de oder en).',
     "was_laeuft": 'Sagt, was gerade laeuft, wie lange noch, was danach kommt und wie viele Zuhoerer da sind. Eingabe: frage und sprache (de oder en). Keine weitere Eingabe.',
-    "meldungen": 'Postfach (Wetter, RSS-Feeds, Nachrichten) und Ansagen des Moderators. auftrag=anzeigen listet offene Meldungen auf - das ist KEINE Ansage. auftrag=lesen zeigt den Sprechtext einer Meldung (dann kennung angeben). auftrag=ansagen spricht die Meldung live in den Sender (dann kennung angeben, nur auf ausdruecklichen Wunsch). auftrag=verwerfen legt sie weg (dann kennung angeben). auftrag=text spricht freien Text (dann text angeben; hoechstens 240 Zeichen - ist der Text laenger, kuerze ihn sinngemaess). Rufe dieses Werkzeug hoechstens EINMAL je Befehl auf und wiederhole eine Ansage nie.',
-    "recherche": "Holt etwas NEUES aus dem Netz und legt es als Meldung ab - Wetter, Nachrichten, ein RSS-Feed, einen Ueberblick ueber Themen oder eine Kurzinfo. NICHT fuer Fragen nach dem Postfach benutzen (dafuer meldungen mit auftrag=anzeigen). art=wetter (dann wort=Ort, z. B. 'Marbach am Neckar'), art=nachrichten (aktuellste Nachricht), art=rss (dann wort=Feed-Adresse oder Kurzname wie tagesschau, heise, spiegel), art=wikipedia (dann wort=Stichwort), art=ueberblick (dann themen=die Themen, zu denen gesucht werden soll, z. B. 'ki, raumfahrt'; optional quellen=gewuenschte Quellen wie 'heise golem'). Der Ueberblick sucht zu jedem Thema in Presse, im Netz und in den Feeds und dauert so lange, wie das Gefundene braucht. ansagen=true spricht die Meldung sofort im Radio an - das ist gewuenscht, wenn der Betreiber sie hoeren will ('suche nach dem wetter fuer X'); bei 'nur suchen' oder 'zeig mir' ansagen=false setzen. Rufe dieses Werkzeug hoechstens EINMAL je Befehl auf und wiederhole eine Ansage nie.",
+    "meldungen": 'Postfach (Wetter, RSS-Feeds, Nachrichten) und Ansagen des Moderators. auftrag=anzeigen listet offene Meldungen auf - das ist KEINE Ansage. auftrag=lesen zeigt den Sprechtext einer Meldung (dann kennung angeben). auftrag=ansagen spricht die Meldung live in den Sender (dann kennung angeben, nur auf ausdruecklichen Wunsch). auftrag=verwerfen legt sie weg (dann kennung angeben). auftrag=text spricht freien Text (dann text angeben; hoechstens 240 Zeichen - ist der Text laenger, kuerze ihn sinngemaess). Fuer jede Ansage gilt: stimme=aqua NUR, wenn der Betreiber ausdruecklich die Aqua-Stimme verlangt (z. B. mit Aqua-Stimme, in der Aqua-Stimme, als Aqua) - sonst stimme leer lassen (Standardstimme). Der Zusatz mit Aqua-Stimme gehoert NUR in das Feld stimme und darf NICHT im vorgelesenen Text stehen. Rufe dieses Werkzeug hoechstens EINMAL je Befehl auf und wiederhole eine Ansage nie.',
+    "recherche": "Holt etwas NEUES aus dem Netz und legt es als Meldung ab - Wetter, Nachrichten, ein RSS-Feed, einen Ueberblick ueber Themen oder eine Kurzinfo. NICHT fuer Fragen nach dem Postfach benutzen (dafuer meldungen mit auftrag=anzeigen). art=wetter (dann wort=Ort, z. B. 'Marbach am Neckar'), art=nachrichten (aktuellste Nachricht), art=rss (dann wort=Feed-Adresse oder Kurzname wie tagesschau, heise, spiegel), art=wikipedia (dann wort=Stichwort), art=ueberblick (dann themen=die Themen, zu denen gesucht werden soll, z. B. 'ki, raumfahrt'; optional quellen=gewuenschte Quellen wie 'heise golem'). Der Ueberblick sucht zu jedem Thema in Presse, im Netz und in den Feeds und dauert so lange, wie das Gefundene braucht. ansagen=true spricht die Meldung sofort im Radio an - das ist gewuenscht, wenn der Betreiber sie hoeren will ('suche nach dem wetter fuer X'); bei 'nur suchen' oder 'zeig mir' ansagen=false setzen. Fuer die Ansage gilt: stimme=aqua NUR, wenn der Betreiber die Aqua-Stimme ausdruecklich verlangt (z. B. mit Aqua-Stimme, in der Aqua-Stimme, als Aqua) - sonst leer lassen (Standardstimme). Der Zusatz mit Aqua-Stimme gehoert NUR in das Feld stimme und darf NICHT im vorgelesenen Text stehen. Rufe dieses Werkzeug hoechstens EINMAL je Befehl auf und wiederhole eine Ansage nie.",
 }
 
 # ======================================================================= der Bot
@@ -2086,7 +2145,7 @@ bot = [
     n("Ausfuehren", "@n8n/n8n-nodes-langchain.agent", 2.2, [160, -140], {
         "promptType": "define",
         "text": AUSFUEHREN_TEXT,
-        "options": {"systemMessage": kwert("aufgaben.ausfuehren"),
+        "options": {"systemMessage": SYSTEM_AUSFUEHREN,
                     "maxIterations": 4},
         "hasOutputParser": False,
     }, retryOnFail=True, maxTries=2, waitBetweenTries=3000, onError="continueRegularOutput",
@@ -2136,7 +2195,7 @@ bot = [
                  "anderen Weg. Antworte in einem kurzen Satz in der Sprache des Betreibers: '"
                  " + String(($('Zugang').first().json.sprache || 'de'))"
                  " + ' (en = englisch, de = deutsch) - auch die Bestaetigung.\\n/no_think' }}"),
-        "options": {"systemMessage": kwert("aufgaben.ausfuehren"),
+        "options": {"systemMessage": SYSTEM_AUSFUEHREN,
                     "maxIterations": 3},
         "hasOutputParser": False,
     }, retryOnFail=True, maxTries=2, waitBetweenTries=3000, onError="continueRegularOutput",
@@ -2256,7 +2315,8 @@ bot = [
             "mappingMode": "defineBelow",
             "value": {"auftrag": feld("auftrag", "anzeigen (offene Meldungen), lesen (Sprechtext), ansagen (live sprechen), verwerfen oder text (freier Text)", "string", "anzeigen"),
                       "kennung": feld("kennung", "Kennung der Meldung, z. B. m260920-0007 (bei lesen, ansagen, verwerfen)", "string", ""),
-                      "text": feld("text", "Freier Ansagetext (nur bei auftrag=text, hoechstens 240 Zeichen)", "string", "")},
+                      "text": feld("text", "Freier Ansagetext (nur bei auftrag=text, hoechstens 240 Zeichen)", "string", ""),
+                      "stimme": feld("stimme", "aqua = Aqua-Stimme (nur wenn der Betreiber sie ausdruecklich verlangt, z. B. 'mit Aqua-Stimme', 'in der Aqua-Stimme', 'als Aqua'), leer = Standardstimme. Der Zusatz mit Aqua-Stimme gehoert NUR hierher, nicht in den vorgelesenen Text", "string", "")},
             "matchingColumns": [],
             "schema": [{"id": "auftrag", "displayName": "auftrag", "required": False,
                         "defaultMatch": False, "display": True, "type": "string",
@@ -2265,6 +2325,9 @@ bot = [
                         "defaultMatch": False, "display": True, "type": "string",
                         "canBeUsedToMatch": True, "removed": False},
                        {"id": "text", "displayName": "text", "required": False,
+                        "defaultMatch": False, "display": True, "type": "string",
+                        "canBeUsedToMatch": True, "removed": False},
+                       {"id": "stimme", "displayName": "stimme", "required": False,
                         "defaultMatch": False, "display": True, "type": "string",
                         "canBeUsedToMatch": True, "removed": False}],
             "attemptToConvertTypes": False, "convertFieldsToString": False},
@@ -2281,7 +2344,8 @@ bot = [
                       "wort": feld("wort", "Ort beim Wetter, Stichwort bei wikipedia, Feed-Adresse oder Kurzname bei rss", "string", ""),
                       "themen": feld("themen", "Nur beim Ueberblick: Themen, zu denen Meldungen gesucht werden, z. B. 'ki, raumfahrt' (leer = stehende Themen des Senders bzw. die neuesten Meldungen)", "string", ""),
                       "quellen": feld("quellen", "Nur beim Ueberblick: gewuenschte Quellen, z. B. 'heise golem' oder 'alle' (leer = Standard)", "string", ""),
-                      "ansagen": feld("ansagen", "true = sofort im Radio ansagen, false = nur ablegen und im Telegram zeigen", "boolean", True)},
+                      "ansagen": feld("ansagen", "true = sofort im Radio ansagen, false = nur ablegen und im Telegram zeigen", "boolean", True),
+                      "stimme": feld("stimme", "aqua = Aqua-Stimme (nur wenn der Betreiber sie ausdruecklich verlangt, z. B. 'mit Aqua-Stimme', 'in der Aqua-Stimme', 'als Aqua'), leer = Standardstimme. Der Zusatz mit Aqua-Stimme gehoert NUR hierher, nicht in den vorgelesenen Text", "string", "")},
             "matchingColumns": [],
             "schema": [{"id": "art", "displayName": "art", "required": False,
                         "defaultMatch": False, "display": True, "type": "string",
@@ -2297,6 +2361,9 @@ bot = [
                         "canBeUsedToMatch": True, "removed": False},
                        {"id": "ansagen", "displayName": "ansagen", "required": False,
                         "defaultMatch": False, "display": True, "type": "boolean",
+                        "canBeUsedToMatch": True, "removed": False},
+                       {"id": "stimme", "displayName": "stimme", "required": False,
+                        "defaultMatch": False, "display": True, "type": "string",
                         "canBeUsedToMatch": True, "removed": False}],
             "attemptToConvertTypes": False, "convertFieldsToString": False},
     }),
@@ -2705,7 +2772,7 @@ Notiz unter dem Namen, jeder Rahmen erklaert eine Stufe.
 Rahmenfarben: 1 Sprachnachricht | 2 Eingang | 3 Dienste | 4 Postfach |
 5 Stufe 0+1 | 6 Stufe 2 + Werkzeuge | 7 Stufe 3 + Antwort
 
-Erzeugt von DDD-Webseite/werkzeuge/agent-wf-bauen-ddd.py - nie von Hand aendern.
+Erzeugt von Sender-2-Axis-Church-Radio/werkzeuge/agent-wf-bauen-ddd.py - nie von Hand aendern.
 Aendern: bauen.sh, pruefen.sh, einspielen.sh.
 Doku: README.md (deutsch) und EN/README.md (englisch)."""
 
@@ -3106,6 +3173,8 @@ KONFIG = {
         "ausfuehren": AUSFUEHREN_SYSTEM,
         "werkzeuge": AUFGABEN_WERKZEUGE,
     },
+    # Charakter der Stimme aus ../charakter.md (leer = keine eigene Rolle).
+    "charakter": lese_charakter(),
 }
 
 # Abgeleitete Adressen: einmal im Knoten rechnen, damit die Ablaufe kurz bleiben.
@@ -3120,9 +3189,10 @@ KONFIG.telegram.datei = KONFIG.telegram.adresse + '/file/bot' + KONFIG.telegram.
 
 WERTE_JS_KOPF = """// ============================================================================
 //  HIER WIRD ALLES EINGESTELLT
-//  Adressen des Senders, der Dienste und der Sprachmodelle, alle Schluessel und
-//  die Aufgabentexte, die das Sprachmodell liest. Die vier Ablaufe holen sich
-//  diese Werte beim Start von hier - nichts ist sonst irgendwo fest eingetragen.
+//  Adressen des Senders, der Dienste und der Sprachmodelle, alle Schluessel,
+//  die Aufgabentexte des Sprachmodells und der Charakter der Stimme (Feld
+//  "charakter", aus ../charakter.md). Die vier Ablaufe holen sich diese Werte
+//  beim Start von hier - nichts ist sonst irgendwo fest eingetragen.
 //  Nach dem Aendern: Ablauf speichern, fertig (kein Neustart noetig).
 // ============================================================================
 const KONFIG = """
@@ -3256,7 +3326,7 @@ dokunotiz(konfiguration, W_KONFIG_NAME, [
     "EINE Stelle fuer den ganzen Bot: Adressen, Schluessel, Modell, Aufgabentexte.",
     "Bearbeitet wird nur der Knoten 'Werte' (Code). Speichern genuegt, kein Neustart.",
     "Alle vier Ablaeufe holen die Werte beim Start ueber den Knoten 'Konfiguration'.",
-    "Aendern: DDD-Webseite/werkzeuge/agent-wf-bauen-ddd.py (KONFIG), dann bauen-de.sh + einspielen.sh",
+    "Aendern: Sender-2-Axis-Church-Radio/werkzeuge/agent-wf-bauen-ddd.py (KONFIG), dann bauen-de.sh + einspielen.sh",
 ])
 
 anordnen(agent, ANORDNUNG, BEREICHE, KURZNOTIZ, LANGNOTIZ)
@@ -3264,11 +3334,11 @@ legende_setzen(agent, LEGENDE_BOT)
 dokunotiz(agent, "DDD-Webseite Bot - Telegram-Agent (DE/EN) mit REST-Eingang", [
     "Der Bot: Telegram-Eingang -> Stufe 0/1 (verstehen und planen) -> Stufe 2 (ausfuehren) -> Stufe 3 (Antwort).",
     "REST-Eingang: POST .../webhook/ddd-webseite-rest mit {\"text\": \"...\"} + Schluessel - Antwort als JSON.",
-    "Der Plan ist die Quelle der Anordnung: DDD-Webseite/werkzeuge/agent-wf-bauen-ddd.py (ANORDNUNG, BEREICHE, KURZNOTIZ).",
+    "Der Plan ist die Quelle der Anordnung: Sender-2-Axis-Church-Radio/werkzeuge/agent-wf-bauen-ddd.py (ANORDNUNG, BEREICHE, KURZNOTIZ).",
     "Aendern: bauen-de.sh (erzeugt /tmp/ddd-webseite-agent.json), dann einspielen.sh",
-    "Pruefen: pruefen.sh (Anordnung + Code-Knoten), Betrieb: DDD-Webseite/README.md",
+    "Pruefen: pruefen.sh (Anordnung + Code-Knoten), Betrieb: Sender-2-Axis-Church-Radio/README.md",
     "Beschreibung: README.md, HANDBUCH.md, HANDBUCH.md, BETRIEB.md, BETRIEB.md, BETRIEB.md, BAU.md",
-    "Bild fuer Bild: ANHANG/n8n-oberflaeche.html  (Projektordner Ai_Radio_Moderator_Bot)",
+    "Bild fuer Bild: ANHANG/n8n-oberflaeche.html  (Projektordner Ai_Radio_Moderator_Bot/Sender-2-Axis-Church-Radio)",
 ])
 # ------------------------------------------------- Anordnung der Werkzeuge
 # Dieselbe Idee wie beim Bot: je Zweig eine Zeile, darum ein Rahmen mit
@@ -3379,7 +3449,8 @@ werkzeuge.append(werkzeug_arbeit(W_MELDUNGEN, W_MELDUNGEN_NAME, [
                         {"name": "wort", "type": "string"},
                         {"name": "themen", "type": "string"},
                         {"name": "quellen", "type": "string"},
-                        {"name": "ansagen", "type": "boolean"}]),
+                        {"name": "ansagen", "type": "boolean"},
+                        {"name": "stimme", "type": "string"}]),
 
     # --- Zweig: Recherche (Wetter, Nachrichten, Feed, Kurzinfo)
     wenn("Recherche?", [-660, 0], "={{ !!String($json.art || '').trim() }}",
@@ -3392,6 +3463,7 @@ werkzeuge.append(werkzeug_arbeit(W_MELDUNGEN, W_MELDUNGEN_NAME, [
                      " wort: String($json.wort || '').trim(),"
                      " quellen: String($json.quellen || '').trim(),"
                      " themen: String($json.themen || '').trim(),"
+                     " stimme: String($json.stimme || '').trim(),"
                      " ansagen: $json.ansagen === undefined ? true : $json.ansagen === true }) }}"),
         "options": {"timeout": 900000},
     }, onError="continueRegularOutput",
@@ -3422,7 +3494,7 @@ werkzeuge.append(werkzeug_arbeit(W_MELDUNGEN, W_MELDUNGEN_NAME, [
         "method": "POST", "url": MELDUNGEN + "/ansage/text",
         "sendHeaders": True, "headerParameters": {"parameters": MELDUNG_KOPF},
         "sendBody": True, "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ text: String($json.text || '').trim() }) }}",
+        "jsonBody": "={{ JSON.stringify({ text: String($json.text || '').trim(), stimme: String($json.stimme || '').trim() }) }}",
         "options": {"timeout": 900000},
     }, onError="continueRegularOutput",
        notes="Spricht freien Text live in den Sender (Piper -> DJ-Hafen)."),
@@ -3430,7 +3502,7 @@ werkzeuge.append(werkzeug_arbeit(W_MELDUNGEN, W_MELDUNGEN_NAME, [
         "method": "POST", "url": MELDUNGEN + "/ansage/meldung",
         "sendHeaders": True, "headerParameters": {"parameters": MELDUNG_KOPF},
         "sendBody": True, "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ id: String($json.kennung || '').trim() }) }}",
+        "jsonBody": "={{ JSON.stringify({ id: String($json.kennung || '').trim(), stimme: String($json.stimme || '').trim() }) }}",
         "options": {"timeout": 900000},
     }, onError="continueRegularOutput",
        notes="Spricht die Meldung live in den Sender - dauert so lange wie die Ansage."),
@@ -3560,13 +3632,13 @@ anordnen(werkzeuge[1], W_MELD_ANORDNUNG, W_MELD_BEREICHE, {}, W_MELD_LANGNOTIZ)
 dokunotiz(werkzeuge[0], "DDD-Webseite Werkzeug Radio", [
     "Unterschnittstelle des Agenten fuer Musik: Weichen, Titel suchen, Richtung, Zustand, abspielen.",
     "Aufgerufen wird sie ueber die Werkzeugknoten des Agenten (Werkzeug Titel suchen usw.).",
-    "Der Plan ist die Quelle: DDD-Webseite/werkzeuge/agent-wf-bauen-ddd.py (W_ANORDNUNG, W_BEREICHE).",
+    "Der Plan ist die Quelle: Sender-2-Axis-Church-Radio/werkzeuge/agent-wf-bauen-ddd.py (W_ANORDNUNG, W_BEREICHE).",
     "Aendern/Pruefen wie beim Agenten; Beschreibung: HANDBUCH.md, HANDBUCH.md, ANHANG/n8n-oberflaeche.html",
 ])
 dokunotiz(werkzeuge[1], "DDD-Webseite Werkzeug Meldungen", [
     "Unterschnittstelle fuer Ansage und Postfach: Recherche, freie Ansage, Meldung sprechen/verwerfen.",
     "Spricht ueber den Dienst ddd-radio (Piper + DJ-Hafen), legt Meldungen im Postfach ab.",
-    "Der Plan ist die Quelle: DDD-Webseite/werkzeuge/agent-wf-bauen-ddd.py (W_MELD_ANORDNUNG, W_MELD_BEREICHE).",
+    "Der Plan ist die Quelle: Sender-2-Axis-Church-Radio/werkzeuge/agent-wf-bauen-ddd.py (W_MELD_ANORDNUNG, W_MELD_BEREICHE).",
     "Aendern/Pruefen wie beim Agenten; Beschreibung: HANDBUCH.md §1.3, HANDBUCH.md",
 ])
 

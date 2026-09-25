@@ -71,7 +71,7 @@
       <input id="adresse" type="text"
              value="http://192.168.178.53:5678/webhook/ddd-webseite-rest">
     </label>
-    <label>Schluessel (DDD-Webseite/zugangsdaten/test-schluessel.txt)
+    <label>Schluessel (Sender-2-Axis-Church-Radio/zugangsdaten/test-schluessel.txt)
       <input id="schluessel" type="password" autocomplete="off"
              placeholder="Schluessel eintragen">
     </label>
@@ -127,7 +127,7 @@ async function senden() {
   if (!text) return;
   if (!schluessel.value.trim()) {
     zeile('system', 'Bitte zuerst den Schluessel eintragen (steht in '
-      + 'DDD-Webseite/zugangsdaten/test-schluessel.txt).');
+      + 'Sender-2-Axis-Church-Radio/zugangsdaten/test-schluessel.txt).');
     return;
   }
   zeile('ich', text);

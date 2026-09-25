@@ -18,11 +18,11 @@ import re
 import shutil
 from pathlib import Path
 
-QUELLE = Path(__file__).resolve().parent.parent            # DDD-Webseite
+QUELLE = Path(__file__).resolve().parent.parent            # Sender-2-Axis-Church-Radio
 ZIEL_STANDARD = QUELLE / "DocOfficial"
 ZUG = QUELLE / "zugangsdaten"
 GEHEIM_ENV = QUELLE / "dienst" / "geheim.env"
-PRUEFTOOLS = QUELLE.parent / "werkzeuge"                    # Prüfwerkzeuge des Projekts
+PRUEFTOOLS = QUELLE.parent / "Sender-1-Deadline-Beats" / "werkzeuge"   # Pruefwerkzeuge des Hauptbots
 LIZENZ = QUELLE.parent / "LICENSE"
 
 PH = {
@@ -144,16 +144,15 @@ def saeubern(ziel: Path, werte: dict[str, str]) -> tuple[int, int]:
     pfade = [
         (r"/media/discData/docs/projects/proxmox-ssh/config", "$HOME/.ssh/config"),
         (r"/media/discData/docs/projects/proxmox-ssh", "$HOME/.ssh"),
-        (r"/media/discData/docs/projects/Ai_Radio_Moderator_Bot/DDD-Webseite",
-         "<dokuordner>/DDD-Webseite"),
+        (r"/media/discData/docs/projects/Ai_Radio_Moderator_Bot/Sender-2-Axis-Church-Radio",
+         "<dokuordner>/Sender-2-Axis-Church-Radio"),
         (r"/media/discData/docs/projects/Ai_Radio_Moderator_Bot", "<dokuordner>"),
         (r"/media/discData/docs/projects", "<projektordner>"),
     ]
-    # Anpassungen, die nur das Paket betreffen (Quelle bleibt unverändert)
-    anpassungen = [
-        # pruefen.sh holt die Prüfwerkzeuge im Paket aus dem eigenen Ordner
-        (r'NACHBAU="\$HIER/\.\./\.\./werkzeuge"', 'NACHBAU="$HIER/pruefwerkzeuge"'),
-    ]
+    # Anpassungen, die nur das Paket betreffen (Quelle bleibt unverändert).
+    # pruefen.sh findet die Prüfwerkzeuge im Paket selbst (zweiter Suchpfad
+    # "$HIER/pruefwerkzeuge") - hier bleibt nichts zu ersetzen.
+    anpassungen: list[tuple[str, str]] = []
     muster = [
         (re.compile(r"\b\d{6,12}:[A-Za-z0-9_-]{33,}\b"), "token"),
         (re.compile(r"\b[0-9a-f]{16}:[0-9a-f]{32}\b"), "azura"),

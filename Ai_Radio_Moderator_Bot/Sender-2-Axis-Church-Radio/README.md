@@ -36,7 +36,7 @@ The complete step-by-step rebuild guide is **`NACHBAU/README.md`**.
 | **Bot** | n8n (LXC 103), **four** workflows `DDD-Webseite-…` | test entry `/webhook/ddd-webseite-test` |
 | **API key** | restricted role `Demo-Bot` (station 2 only) | `zugangsdaten/api_key.txt`; the earlier admin key is kept as `api_key.txt.bak-2026-09-25` |
 | Voice | `aqua` via the voice service (CT 111) | fallback: `de_thorsten` (also speaks English text) |
-| Streamer accounts | `aqua` (display name “Axis KI”) + `marc` (display name “Marc”) | passwords in `zugangsdaten/` |
+| Streamer accounts | `aqua` (display name “Aqua”) + `marc` (display name “Marc”) | passwords in `zugangsdaten/` |
 
 **One bot instead of two:** 10 workflows (5 DE + 5 EN) became **5**, two services
 (ports 8882 and 8883) became **one**, and two Telegram entries became **one**.
@@ -100,6 +100,8 @@ demo station — now behave identically in German and English.
 | `chat-fenster.html` | the **chat window** (browser page): sends commands to the REST input and shows the answer — replaces the Telegram input (open locally, enter the test key once) |
 | `NACHBAU/` | the **complete rebuild guide** (`NACHBAU/README.md`, English): station, service, workflows, Telegram, voice, checks |
 | `ANORDNUNG.md` | generated overview of the canvas (4 workflows) |
+| `charakter.md` | the **voice character** (role and tone) for every answer written by the model; `#` lines are notes, empty text = no role (section 9) |
+| `werkzeuge/charakter-einspielen.py` | applies `charakter.md` to the running bot — no rebuild, no n8n restart (backs up, verifies) |
 
 ---
 
@@ -115,13 +117,13 @@ the same request** (same JSON shape as the REST input below); the answer is also
 visible in the execution:
 
 ```bash
-KEY=$(cat DDD-Webseite/zugangsdaten/test-schluessel.txt)
+KEY=$(cat Sender-2-Axis-Church-Radio/zugangsdaten/test-schluessel.txt)
 curl -s -X POST "http://192.168.178.53:5678/webhook/ddd-webseite-test?schluessel=$KEY" \
   -H 'Content-Type: application/json' \
   -d '{"message": {"message_id": 1, "chat": {"id": 7333665467, "type": "private"},
        "from": {"id": 7333665467, "first_name": "Test"}, "text": "what is playing right now"}}'
 
-cat DDD-Webseite/werkzeuge/ausfuehrung-lesen.js | ssh -F /media/discData/docs/projects/proxmox-ssh/config ai-server \
+cat Sender-2-Axis-Church-Radio/werkzeuge/ausfuehrung-lesen.js | ssh -F /media/discData/docs/projects/proxmox-ssh/config ai-server \
   "pct exec 103 -- bash -c 'cat > /tmp/aus.js && docker cp /tmp/aus.js n8n:/tmp/ >/dev/null && \
    docker exec -u node n8n node /tmp/aus.js DDD-Webseite-Bot'"
 ```
@@ -133,7 +135,7 @@ the same HTTP request** (`ok`, `antwort`, `tastatur`, `sprache`). No Telegram
 token, no chat ID — a valid test key alone opens the bot:
 
 ```bash
-KEY=$(cat DDD-Webseite/zugangsdaten/test-schluessel.txt)
+KEY=$(cat Sender-2-Axis-Church-Radio/zugangsdaten/test-schluessel.txt)
 curl -s -X POST "http://192.168.178.53:5678/webhook/ddd-webseite-rest?schluessel=$KEY" \
   -H 'Content-Type: application/json' \
   -d '{"text": "what is playing right now"}'
@@ -174,10 +176,13 @@ end to end on 2026-09-25 (German, English and wrong key).
 
 ## 6. Announcements (voice)
 
-The service uses the dedicated voice **`aqua`** (`TTS_DEFAULT_VOICE`), with the
-same loudness chain as the main bot (variant 3). If the voice service is down,
-`de_thorsten` takes over — also for English text. Verified: English
-announcements of 9.8 s and 10.2 s (on air as streamer **“Axis KI”** — the
+The service uses the stable Piper voice **`de_thorsten`** by default
+(`TTS_DEFAULT_VOICE`, since 2026-09-25 — the same choice as the main bot); the
+dedicated voice **`aqua`** is used only on explicit request (“… mit Aqua-Stimme”
+→ `stimme=aqua`). The loudness chain is the same as the main bot (variant 3). If
+the voice service (`aqua-tts`) is down, the default voice is unaffected, and a
+requested Aqua announcement falls back to `de_thorsten` — also for English text. Verified: English
+announcements of 9.8 s and 10.2 s (on air as streamer **“Aqua”** — the
 account is `aqua`, `live: true`), a German announcement of 9.8 s.
 
 **Demo limits (2026-09-25):** free text announcements are capped at **240
@@ -253,7 +258,7 @@ checks — is in **`NACHBAU/README.md`**. Day-to-day commands (reference
 installation):
 
 ```bash
-cd DDD-Webseite/werkzeuge
+cd Sender-2-Axis-Church-Radio/werkzeuge
 bash bauen.sh               # four workflows -> /tmp/ddd-webseite-*.json
 bash pruefen.sh             # layout + code + contracts
 bash einspielen.sh          # import + activate (restarts n8n)
@@ -265,6 +270,31 @@ addresses, keys, model, all task texts **and the demo values** (`demo.playlist`,
 `demo.ansage_max`; the playlist name comes from `zugangsdaten/demo-playlist.txt`
 at build time). The generator lives in `werkzeuge/agent-wf-bauen-ddd.py` (based on
 `../werkzeuge/agent-wf-bauen.py`).
+
+### Voice character (`charakter.md`)
+
+`charakter.md` (next to this README) defines **how** the bot speaks — the figure,
+its manner and tone — as a plain text file. Lines starting with `#` are notes;
+everything else is handed to the language model as the bot's role. The two
+execute agents (`Ausführen`, `Nacharbeiten`) append it to their system text **at
+runtime**, so the file needs no rebuild. It shows in every answer the model
+writes (wishes, search, announcements, confirmations); fixed shortcut answers
+(stage 0) and service texts stay as they are. Empty text (only `#` lines)
+switches the role off.
+
+Apply a change without rebuilding — only `DDD-Webseite-Konfiguration` is
+re-imported, no build, no n8n restart:
+
+```bash
+cd Sender-2-Axis-Church-Radio
+python3 werkzeuge/charakter-einspielen.py            # file -> live bot
+python3 werkzeuge/charakter-einspielen.py --trocken  # show the change only
+```
+
+The tool backs the running workflow up to `/tmp/…`, verifies the result, checks
+that the agents know the field, and restores the backup if the import fails. A
+full rebuild (`bauen.sh` + `einspielen.sh`) reads the same file — it stays the
+source of truth.
 
 For handing out: `python3 werkzeuge/veroeffentlichung-bauen.py` builds a
 placeholder copy into `DocOfficial/` (English, without real values).

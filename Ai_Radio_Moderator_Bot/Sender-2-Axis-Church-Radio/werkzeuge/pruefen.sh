@@ -6,7 +6,13 @@
 #     Sprache reist mit (de/en), deutsche UND englische Texte vorhanden
 set -euo pipefail
 HIER="$(cd "$(dirname "$0")" && pwd)"
-NACHBAU="$HIER/../../werkzeuge"
+# Pruefwerkzeuge des Hauptbot-Ordners (im Git-Zweig unter demselben Pfad; im
+# veroeffentlichten Paket liegen sie unter werkzeuge/pruefwerkzeuge/).
+NACHBAU=""
+for K in "$HIER/../../Sender-1-Deadline-Beats/werkzeuge" "$HIER/pruefwerkzeuge" "$HIER/../../werkzeuge"; do
+  if [ -f "$K/anordnung-pruefen.py" ]; then NACHBAU="$K"; break; fi
+done
+[ -n "$NACHBAU" ] || { echo "Pruefwerkzeuge nicht gefunden (anordnung-pruefen.py)"; exit 1; }
 DATEIEN=(/tmp/ddd-webseite-konfiguration.json /tmp/ddd-webseite-werkzeuge.json /tmp/ddd-webseite-agent.json)
 
 for D in "${DATEIEN[@]}"; do

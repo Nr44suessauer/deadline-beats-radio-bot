@@ -62,9 +62,10 @@ button presses reuse the last language of the chat. Details: `../README.md` §2.
   (reference: `http://192.168.178.187:11434`, model `qwen3.6:27b`).
 * **Speech recognition:** whisper.cpp server with `POST /transcribe`
   (reference: `http://192.168.178.188:8000/transcribe`).
-* **Voice service** (default): `aqua-tts` (reference:
-  `http://192.168.178.116:10205/tts`). The fallback voice `de_thorsten` ships
-  with the service image.
+* **Voice service** (for the optional Aqua voice): `aqua-tts` (reference:
+  `http://192.168.178.116:10205/tts`). The default voice `de_thorsten` ships
+  with the service image; the Aqua voice is used only on explicit request
+  (“… mit Aqua-Stimme” → `stimme=aqua`).
 * Optional: **SearXNG** for web research (reference:
   `http://192.168.178.26:8888`; the limiter must be off).
 * A **Telegram bot token** from @BotFather — only needed when the bot goes
@@ -160,8 +161,9 @@ that: the **API key** (rights) and the **playlist gate** in the tool workflow
 
 The service (sources in `../dienst/`) does five jobs: speech output (TTS for
 announcements), the catalogue for fuzzy search and mood suggestions, the
-playlist tasks, the news mailbox, and research (weather, news, feeds,
-Wikipedia, topic overview). It is a FastAPI container built from
+playlist tasks, the news mailbox, and research (weather, news, feeds, short
+Wikipedia briefs, topic overview from press, trusted news sites and feeds). It is
+a FastAPI container built from
 `python:3.12-slim` with `piper-tts`, `fastapi` and `lameenc`.
 
 ### 4.1 Install and configure
@@ -192,7 +194,7 @@ Wikipedia, topic overview). It is a FastAPI container built from
 
 3. Start it: `docker compose up -d --build` in `/opt/ddd-radio`. The
    compose file maps **`8882:8881`** (host:container), mounts `./voices` and
-   `./daten`, and defaults `TTS_DEFAULT_VOICE=aqua`, `AQUA_TTS_URL`,
+   `./daten`, and defaults `TTS_DEFAULT_VOICE=de_thorsten`, `AQUA_TTS_URL`,
    `AQUA_ERSATZ=de_thorsten`, `RECHERCHE_SEARX_URL`.
 4. Put **Piper voices** into `./voices`. The reference deploy script copies
    them from the main service (`/opt/radio-tts/voices`).
@@ -217,7 +219,7 @@ missing.
 | Playlists | `POST /playlist/befehl`, `POST /playlist/knopf`, `POST /playlist/vorschlag`, `GET /playlist/titel`, `GET /playlist/status` | build and manage playlists in the station; `/playlist/titel?name=…` returns the tracks of one playlist (used by the bot’s demo gate) |
 | Mailbox | `POST /meldungen/neu`, `GET /meldungen/offen`, `GET /meldungen/text/<id>`, `POST /meldungen/angeboten`, `POST /meldungen/erledigt` | news items waiting to be read out |
 | Announce | `POST /ansage/meldung`, `POST /ansage/text`, `GET /ansage/status` | speak a mailbox item or a free text |
-| Research | `POST /recherche`, `GET /recherche/feeds` | weather, news, feeds, Wikipedia, topic overview |
+| Research | `POST /recherche`, `GET /recherche/feeds` | weather, news, feeds, Wikipedia briefs, topic overview (press, trusted news sites, feeds) |
 
 Everything except the `status` endpoints requires the header
 `X-Meldung-Schluessel` (the value from `geheim.env` / `daten/meldung-schluessel.txt`).
@@ -256,7 +258,7 @@ Value files in `../zugangsdaten/`:
 ### 5.2 Build, check, import
 
 ```bash
-cd DDD-Webseite/werkzeuge
+cd Sender-2-Axis-Church-Radio/werkzeuge
 bash bauen.sh        # -> /tmp/ddd-webseite-{konfiguration,werkzeuge,agent}.json
 bash pruefen.sh      # layout + code + contracts
 bash einspielen.sh   # import + activate (restarts n8n, ~1 minute)
@@ -290,13 +292,13 @@ request** — same JSON shape as the REST input below. The answer is also visibl
 in the execution, read it with `ausfuehrung-lesen.js`:
 
 ```bash
-KEY=$(cat DDD-Webseite/zugangsdaten/test-schluessel.txt)
+KEY=$(cat Sender-2-Axis-Church-Radio/zugangsdaten/test-schluessel.txt)
 curl -s -X POST "http://192.168.178.53:5678/webhook/ddd-webseite-test?schluessel=$KEY" \
   -H 'Content-Type: application/json' \
   -d '{"message": {"message_id": 1, "chat": {"id": 7333665467, "type": "private"},
        "from": {"id": 7333665467, "first_name": "Test"}, "text": "what is playing right now"}}'
 
-cat DDD-Webseite/werkzeuge/ausfuehrung-lesen.js | ssh -F /media/discData/docs/projects/proxmox-ssh/config ai-server \
+cat Sender-2-Axis-Church-Radio/werkzeuge/ausfuehrung-lesen.js | ssh -F /media/discData/docs/projects/proxmox-ssh/config ai-server \
   "pct exec 103 -- bash -c 'cat > /tmp/aus.js && docker cp /tmp/aus.js n8n:/tmp/ >/dev/null && \
    docker exec -u node n8n node /tmp/aus.js DDD-Webseite-Bot'"
 ```
@@ -307,7 +309,7 @@ The bot carries a second webhook that takes plain JSON and answers **in the
 same request** — no Telegram token, no chat ID. The test key alone opens it:
 
 ```bash
-KEY=$(cat DDD-Webseite/zugangsdaten/test-schluessel.txt)
+KEY=$(cat Sender-2-Axis-Church-Radio/zugangsdaten/test-schluessel.txt)
 curl -s -X POST "http://192.168.178.53:5678/webhook/ddd-webseite-rest?schluessel=$KEY" \
   -H 'Content-Type: application/json' \
   -d '{"text": "was läuft gerade"}'
@@ -338,6 +340,11 @@ texts of the models). The **demo limits** sit in the same node under `demo`
 time. For a quick change, edit it directly in n8n and save; for a permanent
 change, update `../zugangsdaten/` (or the generator) and rebuild.
 
+The **voice character** is not part of that node: it lives in `../charakter.md`
+(plain text, `#` lines are notes, empty = no role) and is applied to the running
+bot with `python3 ../werkzeuge/charakter-einspielen.py` — no rebuild, no restart;
+see `../README.md` §9. A rebuild reads the same file.
+
 ---
 
 ## 6. Step 4 — Telegram
@@ -360,8 +367,10 @@ change, update `../zugangsdaten/` (or the generator) and rebuild.
 
 ## 7. Step 5 — voice and announcements
 
-* The service uses the dedicated voice **`aqua`**
-  (`TTS_DEFAULT_VOICE`), spoken through the voice service
+* The service speaks with the default voice **`de_thorsten`**
+  (`TTS_DEFAULT_VOICE`, since 2026-09-25 — same choice as the main bot).
+  The dedicated voice **`aqua`** comes only on explicit request
+  (“… mit Aqua-Stimme” → `stimme=aqua`), spoken through the voice service
   (`AQUA_TTS_URL`). If it is unreachable, the fallback **`de_thorsten`**
   takes over — it also speaks English text, recognisably different from
   `aqua` but always intelligible.
@@ -369,7 +378,7 @@ change, update `../zugangsdaten/` (or the generator) and rebuild.
   “variant 3” used on air.
 * Announcements go through `POST /ansage/text` or `POST /live` in the
   service. While speaking, the station shows the streamer account **`aqua`**
-  (display name “Axis KI”).
+  (display name “Aqua”).
 * Verified in the reference installation: German announcement 9.8 s,
   English announcements 10.2 s and 9.8 s — each `live: true` in the station.
 * Bot-side limits (demo): free text ≤ **240 characters**, at most **one**
@@ -450,6 +459,8 @@ After a rebuild, run through this list:
 | `../ANORDNUNG.md` | generated canvas overview of the four workflows (working material; the workflow notes are German) |
 | `../werkzeuge/agent-wf-bauen-ddd.py` | workflow generator |
 | `../werkzeuge/{bauen,pruefen,einspielen,dienst-einspielen}.sh` | build, check, deploy |
+| `../werkzeuge/charakter-einspielen.py` | applies `../charakter.md` to the running bot (no rebuild, no restart) |
+| `../charakter.md` | the voice character (role and tone) for every model answer; `#` lines are notes |
 | `../werkzeuge/ausfuehrung-lesen.js` | read the last workflow execution from n8n |
 | `../chat-fenster.html` | browser chat window for the REST input (replaces the Telegram input) |
 | `../INTEGRATION.md` | integration guide for the own website: player, “now playing”, a chat line for visitors, reverse proxy examples, check list (German) |

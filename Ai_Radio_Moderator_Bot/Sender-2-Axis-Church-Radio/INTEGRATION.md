@@ -89,7 +89,7 @@ Hinweise:
 * `preload="none"` = der Stream startet erst auf Klick (spart Bandbreite).
 * AirPlay/Chromecast nutzen den Stream direkt; die Adresse funktioniert auch in
   VLC & Co.
-* Während Ansagen zeigt der Player den Streamer **„Axis KI"** (Anzeigename des
+* Während Ansagen zeigt der Player den Streamer **„Aqua"** (Anzeigename des
   Bot-Kontos) — Hörer erkennen so, dass gerade moderiert wird.
 
 ---

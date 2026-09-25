@@ -36,7 +36,7 @@ STANDARD_STIMME = os.environ.get("TTS_DEFAULT_VOICE", "de_thorsten")
 
 # Eigene Moderationsstimme "aqua": erzeugt der Stimmendienst auf der GPU-Maschine
 # (edge-tts + RVC, CT 111 Port 10205 - Aufbau siehe Ai_Radio_Moderator_Bot/
-# STIMME.md). Ist er nicht erreichbar, spricht der Dienst mit AQUA_ERSATZ
+# Sender-1-Deadline-Beats/DOKU/STIMME.md). Ist er nicht erreichbar, spricht der Dienst mit AQUA_ERSATZ
 # weiter (Standard de_thorsten) - eine Ansage soll nicht ausfallen, weil die
 # GPU-Maschine gerade beschaeftigt ist.
 AQUA_URL = os.environ.get("AQUA_TTS_URL", "http://192.168.178.116:10205/tts")
@@ -425,6 +425,11 @@ def erzeuge_audio_gewaehlt(text: str, voice: str, speed: float,
     de_thorsten) - die Ansage faellt dann nicht aus, im Protokoll steht es.
     """
     gewaehlt = (voice or STANDARD_STIMME).strip()
+    if "aqua" in gewaehlt.lower():  # auch "Aqua-Stimme" u. Ae. zaehlt als Wunsch
+        gewaehlt = AQUA_NAME
+    # Im Protokoll sichtbar machen, welche Stimme spricht (Betreiber-Wahl 2026-09-25:
+    # Standard de_thorsten, Aqua nur auf ausdruecklichen Wunsch).
+    print(f"Stimme: {gewaehlt}", flush=True)
     if not ist_aqua(gewaehlt):
         stimme = lade_stimme(gewaehlt)
         with _lesesperre:

@@ -11,7 +11,10 @@ Alles kostenlos und ohne Schluessel:
   * Nachrichten— die oberste Meldung aus einem deutschen Nachrichten-Feed (RSS)
   * Feeds      — ein beliebiger RSS-/Atom-Feed (Adresse oder Kurzname)
   * Kurzinfo   — die Einleitung des Wikipedia-Artikels zu einem Stichwort
-  * Ueberblick — mehrere Quellen auf einmal, als laengerer Beitrag (Minuten)
+  * Ueberblick — mehrere Quellen auf einmal, als laengerer Beitrag (Minuten).
+    Zu einem Thema kommen Schlagzeilen der Presse, Seiten **bekannter
+    Nachrichten-Anbieter** und die eigenen Feeds; Wikipedia-Definitionen und
+    Werbeseiten sind absichtlich NICHT dabei (Betreiber-Wunsch 2026-09-25).
 
 Der Text ist bewusst „moderationsfertig": `meldungen.sprechbar` macht daraus
 anschliessend das, was gesprochen wird.
@@ -93,10 +96,14 @@ UEBERBLICK_THEMEN = os.environ.get("RECHERCHE_UEBERBLICK_THEMEN", "")
 # uebrig; bei kleineren Werten sorgt die Reservierung unten fuer dasselbe.
 THEMA_MELDUNGEN = int(os.environ.get("RECHERCHE_THEMA_MELDUNGEN", "6"))
 # Aufteilung je Thema: so viele aus der Presse, aus dem Netz (inkl. gelesener Seite),
-# aus Wikipedia und aus den eigenen Feeds.
+# aus Wikipedia (nicht mehr im Nachrichten-Ueberblick, siehe unten) und den Feeds.
 THEMA_PRESSE = int(os.environ.get("RECHERCHE_THEMA_PRESSE", "3"))
 THEMA_WEB = int(os.environ.get("RECHERCHE_THEMA_WEB", "1"))
-THEMA_WIKI = int(os.environ.get("RECHERCHE_THEMA_WIKI", "1"))
+# Wikipedia-Definitionen gehoerten frueher fest in jeden Themen-Ueberblick. Auf
+# Wunsch des Betreibers (2026-09-25) NICHT mehr: wer Nachrichten zu einem Thema
+# will, hoert Schlagzeilen und Berichte, keine Lexikon-Einleitungen. Fuer "was ist
+# X" bleibt art=wikipedia; RECHERCHE_THEMA_WIKI=1 holt die Definition zurueck.
+THEMA_WIKI = int(os.environ.get("RECHERCHE_THEMA_WIKI", "0"))
 THEMA_FEED = int(os.environ.get("RECHERCHE_THEMA_FEED", "1"))
 # Wie viele Themen hoechstens verarbeitet werden (Schutz vor Romanen).
 THEMEN_MAX = int(os.environ.get("RECHERCHE_THEMEN_MAX", "8"))
@@ -111,6 +118,42 @@ SEITE_LESEN = os.environ.get("RECHERCHE_SEITE_LESEN", "1") != "0"
 WEBSEITEN = [u.strip() for u in os.environ.get("RECHERCHE_WEBSEITEN", "").split(",") if u.strip()]
 # Manche Seiten liefern nur mit Browser-Kennung brauchbaren Inhalt.
 WEB_KOPF = {"User-Agent": "Mozilla/5.0 (X11; Linux x86_64) Radio-Deadline-Beats/1.0"}
+
+# Aus der Websuche kommen nur Seiten bekannter Nachrichten-Anbieter in den
+# Beitrag. Andere Treffer waren zu oft Werbe- oder Klickseiten ("Aktienbrief
+# kostenlos + unverbindlich ...", Draht-Meldungen) - das klingt im Radio falsch.
+# Erweitern per RECHERCHE_SEITEN_LISTE (kommagetrennt).
+SEITEN_LISTE = [s.strip().lower() for s in os.environ.get(
+    "RECHERCHE_SEITEN_LISTE",
+    "spiegel.de,sz.de,sueddeutsche.de,faz.net,zeit.de,heise.de,golem.de,tagesschau.de,"
+    "tagesspiegel.de,welt.de,ntv.de,n-tv.de,taz.de,handelsblatt.com,manager-magazin.de,"
+    "wiwo.de,capital.de,t-online.de,focus.de,stern.de,businessinsider.de,mdr.de,br.de,"
+    "swr.de,wdr.de,ndr.de,deutschlandfunk.de,zdf.de,ard.de,orf.at,netzpolitik.org,"
+    "t3n.de,computerbase.de,scinexx.de,ingenieur.de,sportschau.de").split(",")
+    if s.strip()]
+
+
+def _seite_vertraut(url: str) -> bool:
+    """Ist die Adresse eine bekannte Nachrichten-Seite?"""
+    try:
+        wirt = urllib.parse.urlparse(url).netloc.lower()
+    except ValueError:
+        return False
+    wirt = re.sub(r"^www\.", "", wirt)
+    return any(wirt == d or wirt.endswith("." + d) for d in SEITEN_LISTE)
+
+
+# Fertige Seiten, die wie ein Kassenbon klingen (Kurse, Abos, Rechtliches)
+# statt wie ein Bericht: sie fliegen aus dem Themen-Ueberblick.
+SEITE_VERBOTEN = ("Keine Gewähr", "Datenschutzerklärung", "zeitverzögert",
+                   "Cookie-Einstellungen", "Impressum", "Nutzungsbedingungen",
+                   "Alle Rechte vorbehalten", "Infront")
+
+
+def _seite_brauchbar(seite: dict) -> bool:
+    """Steht in der gelesenen Seite ein Bericht (oder nur Beiwerk)?"""
+    text = str(seite.get("text") or "")
+    return len(text) >= 120 and not any(m in text for m in SEITE_VERBOTEN)
 # Eigene Suchmaschine (SearXNG) fuer die Websuche: "http://192.168.178.26:8888".
 # Leer = keine eigene Instanz; dann werden DuckDuckGo und Bing versucht.
 SEARX_URL = os.environ.get("RECHERCHE_SEARX_URL", "").rstrip("/")
@@ -141,29 +184,29 @@ QUELLEN_ANSPRACHE: dict[str, str] = {
     "wetter": "Und das Wetter.",
 }
 
-# Kurzform fuer "Quelle: Meldung" im Beitrag (gesprochen).
+# Wie die Quelle im Sprechtext genannt wird ("Das meldet die Tagesschau.").
 QUELLEN_KURZ: dict[str, str] = {
-    "tagesschau": "Tagesschau",
-    "tagesschau-wirtschaft": "Tagesschau Wirtschaft",
+    "tagesschau": "die Tagesschau",
+    "tagesschau-wirtschaft": "die Tagesschau",
     "heise": "Heise",
     "heise-security": "Heise Security",
-    "spiegel": "Spiegel",
-    "deutschlandfunk": "Deutschlandfunk",
+    "spiegel": "der Spiegel",
+    "deutschlandfunk": "der Deutschlandfunk",
     "ntv": "n-tv",
-    "faz": "F.A.Z.",
-    "welt": "Welt",
-    "tagesspiegel": "Tagesspiegel",
-    "taz": "taz",
-    "mdr": "MDR",
-    "swr": "SWR",
+    "faz": "die F.A.Z.",
+    "welt": "die Welt",
+    "tagesspiegel": "der Tagesspiegel",
+    "taz": "die taz",
+    "mdr": "der MDR",
+    "swr": "der SWR",
     "golem": "Golem",
     "netzpolitik": "Netzpolitik",
     "t3n": "t3n",
     "computerbase": "ComputerBase",
     "scinexx": "Scinexx",
-    "ingenieur": "Ingenieur",
-    "sport": "Sportschau",
-    "wetter": "Wetter",
+    "ingenieur": "der Ingenieur",
+    "sport": "die Sportschau",
+    "wetter": "das Wetter",
 }
 
 
@@ -195,6 +238,9 @@ class Recherche(BaseModel):
     wichtig: bool = False
     trocken: bool = False
     quelle: str = "recherche"
+    # Stimme der Ansage: "aqua" = Moderationsstimme, leer = Standardstimme
+    # (Betreiber-Wahl 2026-09-25).
+    stimme: str = ""
 
 
 # ------------------------------------------------------------------ Hilfsmittel
@@ -216,12 +262,42 @@ def _json_holen(url: str) -> Any:
     return json.loads(_holen(url))
 
 
+# Etiketten statt Text: Agentur-Klammern ("(dpa/afp)"), Autorenzeilen der Feeds
+# ("... Von Stephan Ueberbach."), Draht-Meldungszeichen ("EQS-News:") und
+# Lesehinweise ("Mehr zum Thema ...") sind kein Sprechtext. Am 2026-09-25 stand
+# die Autorenzeile mitten in der Tagesschau-Ansage.
+AGENTUR_KLAMMER = re.compile(
+    r"\(\s*(?:dpa|afp|rtr|reuters|epd|kna|sid|ots|apa|ap)(?:[\s/,-]*[a-z]+)*\s*\)", re.I)
+AUTOR_ZEILE = re.compile(
+    r"\s+Von\s+(?:(?:[A-ZÄÖÜ][\w’'\-.]*|und)\s+){1,5}[A-ZÄÖÜ][\w’'\-.]*\.?\s*$")
+AUTOR_KURZ = re.compile(r"\s+Von\s+(?:dpa|afp|rtr|reuters|epd|kna|sid|ots)\b[^.]*\.?\s*$", re.I)
+DRAHT_ANFANG = re.compile(
+    r"^\s*(?:EQS-News|EQS|DGAP-News|DGAP|ots|PR ?Newswire|Business ?Wire|dpa-AFX|AFP)\s*:\s*", re.I)
+LESE_HINWEIS = re.compile(
+    r"\s+(?:Mehr zum Thema|Lesen Sie auch|Zum Artikel|Weitere Artikel)[^.!?]*[.!?]?\s*$", re.I)
+
+
+def _saeubern(text: str) -> str:
+    """Etiketten und Verweise aus einem Quelltext entfernen (kein Sprechtext)."""
+    s = str(text or "")
+    s = re.sub(r"[\u200b-\u200d\u2060\ufeff]", "", s)
+    s = DRAHT_ANFANG.sub("", s)
+    s = AGENTUR_KLAMMER.sub(" ", s)
+    for muster in (AUTOR_ZEILE, AUTOR_KURZ, LESE_HINWEIS):
+        s = muster.sub(" ", s)
+    s = re.sub(r"\s+", " ", s)
+    s = re.sub(r"\s+([,.;:!?])", r"\1", s)
+    s = re.sub(r"\s*[-–—‐‑]\s*(?=[.:])", "", s)
+    s = re.sub(r"([:.])\s*[:.]+", r"\1", s)
+    return s.strip(" ,;:-")
+
+
 def _text_von_html(roh: str, grenze: int = 400) -> str:
-    """HTML zu Fliesstext: Tags weg, Entities aufloesen, kuerzen."""
+    """HTML zu Fliesstext: Tags weg, Entities aufloesen, Etiketten weg, kuerzen."""
     s = re.sub(r"<(script|style)[^>]*>.*?</\1>", " ", str(roh or ""), flags=re.S | re.I)
     s = re.sub(r"<[^>]+>", " ", s)
     s = html.unescape(s)
-    s = re.sub(r"\s+", " ", s).strip()
+    s = _saeubern(s)
     if len(s) > grenze:
         s = s[:grenze].rsplit(" ", 1)[0].rstrip(" ,;:") + "."
     return s
@@ -348,7 +424,8 @@ def _nachrichten(wort: str) -> dict[str, str]:
     titel = neueste["titel"] or "Meldung aus den Nachrichten"
     text = neueste["text"] or titel
     if neueste["titel"] and neueste["titel"].lower() not in text.lower():
-        text = f"{neueste['titel']}. {text}"
+        trenn = "" if neueste["titel"].endswith(("?", "!", ".")) else "."
+        text = f"{neueste['titel']}{trenn} {text}"
     return {"titel": titel[:90], "text": text, "url": neueste["url"]}
 
 
@@ -367,7 +444,8 @@ def _rss(wort: str) -> dict[str, str]:
     titel = neueste["titel"] or "Neuer Eintrag im Feed"
     text = neueste["text"] or titel
     if neueste["titel"] and neueste["titel"].lower() not in text.lower():
-        text = f"{neueste['titel']}. {text}"
+        trenn = "" if neueste["titel"].endswith(("?", "!", ".")) else "."
+        text = f"{neueste['titel']}{trenn} {text}"
     return {"titel": titel[:90], "text": text, "url": neueste["url"]}
 
 
@@ -481,6 +559,22 @@ def _themen_aufloesen(text: str) -> list[str]:
         if len(t) >= 2 and t.lower() not in [s.lower() for s in sauber]:
             sauber.append(t)
     return sauber[:THEMEN_MAX]
+
+
+def _thema_name(thema: str) -> str:
+    """Ein Thema schoen schreiben: "börse" -> "Börse", "ki" -> "KI"."""
+    kurz = {"ki": "KI", "ai": "KI", "dax": "DAX", "eu": "EU", "us": "US", "usa": "USA",
+            "it": "IT", "gpu": "GPU", "npu": "NPU", "uk": "UK", "nvme": "NVMe",
+            "cdu": "CDU", "spd": "SPD", "fdp": "FDP", "afd": "AfD", "bsw": "BSW"}
+    teile: list[str] = []
+    for w in str(thema or "").split():
+        if w.lower() in kurz:
+            teile.append(kurz[w.lower()])
+        elif len(w) > 3 and w[:1].islower():
+            teile.append(w[:1].upper() + w[1:])
+        else:
+            teile.append(w)
+    return " ".join(teile).strip(" .:-")
 
 
 class _SeitenLeser(HTMLParser):
@@ -672,7 +766,11 @@ def _searx(thema: str, anzahl: int = 4) -> list[dict[str, str]]:
 
 
 def _google_news(thema: str, anzahl: int = 4) -> list[dict[str, str]]:
-    """Presse-Suche je Thema ueber Google News (RSS) - liefert die Quelle mit."""
+    """Presse-Suche je Thema ueber Google News (RSS) - liefert die Quelle mit.
+
+    Draht- und Werbe-Meldungen ("EQS-News: ...", Boersen-Portale) fliegen raus:
+    sie klingen im Radio wie Reklame und tragen keinen Nachrichteninhalt.
+    """
     adresse = ("https://news.google.com/rss/search?" + urllib.parse.urlencode(
         {"q": thema, "hl": "de", "gl": "DE", "ceid": "DE:de"}))
     try:
@@ -697,6 +795,13 @@ def _google_news(thema: str, anzahl: int = 4) -> list[dict[str, str]]:
         # Google haengt die Quelle an den Titel ("... - heise online")
         if quelle and titel.lower().endswith(quelle.lower()):
             titel = titel[: len(titel) - len(quelle)].rstrip(" -–")
+        # Draht-/Werbe-Portale und Wire-Ueberschriften ueberspringen (2026-09-25:
+        # "Warren Wise entschluesselt Qiagens DNA" von boerse-EQS landete als
+        # erste Schlagzeile im Boersen-Ueberblick).
+        if any(w in quelle.lower() for w in PRESSE_VERBOTEN):
+            continue
+        if titel.lower().startswith(PRESSE_VERBOTEN_TITEL):
+            continue
         # Die Beschreibung wiederholt den Titel - der Rest ist der Anfangstext.
         for abschneiden in (titel, quelle):
             if abschneiden and text.lower().startswith(abschneiden.lower()):
@@ -751,16 +856,33 @@ def _passt_zum_thema(eintrag: dict[str, str], thema: str) -> bool:
     return sum(1 for w in woerter if w in heu) >= max(1, len(woerter) - 1)
 
 
-def _stueck(quelle: str, titel: str, text: str, grenze: int = 300) -> str:
-    """Ein Meldungsstueck fuer den Sprechtext: \"Quelle: Titel. Anfang\"."""
-    titel = re.sub(r"\s+", " ", str(titel or "")).strip(" .")
-    anfang = re.sub(r"\s+", " ", str(text or "")).strip()
+def _stueck(titel: str, text: str, grenze: int = 300) -> str:
+    """Ein Meldungsstueck fuer den Sprechtext: "Titel. Anfang" - ohne Etikett.
+
+    Geschnitten wird am liebsten am Satzende: ein mitten im Satz abgebrochenes
+    Stueck klang im Radio wie ein Fehler. Die Quellenangabe kommt als eigener
+    Satz dahinter (`_meldet`), nicht als "Quelle:" davor.
+    """
+    titel = _saeubern(titel).strip(" .;:-")
+    anfang = _saeubern(text).strip()
     if titel and titel.lower() not in anfang.lower():
-        anfang = (titel + ". " + anfang).strip()
-    anfang = anfang[:grenze].rsplit(" ", 1)[0].rstrip(" ,;:") if len(anfang) > grenze else anfang
+        trenn = "" if titel.endswith(("?", "!", ".")) else "."
+        anfang = (titel + trenn + " " + anfang).strip()
+    if len(anfang) > grenze:
+        teil = anfang[:grenze]
+        schnitt = max(teil.rfind(". "), teil.rfind("! "), teil.rfind("? "))
+        if schnitt < grenze * 0.4:
+            schnitt = teil.rfind(" ")
+        anfang = (teil[: schnitt + 1] if schnitt > 0 else teil).strip(" ,;:-")
     if anfang and not anfang.endswith((".", "!", "?")):
         anfang += "."
-    return f"{quelle}: {anfang}" if quelle else anfang
+    return anfang
+
+
+def _meldet(name: str) -> str:
+    """Quellenangabe als Satz fuer den Sprechtext ("Das meldet die Tagesschau.")."""
+    name = _saeubern(name).strip(" .,;:-")
+    return f"Das meldet {name}." if name else ""
 
 
 def _ueberblick(themen_text: str = "", quellen_text: str = "") -> dict[str, Any]:  # noqa: C901
@@ -800,12 +922,12 @@ def _ueberblick(themen_text: str = "", quellen_text: str = "") -> dict[str, Any]
         for thema in themen:
             if laenge >= grenze:
                 break
-            stuecke: list[str] = []      # erst sammeln, dann ankündigen
+            stuecke: list[tuple[str, str]] = []   # (Satzstueck, Quellenangabe)
             presse_hier = web_hier = wiki_hier = feed_hier = 0
             seite_gelesen = False        # je Thema hoechstens eine Seite oeffnen
-            # Plaetze je Thema: die Presse darf nicht alles belegen - fuer Wikipedia,
-            # Netz und Feed bleibt je ein Platz reserviert. Sonst liefert ein Thema
-            # nur Schlagzeilen (die Presse-Treffer tragen keinen Fliesstext).
+            # Plaetze je Thema: die Presse darf nicht alles belegen - fuer Netz und
+            # Feed bleibt je ein Platz reserviert. Sonst liefert ein Thema nur
+            # Schlagzeilen (die Presse-Treffer tragen keinen Fliesstext).
             reserve = ((1 if THEMA_WIKI > 0 else 0) + (1 if THEMA_WEB > 0 else 0)
                        + (1 if THEMA_FEED > 0 else 0))
             presse_max = min(THEMA_PRESSE, max(1, THEMA_MELDUNGEN - reserve))
@@ -818,10 +940,12 @@ def _ueberblick(themen_text: str = "", quellen_text: str = "") -> dict[str, Any]
                     # Google liefert in der Beschreibung oft eine Mischung aus mehreren
                     # Schlagzeilen. Fuer den Sprechtext ist die Ueberschrift allein
                     # sauberer - Inhalt kommt aus Seite und Feeds.
-                    stuecke.append(_stueck(_quellenname(t.get("quelle")), t.get("titel", ""), "", 200))
+                    stuecke.append((_stueck(t.get("titel", ""), "", 200),
+                                    _quellenname(t.get("quelle"))))
                     presse_hier += 1
 
-            # 2) Wikipedia: Hintergrund zum Thema (immer lesbar, ohne Schluessel).
+            # 2) Wikipedia: auf Wunsch nur noch, wenn RECHERCHE_THEMA_WIKI=1
+            #    (Standard 0 - keine Lexikon-Einleitungen im Nachrichten-Ueberblick).
             if THEMA_WIKI and wiki_hier < 1 and len(stuecke) < THEMA_MELDUNGEN:
                 wiki_daten = None
                 for versuch in (thema, thema[:1].upper() + thema[1:]):
@@ -831,32 +955,38 @@ def _ueberblick(themen_text: str = "", quellen_text: str = "") -> dict[str, Any]
                     except HTTPException as fehler:
                         print(f"Wikipedia '{versuch}': {fehler.detail}", flush=True)
                 if wiki_daten:
-                    stuecke.append(_stueck("Wikipedia", wiki_daten.get("titel", ""),
-                                           wiki_daten.get("text", ""), 400))
+                    stuecke.append((_stueck(wiki_daten.get("titel", ""),
+                                            wiki_daten.get("text", ""), 400), "Wikipedia"))
                     wiki_hier = 1
 
             # 3) Websuche: findet auch Seiten ohne Feed - und liest die erste.
+            #    Nur Seiten bekannter Nachrichten-Anbieter (Werbeseiten aussen vor).
             if WEBSUCHE and web_hier < THEMA_WEB and len(stuecke) < THEMA_MELDUNGEN:
                 for t in _websuche(thema, 4):
                     if web_hier >= THEMA_WEB or len(stuecke) >= THEMA_MELDUNGEN:
                         break
                     ziel = t.get("url") or ""
+                    if not ziel or not _seite_vertraut(ziel):
+                        continue
                     # Die erste gefundene Adresse wirklich lesen - "normale Internetseite".
-                    if ziel and SEITE_LESEN and not seite_gelesen:
+                    if SEITE_LESEN and not seite_gelesen:
                         try:
                             seite = _seite_lesen(ziel)
                         except HTTPException as fehler:
                             print(f"Seite {ziel[:60]} nicht lesbar: {fehler.detail}", flush=True)
                             seite = {}
-                        if len(seite.get("text", "")) >= 120:
+                        if seite.get("text") and not _seite_brauchbar(seite):
+                            continue      # Werbeseite (Kurse, Abos) - naechsten Treffer nehmen
+                        if _seite_brauchbar(seite):
                             gelesen.append(ziel)
                             seite_gelesen = True
-                            stuecke.append(_stueck(_seitenname(ziel), seite.get("titel", ""),
-                                                   seite.get("text", ""), 500))
+                            stuecke.append((_stueck(seite.get("titel", ""),
+                                                    seite.get("text", ""), 500),
+                                            _seitenname(ziel)))
                             web_hier += 1
                             continue
-                    stuecke.append(_stueck(_seitenname(ziel), t.get("titel", ""),
-                                           t.get("text", "")))
+                    stuecke.append((_stueck(t.get("titel", ""), t.get("text", "")),
+                                    _seitenname(ziel)))
                     web_hier += 1
 
             # 4) Die eigenen Feeds: passende Meldungen zum Thema.
@@ -867,7 +997,7 @@ def _ueberblick(themen_text: str = "", quellen_text: str = "") -> dict[str, Any]
                 if not passend:
                     continue
                 e = passend[0]
-                stuecke.append(_stueck(_kurzname(name), e["titel"], e["text"], 300))
+                stuecke.append((_stueck(e["titel"], e["text"], 300), _kurzname(name)))
                 feed_hier += 1
                 if name not in genutzt:
                     genutzt.append(name)
@@ -875,9 +1005,13 @@ def _ueberblick(themen_text: str = "", quellen_text: str = "") -> dict[str, Any]
             # Ein Thema ohne Fund wird nicht angekuendigt (sonst eine leere Ansage).
             if not stuecke:
                 continue
-            anhaengen(f"Zum Thema {thema}.")
-            for stueck in stuecke:
+            anhaengen(f"Zum Thema {_thema_name(thema)}.")
+            gesagte_quelle = ""
+            for stueck, quelle in stuecke:
                 anhaengen(stueck)
+                if quelle and quelle != gesagte_quelle:
+                    anhaengen(_meldet(quelle))
+                    gesagte_quelle = quelle
                 if laenge >= grenze:
                     break
             presse_anzahl += presse_hier
@@ -892,7 +1026,7 @@ def _ueberblick(themen_text: str = "", quellen_text: str = "") -> dict[str, Any]
                 continue
             anhaengen(QUELLEN_ANSPRACHE.get(name, f"Aus {name}."))
             e = eintraege[0]
-            anhaengen(_stueck("", e["titel"], e["text"], 400))
+            anhaengen(_stueck(e["titel"], e["text"], 400))
             if name not in genutzt:
                 genutzt.append(name)
 
@@ -911,8 +1045,8 @@ def _ueberblick(themen_text: str = "", quellen_text: str = "") -> dict[str, Any]
         if len(seite.get("text", "")) < 120:
             continue
         gelesen.append(adresse)
-        anhaengen(_stueck(_seitenname(adresse), seite.get("titel", ""),
-                          seite.get("text", ""), 500))
+        anhaengen(_stueck(seite.get("titel", ""), seite.get("text", ""), 500))
+        anhaengen(_meldet(_seitenname(adresse)))
 
     fehlend = nicht_erreichbar
     text = re.sub(r"\s+", " ", " ".join(t for t in teile if t)).strip()
@@ -924,18 +1058,52 @@ def _ueberblick(themen_text: str = "", quellen_text: str = "") -> dict[str, Any]
             "gelesen": gelesen, "ausgefallen": fehlend}
 
 
+# Presse-Namen aus der Google-Suche sprechbar machen ("Das meldet ...").
+PRESSE_NAMEN: dict[str, str] = {
+    "sz": "die Süddeutsche Zeitung", "süddeutsche": "die Süddeutsche Zeitung",
+    "sueddeutsche": "die Süddeutsche Zeitung",
+    "süddeutsche zeitung": "die Süddeutsche Zeitung",
+    "sueddeutsche zeitung": "die Süddeutsche Zeitung",
+    "faz": "die F.A.Z.", "frankfurter allgemeine": "die F.A.Z.",
+    "frankfurter allgemeine zeitung": "die F.A.Z.",
+    "zeit": "die Zeit", "die zeit": "die Zeit", "zeit online": "die Zeit",
+    "spiegel": "der Spiegel", "der spiegel": "der Spiegel", "spiegel online": "der Spiegel",
+    "manager magazin": "das Manager Magazin", "handelsblatt": "das Handelsblatt",
+    "welt": "die Welt", "die welt": "die Welt", "welt online": "die Welt",
+    "n-tv": "n-tv", "ntv": "n-tv", "t-online": "t-online",
+    "tagesschau": "die Tagesschau", "tagesschau.de": "die Tagesschau",
+    "business insider": "Business Insider", "capital": "Capital", "focus": "Focus",
+    "stern": "der stern", "der stern": "der stern", "taz": "die taz",
+    "wirtschaftswoche": "die WirtschaftsWoche", "wiwo": "die WirtschaftsWoche",
+    "deutschlandfunk": "der Deutschlandfunk", "reuters": "Reuters", "dpa": "die dpa",
+    "heise": "Heise", "heise online": "Heise", "heise.de": "Heise",
+}
+
+# Werbe- und Draht-Portale, die nicht in den Nachrichten-Ueberblick gehoeren.
+PRESSE_VERBOTEN = ("eqs", "dgap", "boerse", "finanzen.net", "wallstreet", "ariva",
+                   "aktiencheck", "tradegate", "godmode", "der aktionär", "ots")
+PRESSE_VERBOTEN_TITEL = ("eqs-news", "eqs:", "dgap-news", "dgap:", "ots:",
+                         "original-research", "research:", "ad-hoc", "adhoc",
+                         "pressemitteilung", "unternehmensmitteilung")
+
+
 def _quellenname(name: str) -> str:
     """Den Namen eines Presse-Erzeugers sprechbar machen.
 
-    Google News liefert hier mal "DIE ZEIT", mal "De" oder "heise online" -
-    kurze oder kryptische Angaben werden durch "Aus dem Netz" ersetzt.
+    Google News liefert hier mal "DIE ZEIT", mal "SZ" oder "heise online".
+    Bekannte Namen bekommen ihren Artikel ("Das meldet die Zeit."), kurze oder
+    kryptische Angaben fallen weg - dann steht nur die Schlagzeile im Beitrag.
     """
     s = re.sub(r"\s+", " ", str(name or "")).strip(" .-–")
-    if len(s) < 3 or re.fullmatch(r"[A-Za-z]{2,4}\.?", s):
-        return ""          # ohne Namen lieber nur die Schlagzeile sprechen
-    for alt, neu in ((" online", ""), (".de", ""), (".com", "")):
+    if s.lower() in PRESSE_NAMEN:
+        return PRESSE_NAMEN[s.lower()]
+    for alt in (" online", ".de", ".com"):
         if s.lower().endswith(alt):
             s = s[: -len(alt)]
+    if s.lower() in PRESSE_NAMEN:
+        return PRESSE_NAMEN[s.lower()]
+    if len(s) < 3 or re.fullmatch(r"[A-Za-z]{2,4}\.?", s):
+        return ""          # ohne Namen lieber nur die Schlagzeile sprechen
     return s[:28]
 
 
@@ -950,14 +1118,22 @@ def _seitenname(url: str) -> str:
     teile = [t for t in wirt.split(".") if t]
     # "de.wikipedia.org" -> "wikipedia", "heise.de" -> "heise"
     haupt = teile[-2] if len(teile) >= 3 else (teile[0] if teile else "")
-    namen = {"sz": "SZ", "faz": "F.A.Z.", "n-tv": "n-tv", "t3n": "t3n", "mdr": "MDR",
-             "swr": "SWR", "br": "BR", "ard": "ARD", "zdf": "ZDF", "rnd": "RND",
-             "taz": "taz", "sueddeutsche": "Süddeutsche", "handelsblatt": "Handelsblatt",
-             "heise": "Heise", "golem": "Golem", "spiegel": "Spiegel", "zeit": "Zeit",
-             "welt": "Welt", "tagesspiegel": "Tagesspiegel", "netzpolitik": "Netzpolitik",
-             "computerbase": "ComputerBase", "scinexx": "Scinexx", "ingenieur": "Ingenieur",
+    namen = {"sz": "die Süddeutsche Zeitung", "sueddeutsche": "die Süddeutsche Zeitung",
+             "faz": "die F.A.Z.", "n-tv": "n-tv", "ntv": "n-tv", "t3n": "t3n",
+             "mdr": "der MDR", "swr": "der SWR", "br": "der BR", "ard": "die ARD",
+             "zdf": "das ZDF", "wdr": "der WDR", "ndr": "der NDR",
+             "rnd": "das Redaktionsnetzwerk Deutschland", "taz": "die taz",
+             "tagesschau": "die Tagesschau",
+             "handelsblatt": "das Handelsblatt", "manager-magazin": "das Manager Magazin",
+             "wiwo": "die WirtschaftsWoche", "capital": "Capital", "focus": "Focus",
+             "stern": "der stern", "businessinsider": "Business Insider",
+             "t-online": "t-online", "sportschau": "die Sportschau", "orf": "der ORF",
+             "heise": "Heise", "golem": "Golem", "spiegel": "der Spiegel",
+             "zeit": "die Zeit", "welt": "die Welt", "tagesspiegel": "der Tagesspiegel",
+             "netzpolitik": "Netzpolitik", "computerbase": "ComputerBase",
+             "scinexx": "Scinexx", "ingenieur": "der Ingenieur", "deutschlandfunk": "der Deutschlandfunk",
              "wikipedia": "Wikipedia", "github": "GitHub", "bund": "Der Bund",
-             "bmftr": "Bundesministerium", "europarl": "Europäisches Parlament"}
+             "bmftr": "das Bundesministerium", "europarl": "das Europäische Parlament"}
     return namen.get(haupt, haupt.capitalize() if haupt else "")
 
 
@@ -1020,7 +1196,7 @@ def recherche(anfrage: Recherche,
         antwort["ausgefallen"] = ergebnis.get("ausgefallen") or []
     if anfrage.ansagen:
         ansage = meldungen.ansage_machen(eintrag["id"], trocken=anfrage.trocken,
-                                        stimme="", speed=1.0)
+                                        stimme=anfrage.stimme, speed=1.0)
         antwort["gesagt"] = not anfrage.trocken
         antwort["dauer_sekunden"] = ansage.get("dauer_sekunden")
         antwort["gesprochen"] = ansage.get("gesprochen") or antwort["sprechtext"]

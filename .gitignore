@@ -3,14 +3,14 @@
 !/.gitignore
 !/Ai_Radio_Moderator_Bot/
 /Ai_Radio_Moderator_Bot/*
-!/Ai_Radio_Moderator_Bot/DDD-Webseite/
-!/Ai_Radio_Moderator_Bot/werkzeuge/
+!/Ai_Radio_Moderator_Bot/Sender-2-Axis-Church-Radio/
+!/Ai_Radio_Moderator_Bot/Sender-1-Deadline-Beats/
 !/Ai_Radio_Moderator_Bot/LICENSE
 
 # Zugangswerte und Bau-Ausgaben bleiben lokal
-/Ai_Radio_Moderator_Bot/DDD-Webseite/zugangsdaten/
-/Ai_Radio_Moderator_Bot/DDD-Webseite/dienst/geheim.env
-/Ai_Radio_Moderator_Bot/DDD-Webseite/DocOfficial/
+/Ai_Radio_Moderator_Bot/Sender-2-Axis-Church-Radio/zugangsdaten/
+/Ai_Radio_Moderator_Bot/Sender-2-Axis-Church-Radio/dienst/geheim.env
+/Ai_Radio_Moderator_Bot/Sender-2-Axis-Church-Radio/DocOfficial/
 __pycache__/
 *.pyc
 *~
