@@ -217,7 +217,9 @@ bash einspielen.sh   # import + activate (restarts n8n, ~1 minute)
 
 ### 5.3 Test entry (without Telegram)
 
-The answer appears in the execution, read it with `ausfuehrung-lesen.js`:
+The test entry takes a Telegram message as JSON and **answers in the same
+request** — same JSON shape as the REST input below. The answer is also visible
+in the execution, read it with `ausfuehrung-lesen.js`:
 
 ```bash
 KEY=$(cat DDD-Webseite/zugangsdaten/test-schluessel.txt)
@@ -246,10 +248,11 @@ curl -s -X POST "http://192.168.178.53:5678/webhook/ddd-webseite-rest?schluessel
 
 * Body: `{"text": "…"}` (German or English) plus optional `"schluessel": "…"`;
   the key may also sit in the URL (`?schluessel=…`). Wrong key → “Kein Zugang”.
-* **All three answer paths** return JSON: the three switches `REST? (kurz)`,
-  `REST? (dienst)` and `REST? (lang)` route the answer to one of the three
-  `REST antworten` nodes (`respondToWebhook`) instead of Telegram; `Eingabe`
-  marks REST runs with `istRest`.
+* **All three answer paths** return JSON: the three switches `JSON? (kurz)`,
+  `JSON? (dienst)` and `JSON? (lang)` route the answer to one of the three
+  `JSON antworten` nodes (`respondToWebhook`) instead of Telegram; `Eingabe`
+  marks runs from a webhook with `istTest` (both the REST and the test entry
+  answer this way — Telegram runs keep using `Senden`).
 * Slow commands (model runs, announcements) keep the request open — allow a few
   minutes.
 * `../chat-fenster.html` is the ready-made browser chat for this input: open the

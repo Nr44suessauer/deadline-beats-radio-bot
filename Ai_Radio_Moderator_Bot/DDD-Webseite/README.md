@@ -100,7 +100,9 @@ either as a shortcut (listed above, equally fast) or through the language model
 (free sentences like “can you put on some rock”, “announce: …” — 10–50 s
 depending on the model).
 
-Test entry (without Telegram); the answer is in the execution:
+Test entry (without Telegram): posts a Telegram message as JSON and **answers in
+the same request** (same JSON shape as the REST input below); the answer is also
+visible in the execution:
 
 ```bash
 KEY=$(cat DDD-Webseite/zugangsdaten/test-schluessel.txt)

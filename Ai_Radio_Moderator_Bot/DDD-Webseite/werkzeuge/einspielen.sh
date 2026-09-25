@@ -90,6 +90,12 @@ ssh -F "$CFG" ai-server "pct exec 103 -- bash -lc '
     sleep 3
   done
   echo \"Testeingang /webhook/ddd-webseite-test: \$W1\"
+  for i in \$(seq 1 40); do
+    W2=\$(curl -s -o /dev/null -w \"%{http_code}\" -X POST http://127.0.0.1:5678/webhook/ddd-webseite-rest -H \"Content-Type: application/json\" -d \"{}\")
+    [ \"\$W2\" != \"404\" ] && break
+    sleep 3
+  done
+  echo \"REST-Eingang /webhook/ddd-webseite-rest: \$W2\"
   echo \"--- Ablaufliste\"
   docker exec -u node n8n n8n list:workflow 2>/dev/null | grep -i \"DDD-Webseite\" || true
 '"

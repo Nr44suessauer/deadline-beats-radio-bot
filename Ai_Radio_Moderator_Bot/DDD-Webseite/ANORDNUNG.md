@@ -105,7 +105,7 @@ Datei holen, umwandeln, erkennen (Whisper auf dem ai-Server). Erkannt: weiter an
 
 ### Eingang und Zugang  ·  `Notiz Eingang`
 
-Drei Eingaenge (Telegram, Test, REST); Zugang ueber `erlaubte` oder Testscluessel. Kurze Wege senden ueber **Senden (Kurzmeldung)** oder **REST antworten (kurz)**.
+Drei Eingaenge (Telegram, Test, REST); Zugang ueber `erlaubte` oder Testscluessel. Kurze Wege senden ueber **Senden (Kurzmeldung)** oder **JSON antworten (kurz)**.
 
 | Knoten | Erklaerung (Notiz am Knoten) | Position |
 | --- | --- | --- |
@@ -120,13 +120,13 @@ Drei Eingaenge (Telegram, Test, REST); Zugang ueber `erlaubte` oder Testscluesse
 | `Kein Zugang` | Kurze Absage. | -2980, -1500 |
 | `Freigegeben?` | Nein = Absage, der Lauf endet. | -2980, -1220 |
 | `Kein Text` | Kurze Rueckfrage bei Nachrichten ohne Text. | -2100, -700 |
-| `REST? (kurz)` | Ja = Antwort als JSON | -1880, -700 |
-| `REST antworten (kurz)` | Gibt die kurze Antwort als JSON an den REST-Aufrufer zurueck. | -1660, -960 |
+| `JSON? (kurz)` | Ja = Antwort als JSON | -1880, -700 |
+| `JSON antworten (kurz)` | Gibt die kurze Antwort als JSON an den Aufrufer (REST/Test) zurueck. | -1660, -960 |
 | `Senden (Kurzmeldung)` | Kurzer Weg, gleicher Aufruf | -1660, -700 |
 
 ### Dienste: Wiedergabelisten und Meldungen  ·  `Notiz Dienste`
 
-Knopf oder Text -> **Dienst Art** -> **Meldung?** -> Modul im Dienst ddd-radio. Listen merken sich die Auswahl; Meldungen kommen als Karte mit Knoepfen. REST-Aufrufe bekommen die Ausgabe als JSON statt per Telegram. Textnachrichten laufen ueber **Text da?** weiter in die Analyse.
+Knopf oder Text -> **Dienst Art** -> **Meldung?** -> Modul im Dienst ddd-radio. Listen merken sich die Auswahl; Meldungen kommen als Karte mit Knoepfen. REST- und Testaufrufe bekommen die Ausgabe als JSON statt per Telegram. Textnachrichten laufen ueber **Text da?** weiter in die Analyse.
 
 | Knoten | Erklaerung (Notiz am Knoten) | Position |
 | --- | --- | --- |
@@ -137,9 +137,9 @@ Knopf oder Text -> **Dienst Art** -> **Meldung?** -> Modul im Dienst ddd-radio. 
 | `Meldung Dienst` | Modul meldungen.py im Dienst | -2320, 1616 |
 | `Text da?` | Nein = Knopf, Bild oder Sticker ohne Text. | -2100, 1096 |
 | `Dienst Antwort` | Text und Knoepfe aufbereiten | -2100, 1616 |
-| `REST antworten (dienst)` | Gibt die Dienst-Antwort als JSON an den REST-Aufrufer zurueck. | -2100, 1876 |
+| `JSON antworten (dienst)` | Gibt die Dienst-Antwort als JSON an den Aufrufer (REST/Test) zurueck. | -2100, 1876 |
 | `Auftrag` | Kontext fuer die Analyse | -1880, 1096 |
-| `REST? (dienst)` | Ja = Antwort als JSON | -1880, 1616 |
+| `JSON? (dienst)` | Ja = Antwort als JSON | -1880, 1616 |
 | `Dienst Senden` | sendMessage / editMessageText | -1880, 1876 |
 | `Senden fehlgeschlagen?` | Ja = neue Nachricht senden | -1660, 1616 |
 | `Dienst Ersatz senden` | Zweiter Versuch per sendMessage | -1440, 1616 |
@@ -214,7 +214,7 @@ Je Werkzeug ein Knoten; er ruft den Werkzeug-Ablauf per `executeWorkflow` auf. D
 
 ### Stufe 3: Pruefung, Nachfassen und Antwort  ·  `Notiz Pruefung`
 
-**Lage holen** und **Warteschlange holen** belegen den Senderzustand, **Pruefen** urteilt je Befehl. **Nachfassen?** startet genau einen zweiten Versuch je Befehl. **Antwort bauen** fasst zusammen und baut die Knoepfe; **Senden** schickt per HTML - oder **REST antworten** gibt die Antwort als JSON zurueck.
+**Lage holen** und **Warteschlange holen** belegen den Senderzustand, **Pruefen** urteilt je Befehl. **Nachfassen?** startet genau einen zweiten Versuch je Befehl. **Antwort bauen** fasst zusammen und baut die Knoepfe; **Senden** schickt per HTML - oder **JSON antworten** gibt die Antwort als JSON zurueck.
 
 | Knoten | Erklaerung (Notiz am Knoten) | Position |
 | --- | --- | --- |
@@ -232,13 +232,13 @@ Je Werkzeug ein Knoten; er ruft den Werkzeug-Ablauf per `executeWorkflow` auf. D
 | `Nachtrag sammeln` | Schreibt die Ausgabe des zweiten Versuchs in den Merker. | 2640, 1220 |
 | `Antwort bauen` | Zusammenfassen + Knoepfe | 2900, 960 |
 | `Antwort` | Bereitet den Text fuer Telegram auf (HTML, ohne Sternchen). | 3120, 960 |
-| `REST? (lang)` | Ja = Antwort als JSON | 3340, 960 |
+| `JSON? (lang)` | Ja = Antwort als JSON | 3340, 960 |
 | `Senden` | sendMessage (HTML) | 3560, 960 |
-| `REST antworten` | Gibt die Antwort als JSON an den REST-Aufrufer zurueck. | 3560, 1220 |
+| `JSON antworten` | Gibt die Antwort als JSON an den Aufrufer (REST/Test) zurueck. | 3560, 1220 |
 
 ### DDD-Webseite Bot - zweisprachiger Telegram-Agent (DE/EN)  ·  `Notiz Uebersicht`
 
-EIN Bot, EIN Chat: der Betreiber schreibt deutsch oder englisch. Die Sprache wird am Eingang erkannt (Feld `sprache`) und reist mit - Kurzbefehle, Werkzeugantworten und die Antworten des Modells folgen ihr. Inhalte (Nachrichten, Wetter) und die Verwaltungswege des Dienstes bleiben deutsch. Was der Bot kann: Liedwunsch, Richtungswunsch, skip/pause/Status, Wiedergabelisten, Postfach, Recherche (Wetter, Nachrichten, RSS) und Ansagen im laufenden Programm. Alles kommt aus Telegram und geht dorthin zurueck - oder per REST-Eingang als JSON ({"text": "..."} plus Schluessel; Antwort {ok, antwort, tastatur, sprache}). Gespielt wird auf dem Sender "DDD-Webseite Demo" (Sender 2). Der Weg einer Nachricht: Eingang -> Stufe 0/1 Analyse -> Stufe 2 Ausfuehrung -> Stufe 3 Pruefung -> Antwort. Sprachnachrichten laufen oben durch Whisper, Dienste und Postfach haengen seitlich dran. Jeder Knoten traegt seinen Zweck als Notiz unter dem Namen, jeder Rahmen erklaert eine Stufe. Rahmenfarben: 1 Sprachnachricht | 2 Eingang | 3 Dienste | 4 Postfach | 5 Stufe 0+1 | 6 Stufe 2 + Werkzeuge | 7 Stufe 3 + Antwort Erzeugt von DDD-Webseite/werkzeuge/agent-wf-bauen-ddd.py - nie von Hand aendern. Aendern: bauen.sh, pruefen.sh, einspielen.sh. Doku: README.md (deutsch) und EN/README.md (englisch).
+EIN Bot, EIN Chat: der Betreiber schreibt deutsch oder englisch. Die Sprache wird am Eingang erkannt (Feld `sprache`) und reist mit - Kurzbefehle, Werkzeugantworten und die Antworten des Modells folgen ihr. Inhalte (Nachrichten, Wetter) und die Verwaltungswege des Dienstes bleiben deutsch. Was der Bot kann: Liedwunsch, Richtungswunsch, skip/pause/Status, Wiedergabelisten, Postfach, Recherche (Wetter, Nachrichten, RSS) und Ansagen im laufenden Programm. Alles kommt aus Telegram und geht dorthin zurueck - oder per REST- oder Testeingang als JSON ({"text": "..."} plus Schluessel; Antwort {ok, antwort, tastatur, sprache}). Gespielt wird auf dem Sender "DDD-Webseite Demo" (Sender 2). Der Weg einer Nachricht: Eingang -> Stufe 0/1 Analyse -> Stufe 2 Ausfuehrung -> Stufe 3 Pruefung -> Antwort. Sprachnachrichten laufen oben durch Whisper, Dienste und Postfach haengen seitlich dran. Jeder Knoten traegt seinen Zweck als Notiz unter dem Namen, jeder Rahmen erklaert eine Stufe. Rahmenfarben: 1 Sprachnachricht | 2 Eingang | 3 Dienste | 4 Postfach | 5 Stufe 0+1 | 6 Stufe 2 + Werkzeuge | 7 Stufe 3 + Antwort Erzeugt von DDD-Webseite/werkzeuge/agent-wf-bauen-ddd.py - nie von Hand aendern. Aendern: bauen.sh, pruefen.sh, einspielen.sh. Doku: README.md (deutsch) und EN/README.md (englisch).
 
 *(Uebersichtskasten ohne Knoten)*
 

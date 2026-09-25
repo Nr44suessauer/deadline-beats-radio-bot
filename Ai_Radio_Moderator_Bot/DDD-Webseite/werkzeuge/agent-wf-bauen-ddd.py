@@ -2128,8 +2128,10 @@ bot = [
       webhookId=nid(), credentials={"telegramApi": {"id": TG_CRED_ID, "name": TG_CRED_NAME}},
       **({"disabled": True} if os.environ.get("TRIGGER_AUS") else {})),
     n("Test-Eingang", "n8n-nodes-base.webhook", 2, [-2400, 240],
-      {"httpMethod": "POST", "path": "ddd-webseite-test", "responseMode": "lastNode", "options": {}},
-      webhookId=nid(), notes="Nur zum Pruefen: nimmt eine Telegram-Nachricht als JSON entgegen."),
+      {"httpMethod": "POST", "path": "ddd-webseite-test", "responseMode": "responseNode",
+       "options": {}},
+      webhookId=nid(), notes="Nur zum Pruefen: nimmt eine Telegram-Nachricht als JSON an; "
+                              "die Antwort kommt wie beim REST-Eingang als JSON zurueck."),
     n("REST-Eingang", "n8n-nodes-base.webhook", 2, [-2400, 480],
       {"httpMethod": "POST", "path": "ddd-webseite-rest", "responseMode": "responseNode",
        "options": {}},
@@ -2674,22 +2676,23 @@ bot = [
     }, onError="continueRegularOutput",
        notes="Gleicher Aufruf wie 'Senden', nur fuer die kurzen Wege im Eingang."),
 
-    # REST-Eingang: die Antwort geht als JSON an den Aufrufer zurueck (statt Telegram).
-    # Drei kleine Abnehmer, je einer am Ende eines Antwort-Wegs - so bleibt der Weg
-    # kurz und ein Telegram-Lauf beruehrt sie nicht (Feld "istRest" aus "Eingabe").
-    wenn("REST? (kurz)", [-1880, -700], "={{ !!$('Eingabe').first().json.istRest }}",
-         "Ja = REST-Aufruf: die Antwort geht als JSON zurueck."),
-    n("REST antworten (kurz)", "n8n-nodes-base.respondToWebhook", 1.1, [-1660, -960], {
+    # Webhook-Eingaenge (REST und Test): die Antwort geht als JSON an den Aufrufer
+    # zurueck (statt Telegram). Drei kleine Abnehmer, je einer am Ende eines
+    # Antwort-Wegs - so bleibt der Weg kurz und ein Telegram-Lauf beruehrt sie
+    # nicht (Feld "istTest" aus "Eingabe").
+    wenn("JSON? (kurz)", [-1880, -700], "={{ !!$('Eingabe').first().json.istTest }}",
+         "Ja = Aufruf von aussen (REST- oder Testeingang): Antwort als JSON."),
+    n("JSON antworten (kurz)", "n8n-nodes-base.respondToWebhook", 1.1, [-1660, -960], {
         "respondWith": "json", "responseBody": REST_ANTWORT_JSON, "options": {}},
        notes="Antwort des kurzen Wegs als JSON (ok, antwort, tastatur, sprache)."),
-    wenn("REST? (dienst)", [-1880, 1130], "={{ !!$('Eingabe').first().json.istRest }}",
-         "Ja = REST-Aufruf: die Antwort geht als JSON zurueck."),
-    n("REST antworten (dienst)", "n8n-nodes-base.respondToWebhook", 1.1, [-2100, 1390], {
+    wenn("JSON? (dienst)", [-1880, 1130], "={{ !!$('Eingabe').first().json.istTest }}",
+         "Ja = Aufruf von aussen (REST- oder Testeingang): Antwort als JSON."),
+    n("JSON antworten (dienst)", "n8n-nodes-base.respondToWebhook", 1.1, [-2100, 1390], {
         "respondWith": "json", "responseBody": REST_ANTWORT_JSON, "options": {}},
        notes="Antwort des Dienst-Zweigs als JSON (ok, antwort, tastatur, sprache)."),
-    wenn("REST? (lang)", [3340, 960], "={{ !!$('Eingabe').first().json.istRest }}",
-         "Ja = REST-Aufruf: die Antwort geht als JSON zurueck."),
-    n("REST antworten", "n8n-nodes-base.respondToWebhook", 1.1, [3560, 1220], {
+    wenn("JSON? (lang)", [3340, 960], "={{ !!$('Eingabe').first().json.istTest }}",
+         "Ja = Aufruf von aussen (REST- oder Testeingang): Antwort als JSON."),
+    n("JSON antworten", "n8n-nodes-base.respondToWebhook", 1.1, [3560, 1220], {
         "respondWith": "json", "responseBody": REST_ANTWORT_JSON, "options": {}},
        notes="Antwort des Hauptwegs als JSON (ok, antwort, tastatur, sprache)."),
 ]
@@ -2710,8 +2713,8 @@ bot_verbindungen = {
     "Verstanden?": {"main": [
         [{"node": "Zugang", "type": "main", "index": 0},
          {"node": "Gehoert Text", "type": "main", "index": 0}],
-        [{"node": "REST? (kurz)", "type": "main", "index": 0}]]},
-    "Gehoert Text": {"main": [[{"node": "REST? (kurz)", "type": "main", "index": 0}]]},
+        [{"node": "JSON? (kurz)", "type": "main", "index": 0}]]},
+    "Gehoert Text": {"main": [[{"node": "JSON? (kurz)", "type": "main", "index": 0}]]},
     "Zugang": {"main": [[{"node": "Freigegeben?", "type": "main", "index": 0}]]},
     "Freigegeben?": {"main": [
         [{"node": "Dienst Art", "type": "main", "index": 0}],
@@ -2725,9 +2728,9 @@ bot_verbindungen = {
         [{"node": "Listen Dienst", "type": "main", "index": 0}]]},
     "Listen Dienst": {"main": [[{"node": "Dienst Antwort", "type": "main", "index": 0}]]},
     "Meldung Dienst": {"main": [[{"node": "Dienst Antwort", "type": "main", "index": 0}]]},
-    "Dienst Antwort": {"main": [[{"node": "REST? (dienst)", "type": "main", "index": 0}]]},
-    "REST? (dienst)": {"main": [
-        [{"node": "REST antworten (dienst)", "type": "main", "index": 0}],
+    "Dienst Antwort": {"main": [[{"node": "JSON? (dienst)", "type": "main", "index": 0}]]},
+    "JSON? (dienst)": {"main": [
+        [{"node": "JSON antworten (dienst)", "type": "main", "index": 0}],
         [{"node": "Dienst Senden", "type": "main", "index": 0}]]},
     "Senden fehlgeschlagen?": {"main": [
         [{"node": "Dienst Ersatz senden", "type": "main", "index": 0}],
@@ -2746,7 +2749,7 @@ bot_verbindungen = {
     "Angebot?": {"main": [
         [{"node": "Meldung anbieten", "type": "main", "index": 0}],
         [{"node": "Ende", "type": "main", "index": 0}]]},
-    "Kein Zugang": {"main": [[{"node": "REST? (kurz)", "type": "main", "index": 0}]]},
+    "Kein Zugang": {"main": [[{"node": "JSON? (kurz)", "type": "main", "index": 0}]]},
     "Text da?": {"main": [
         [{"node": "Auftrag", "type": "main", "index": 0}],
         [{"node": "Kein Text", "type": "main", "index": 0}]]},
@@ -2756,10 +2759,10 @@ bot_verbindungen = {
     "Kurzbefehl?": {"main": [
         [{"node": "Schleife", "type": "main", "index": 0}],
         [{"node": "Planen", "type": "main", "index": 0}]]},
-    "Kein Text": {"main": [[{"node": "REST? (kurz)", "type": "main", "index": 0}]]},
-    # Der kurze Weg endet als Telegram-Nachricht - oder (REST) als JSON zurueck.
-    "REST? (kurz)": {"main": [
-        [{"node": "REST antworten (kurz)", "type": "main", "index": 0}],
+    "Kein Text": {"main": [[{"node": "JSON? (kurz)", "type": "main", "index": 0}]]},
+    # Der kurze Weg endet als Telegram-Nachricht - oder (REST/Test) als JSON zurueck.
+    "JSON? (kurz)": {"main": [
+        [{"node": "JSON antworten (kurz)", "type": "main", "index": 0}],
         [{"node": "Senden (Kurzmeldung)", "type": "main", "index": 0}]]},
 
     # Stufe 1: Analyse
@@ -2825,10 +2828,10 @@ bot_verbindungen = {
     "Nacharbeiten": {"main": [[{"node": "Nachtrag sammeln", "type": "main", "index": 0}]]},
     "Nachtrag sammeln": {"main": [[{"node": "Schleife 2", "type": "main", "index": 0}]]},
     "Antwort bauen": {"main": [[{"node": "Antwort", "type": "main", "index": 0}]]},
-    "Antwort": {"main": [[{"node": "REST? (lang)", "type": "main", "index": 0}]]},
-    # Der Hauptweg endet als Telegram-Nachricht - oder (REST) als JSON zurueck.
-    "REST? (lang)": {"main": [
-        [{"node": "REST antworten", "type": "main", "index": 0}],
+    "Antwort": {"main": [[{"node": "JSON? (lang)", "type": "main", "index": 0}]]},
+    # Der Hauptweg endet als Telegram-Nachricht - oder (REST/Test) als JSON zurueck.
+    "JSON? (lang)": {"main": [
+        [{"node": "JSON antworten", "type": "main", "index": 0}],
         [{"node": "Senden", "type": "main", "index": 0}]]},
 
     # Unterschnittstellen
@@ -2884,17 +2887,17 @@ ANORDNUNG = {
     "Listen Dienst": (-2320, 870),
     "Meldung Dienst": (-2320, 1130),
     "Dienst Antwort": (-2100, 1130),
-    "REST? (dienst)": (-1880, 1130),
+    "JSON? (dienst)": (-1880, 1130),
     "Dienst Senden": (-1880, 1390),
-    "REST antworten (dienst)": (-2100, 1390),
+    "JSON antworten (dienst)": (-2100, 1390),
     "Senden fehlgeschlagen?": (-1660, 1130),
     "Dienst Ersatz senden": (-1440, 1130),
     "Ende": (-1220, 1130),
     "Kein Zugang": (-2980, -1500),
     "Kein Text": (-2100, -700),
-    "REST? (kurz)": (-1880, -700),
+    "JSON? (kurz)": (-1880, -700),
     "Senden (Kurzmeldung)": (-1660, -700),
-    "REST antworten (kurz)": (-1660, -960),
+    "JSON antworten (kurz)": (-1660, -960),
 
     # -- Postfach: Meldungen des Suchbots anbieten
     "Zeitplan Meldungen": (-2760, 1620),
@@ -2960,9 +2963,9 @@ ANORDNUNG = {
     # -- 7 Antwort und Senden
     "Antwort bauen": (2900, 960),
     "Antwort": (3120, 960),
-    "REST? (lang)": (3340, 960),
+    "JSON? (lang)": (3340, 960),
     "Senden": (3560, 960),
-    "REST antworten": (3560, 1220),
+    "JSON antworten": (3560, 1220),
 }
 
 # Rahmen (Haftnotizen) je Gruppe: Name, x, y, Breite, Hoehe, Farbe, Inhalt.
@@ -2977,8 +2980,8 @@ Verwaltungswege des Dienstes bleiben deutsch.
 
 Was der Bot kann: Liedwunsch, Richtungswunsch, skip/pause/Status, Wiedergabelisten,
 Postfach, Recherche (Wetter, Nachrichten, RSS) und Ansagen im laufenden Programm.
-Alles kommt aus Telegram und geht dorthin zurueck - oder per REST-Eingang als JSON
-({"text": "..."} plus Schluessel; Antwort {ok, antwort, tastatur, sprache}).
+Alles kommt aus Telegram und geht dorthin zurueck - oder per REST- oder Testeingang
+als JSON ({"text": "..."} plus Schluessel; Antwort {ok, antwort, tastatur, sprache}).
 Gespielt wird auf dem Sender "DDD-Webseite Demo" (Sender 2).
 
 Der Weg einer Nachricht: Eingang -> Stufe 0/1 Analyse -> Stufe 2 Ausfuehrung ->
@@ -3000,17 +3003,17 @@ Erkannt: weiter an **Zugang** - sonst kurze Rueckmeldung.""",
      ["Datei holen", "Audio laden", "Umwandeln", "Transkript", "Verstanden?", "Gehoert Text"]),
     ("Notiz Eingang", 2, """## Eingang und Zugang
 Drei Eingaenge (Telegram, Test, REST); Zugang ueber `erlaubte` oder Testscluessel.
-Kurze Wege senden ueber **Senden (Kurzmeldung)** oder **REST antworten (kurz)**.""",
+Kurze Wege senden ueber **Senden (Kurzmeldung)** oder **JSON antworten (kurz)**.""",
      ["Konfiguration", "Weiche Plan?", "Telegram Trigger", "Test-Eingang", "REST-Eingang",
       "Eingabe", "Sprachnachricht?", "Zugang", "Freigegeben?", "Kein Zugang", "Kein Text",
-      "REST? (kurz)", "REST antworten (kurz)", "Senden (Kurzmeldung)"]),
+      "JSON? (kurz)", "JSON antworten (kurz)", "Senden (Kurzmeldung)"]),
     ("Notiz Dienste", 3, """## Dienste: Wiedergabelisten und Meldungen
 Knopf oder Text -> **Dienst Art** -> **Meldung?** -> Modul im Dienst ddd-radio.
 Listen merken sich die Auswahl; Meldungen kommen als Karte mit Knoepfen.
-REST-Aufrufe bekommen die Ausgabe als JSON statt per Telegram.
+REST- und Testaufrufe bekommen die Ausgabe als JSON statt per Telegram.
 Textnachrichten laufen ueber **Text da?** weiter in die Analyse.""",
      ["Dienst Art", "Dienst?", "Meldung?", "Text da?", "Auftrag", "Listen Dienst",
-      "Meldung Dienst", "Dienst Antwort", "REST? (dienst)", "REST antworten (dienst)",
+      "Meldung Dienst", "Dienst Antwort", "JSON? (dienst)", "JSON antworten (dienst)",
       "Dienst Senden", "Senden fehlgeschlagen?", "Dienst Ersatz senden", "Ende"]),
     ("Notiz Postfach", 4, """## Postfach (Suchbot -> Moderator)
 Alle 5 Minuten: neue Meldungen holen und als Karte mit Knoepfen vorlegen.
@@ -3039,11 +3042,11 @@ Dateipfade und Senderaufrufe bleiben dort - das Modell sieht sie nie.""",
 **Lage holen** und **Warteschlange holen** belegen den Senderzustand, **Pruefen**
 urteilt je Befehl. **Nachfassen?** startet genau einen zweiten Versuch je Befehl.
 **Antwort bauen** fasst zusammen und baut die Knoepfe; **Senden** schickt per
-HTML - oder **REST antworten** gibt die Antwort als JSON zurueck.""",
+HTML - oder **JSON antworten** gibt die Antwort als JSON zurueck.""",
      ["Lage holen", "Warteschlange holen", "Befehle und Lage", "Pruefen?", "Pruefen",
       "Pruefung Antwort", "Pruefung lesen", "Nachfassen?", "Schleife 2", "Nacharbeiten",
       "Nachtrag sammeln", "Sprachmodell Nacharbeiten", "Antwort bauen", "Antwort",
-      "REST? (lang)", "Senden", "REST antworten"]),
+      "JSON? (lang)", "Senden", "JSON antworten"]),
 ]
 
 # Anmerkungen an den Knoten. Kurz und sichtbar im Plan stehen die wichtigen
@@ -3070,9 +3073,9 @@ KURZNOTIZ = {
     "Meldung anbieten": "Als angeboten merken",
     "Senden (Kurzmeldung)": "Kurzer Weg, gleicher Aufruf",
     "REST-Eingang": "Befehl ohne Telegram (JSON)",
-    "REST? (kurz)": "Ja = Antwort als JSON",
-    "REST? (dienst)": "Ja = Antwort als JSON",
-    "REST? (lang)": "Ja = Antwort als JSON",
+    "JSON? (kurz)": "Ja = Antwort als JSON",
+    "JSON? (dienst)": "Ja = Antwort als JSON",
+    "JSON? (lang)": "Ja = Antwort als JSON",
     "Kurz?": "Stufe 0: ohne Sprachmodell",
     "Kurzbefehl?": "Ja = direkt ausfuehren",
     "Planen": "Stufe 1: Plan aus dem Text",
@@ -3138,9 +3141,9 @@ LANGNOTIZ = {
     "Nachtrag sammeln": "Schreibt die Ausgabe des zweiten Versuchs in den Merker.",
     "Sprachmodell Nacharbeiten": "Sprachmodell fuer 'Nacharbeiten'.",
     "Antwort": "Bereitet den Text fuer Telegram auf (HTML, ohne Sternchen).",
-    "REST antworten (kurz)": "Gibt die kurze Antwort als JSON an den REST-Aufrufer zurueck.",
-    "REST antworten (dienst)": "Gibt die Dienst-Antwort als JSON an den REST-Aufrufer zurueck.",
-    "REST antworten": "Gibt die Antwort als JSON an den REST-Aufrufer zurueck.",
+    "JSON antworten (kurz)": "Gibt die kurze Antwort als JSON an den Aufrufer (REST/Test) zurueck.",
+    "JSON antworten (dienst)": "Gibt die Dienst-Antwort als JSON an den Aufrufer (REST/Test) zurueck.",
+    "JSON antworten": "Gibt die Antwort als JSON an den Aufrufer (REST/Test) zurueck.",
 }
 
 
