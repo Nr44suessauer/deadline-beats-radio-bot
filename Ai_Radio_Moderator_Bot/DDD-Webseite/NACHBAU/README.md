@@ -1,7 +1,7 @@
 # DDD-Webseite — Rebuild Guide (English)
 
 This guide rebuilds this edition from scratch: **one bot for German and
-English** on **one station** — five n8n workflows, one service, one Telegram
+English** on **one station** — four n8n workflows, one service, one Telegram
 bot. The addresses, IDs and numbers below are those of the reference
 installation; replace them with your own.
 
@@ -14,9 +14,9 @@ The short overview (what is running where, how the bilingual chat works) is in
 
 | Part | Reference | Job |
 | --- | --- | --- |
-| Station “DDD-Webseite Demo” | AzuraCast, station number **2**, shortcode `ddd_webseite` | plays the music, accepts requests, carries the announcements |
+| Station “DDD-Webseite Demo” | AzuraCast, station number **2**, shortcode `ddd_webseite` | plays **only** the playlist “GEMA-frei”, accepts requests (from that playlist), carries the announcements |
 | Service `ddd-radio` | LXC 103 (192.168.178.53), port **8882** | catalogue search, playlist tasks, mailbox, research, speech output |
-| Bot (five workflows) | n8n (LXC 103), ids `DDD-Webseite-…` | reads Telegram in German or English, steers station and service |
+| Bot (four workflows) | n8n (LXC 103), ids `DDD-Webseite-…` | listens, skips, takes playlist-bound wishes, speaks announcements — **no administration** (see §3.1) |
 | Telegram | one bot token | the one chat window for both languages |
 | REST input (optional) | webhook `ddd-webseite-rest` + test key | commands and answers without Telegram — used by the chat window |
 | Voice `aqua` | voice service (CT 111, port 10205); fallback `de_thorsten` | speaks the announcements in the language of the text |
@@ -25,7 +25,7 @@ The short overview (what is running where, how the bilingual chat works) is in
 flowchart LR
   TG["Telegram chat (DE/EN)"] --> BOT["n8n: DDD-Webseite-Bot"]
   CHAT["REST input / chat window (chat-fenster.html)"] --> BOT
-  BOT --> TOOLS["tool workflows: Radio, AzuraCast, Meldungen"]
+  BOT --> TOOLS["tool workflows: Radio, Meldungen"]
   TOOLS --> SVC["service ddd-radio :8882"]
   BOT --> LLM["language model (Ollama)"]
   BOT --> STT["speech recognition (whisper)"]
@@ -33,15 +33,17 @@ flowchart LR
   SVC --> TTS["voice service (aqua)"]
 ```
 
-The five workflows after a successful build:
+The four workflows after a successful build:
 
 | Workflow (id) | Display name | Nodes |
 | --- | --- | --- |
 | `DDD-Webseite-Konfiguration` | DDD-Webseite Konfiguration - alle Werte | 4 |
-| `DDD-Webseite-Radio` | DDD-Webseite Werkzeug Radio | 24 |
-| `DDD-Webseite-AzuraCast` | DDD-Webseite Werkzeug AzuraCast | 22 |
-| `DDD-Webseite-Meldungen` | DDD-Webseite Werkzeug Meldungen | 20 |
-| `DDD-Webseite-Bot` | DDD-Webseite Bot - Telegram-Agent (DE/EN) | 93 |
+| `DDD-Webseite-Radio` | DDD-Webseite Werkzeug Radio | 21 |
+| `DDD-Webseite-Meldungen` | DDD-Webseite Werkzeug Meldungen | 22 |
+| `DDD-Webseite-Bot` | DDD-Webseite Bot - Telegram-Agent (DE/EN) | 95 |
+
+The former administration tool `DDD-Webseite-AzuraCast` is gone with the rights
+profile (§3.1); `einspielen.sh` also removes it from existing installations.
 
 **The language principle:** one chat, two languages. The language of the
 message is detected on entry (`sprache_raten` — umlauts and German function
@@ -97,6 +99,52 @@ button presses reuse the last language of the chat. Details: `../README.md` §2.
    published port `:8010`). The DJ/harbour port is per station — ours is
    **8015**.
 
+### 3.1 Restricted rights, the demo playlist “GEMA-frei” and the key
+
+The demo bot must not be able to administrate the station. Two things enforce
+that: the **API key** (rights) and the **playlist gate** in the tool workflow
+(music).
+
+**Role, user, key** (all calls with the administrator key):
+
+1. Create a role — the permissions are only applied by the **update** call; the
+   create call ignores them:
+   `POST /api/admin/roles`
+   `{"name":"Demo-Bot","permissions":{"global":[],"station":[{"id":2,"permissions":["manage station broadcasting"]}]}}`
+   → then `PUT /api/admin/role/<id>` with the same `permissions` object.
+2. Create the user: `POST /api/admin/users`
+   `{"email":"demo-bot@…","password":"…","name":"Demo-Bot","roles":[{"id":<role id>}]}`;
+   log in once and change the password if the panel demands it.
+3. Create the key: `POST /api/admin/api-keys` `{"user":<user id>,"comment":"Demo-Bot"}`
+   — the value (`identifier:verifier`) is shown **once**; it goes into
+   `zugangsdaten/api_key.txt`. Keep the earlier administrator key as
+   `api_key.txt.bak-<date>` (needed for media work).
+4. Probes with the new key: `POST /api/station/2/backend/skip` → 200;
+   `PUT /api/station/2/files/batch` → 403; `GET /api/station/1/…` → 403;
+   `GET /admin/users` → 403.
+
+**The playlist** (the only music the station plays):
+
+1. Upload the tracks: `POST /api/station/2/files/upload`, multipart field
+   `file`. **A comma in the filename breaks `curl -F`** (HTTP 000) — send a
+   comma-free name via `-F "file=@/path;filename=Name ohne Komma.mp3"`.
+2. Clean up title/artist if wanted: `PUT /api/station/2/file/<id>` with
+   `title` and `artist`.
+3. Create the playlist: `POST /api/station/2/playlists`
+   `{"name":"GEMA-frei","type":"default","source":"songs","include_in_requests":true}`.
+4. Assign the files: `PUT /api/station/2/file/<id>` `{"playlists":[<id>]}`
+   (the list is **replaced** — always send all IDs).
+5. Switch off every other playlist (they stay in the library):
+   `PUT /api/station/2/playlist/<id>` `{"is_enabled":false}` — otherwise the
+   AutoDJ keeps drawing from them.
+6. Rebuild the catalogue so the fuzzy search finds the new tracks:
+   `POST http://<service>:8882/katalog/aktualisieren`.
+7. Set the playlist name for the bot: `zugangsdaten/demo-playlist.txt`
+   (one line); `bauen.sh` exports it as `DEMO_PLAYLIST`. Empty → wishes are
+   locked. The bot checks every music path against
+   `GET /playlist/titel?name=…` of the service — a hit outside the list is
+   answered “Diesen Titel gibt es nicht in der Demo-Playlist.”
+
 ---
 
 ## 4. Step 2 — the service `ddd-radio`
@@ -129,6 +177,7 @@ Wikipedia, topic overview). It is a FastAPI container built from
    | `TTS_KOMPRESSOR_SCHWELLE_DB` | compressor threshold (`-18`) |
    | `TTS_KOMPRESSOR_VERHAELTNIS` | compressor ratio (`2.0`) |
    | `TTS_ZIEL_RMS_DB` | target loudness (`-12.5`) |
+   | `ANSAGE_SPERRE_SEK` | free-text repeat lock in seconds (`90` — the same `/ansage/text` is not spoken twice within this window; protects against tool loops) |
 
    The four `TTS_*` values are the “variant 3” loudness chain used on air.
 
@@ -156,7 +205,7 @@ missing.
 | --- | --- | --- |
 | Speech | `POST /v1/audio/speech`, `GET /v1/audio/voices`, `POST /live` | TTS; live announcement into the stream |
 | Catalogue | `GET /suche`, `GET /genre`, `GET /genre/liste`, `GET /katalog/status`, `POST /katalog/aktualisieren`, `GET /katalog/kuenstler` | fuzzy search, mood/genre suggestions, artist hints |
-| Playlists | `POST /playlist/befehl`, `POST /playlist/knopf`, `POST /playlist/vorschlag`, `GET /playlist/status` | build and manage playlists in the station |
+| Playlists | `POST /playlist/befehl`, `POST /playlist/knopf`, `POST /playlist/vorschlag`, `GET /playlist/titel`, `GET /playlist/status` | build and manage playlists in the station; `/playlist/titel?name=…` returns the tracks of one playlist (used by the bot’s demo gate) |
 | Mailbox | `POST /meldungen/neu`, `GET /meldungen/offen`, `GET /meldungen/text/<id>`, `POST /meldungen/angeboten`, `POST /meldungen/erledigt` | news items waiting to be read out |
 | Announce | `POST /ansage/meldung`, `POST /ansage/text`, `GET /ansage/status` | speak a mailbox item or a free text |
 | Research | `POST /recherche`, `GET /recherche/feeds` | weather, news, feeds, Wikipedia, topic overview |
@@ -169,16 +218,16 @@ them. The mailbox is stored in `daten/meldungen.json`.
 
 ---
 
-## 5. Step 3 — the bot (five n8n workflows)
+## 5. Step 3 — the bot (four n8n workflows)
 
 ### 5.1 Sources and values
 
 | Path | Content |
 | --- | --- |
-| `../werkzeuge/agent-wf-bauen-ddd.py` | the generator: builds the configuration workflow and the four others (fork of `../../werkzeuge/agent-wf-bauen.py`) |
+| `../werkzeuge/agent-wf-bauen-ddd.py` | the generator: builds the configuration workflow and the three others (Radio, Meldungen, Bot; fork of `../../werkzeuge/agent-wf-bauen.py`) |
 | `../werkzeuge/bauen.sh` | build script — reads the value files, runs the generator |
 | `../werkzeuge/pruefen.sh` | checks: layout, JavaScript syntax, contracts (IDs, one service, one test entry, language plumbing, texts) |
-| `../werkzeuge/einspielen.sh` | imports the workflows into n8n, removes the ten older single-language ones, activates, restarts n8n, verifies |
+| `../werkzeuge/einspielen.sh` | imports the workflows into n8n, removes the ten older single-language ones **and the former administration workflow `DDD-Webseite-AzuraCast`**, activates, restarts n8n, verifies |
 | `../werkzeuge/dienst-einspielen.sh` | deploys `dienst/` to the service host and (re)starts it |
 | `../werkzeuge/ausfuehrung-lesen.js` | reads the last execution of a workflow from the n8n database |
 | `../zugangsdaten/` | the value files (see below), mode 700/600 |
@@ -193,6 +242,7 @@ Value files in `../zugangsdaten/`:
 | `erlaubte-chats.txt` | operator chat IDs (one per line → comma list) |
 | `telegram-bot-token.txt` | Telegram token (placeholder until the bot exists) |
 | `streamer-aqua.txt`, `streamer-marc.txt` | streamer passwords |
+| `demo-playlist.txt` | name of the demo playlist (e.g. `GEMA-frei`); empty = music wishes locked |
 
 ### 5.2 Build, check, import
 
@@ -207,7 +257,9 @@ bash einspielen.sh   # import + activate (restarts n8n, ~1 minute)
   scripts from `../../werkzeuge/` (they ship with the branch). The package build
   (`veroeffentlichung-bauen.py`) reads `../../LICENSE` from there as well.
 
-* `bauen.sh` substitutes the value files into the workflows. `TRIGGER_AUS=0`
+* `bauen.sh` substitutes the value files into the workflows (including
+  `DEMO_PLAYLIST` from `demo-playlist.txt`; `DEMO_ANSAGE_MAX` overrides the
+  240-character cap for free text). `TRIGGER_AUS=0`
   leaves the Telegram and schedule triggers active — the default `1` keeps
   them **off** until the token is in place. `DIENST_URL` overrides the
   service address (`http://192.168.178.53:8882` by default).
@@ -215,8 +267,8 @@ bash einspielen.sh   # import + activate (restarts n8n, ~1 minute)
   config `…/proxmox-ssh/config`, the host alias `ai-server` and an n8n
   project id. Adapt these for your environment. It removes the older
   `-DE`/`-EN` workflows from the n8n database (SQLite + restart, because n8n
-  has no delete command), so only the five bilingual ones remain. It also keeps
-  the five workflows in the n8n folder **Sender 2: DDD-Webseite** (the private
+  has no delete command), so only the four current ones remain. It also keeps
+  the four workflows in the n8n folder **Sender 2: DDD-Webseite** (the private
   bot lives in **Sender 1: Deadline Beats**); `n8n import:workflow` itself
   carries no folder assignment.
 * **The main bot’s workflows are not touched.** The n8n restart pauses all
@@ -272,9 +324,10 @@ curl -s -X POST "http://192.168.178.53:5678/webhook/ddd-webseite-rest?schluessel
 Edit in **one** place: the `Werte` node of `DDD-Webseite-Konfiguration`
 (addresses, station number, API key, service URL, mailbox key, Telegram
 token, allowed chats, test key, model and whisper addresses, and all task
-texts of the models). For a quick change, edit it directly in n8n and save;
-for a permanent change, update `../zugangsdaten/` (or the generator) and
-rebuild.
+texts of the models). The **demo limits** sit in the same node under `demo`
+(`playlist`, `ansage_max`); `demo-playlist.txt` feeds `demo.playlist` at build
+time. For a quick change, edit it directly in n8n and save; for a permanent
+change, update `../zugangsdaten/` (or the generator) and rebuild.
 
 ---
 
@@ -310,6 +363,13 @@ rebuild.
   (display name “Aqua”).
 * Verified in the reference installation: German announcement 9.8 s,
   English announcements 10.2 s and 9.8 s — each `live: true` in the station.
+* Bot-side limits (demo): free text ≤ **240 characters**, at most **one**
+  announcement per command, and the same text is **not repeated within 90
+  seconds** (service: `ANSAGE_SPERRE_SEK`). News, weather, feeds and the topic
+  overview are fetched and spoken by the service — no station rights needed.
+* Each announcement starts with 5.5 s of silence (the harbour swallows the
+  first seconds on connect) and ends with 1.5 s — short sentences sound short
+  by design.
 
 ---
 
@@ -323,13 +383,23 @@ After a rebuild, run through this list:
 4. Bot, English: `what is playing right now` → “Now playing: … Next: … Listeners: …” (~0.5 s).
 5. Wish: `spiele Eminem` / `play Guns N' Roses` → a selection list **in the
    question’s language**, with buttons; answering `3` plays the track.
-6. Control: `next` → “The next track is starting.”; `nächster` → German reply.
+6. Control: `weiter` / `next` → “Naechster Titel laeuft an.” / “The next track is
+   starting.” (the **only** control; pause/volume/restart are politely declined).
 7. Mailbox: `Im Postfach liegt nichts Offenes.` / `There is nothing open in the mailbox.`
-8. Announcement: `sag durch: …` / `announce into the stream: …` → spoken, reply confirms.
-9. REST input: the curl from 5.4 answers with JSON in the right language; a
-   wrong key answers “Kein Zugang”.
-10. Chat window: open `../chat-fenster.html`, enter the key, send “was läuft
-   gerade” — the answer appears as a bubble.
+8. Announcement: `sag durch: …` / `announce into the stream: …` → spoken **once**,
+   reply confirms; sending the same sentence again right away is suppressed
+   (“… gerade eben schon - ich habe sie nicht wiederholt.”).
+9. News: `lies die nachrichten vor` → the current news item is researched and
+   spoken (≈ 20–30 s).
+10. Rights: a wish from the playlist is accepted (`spiele Mozart`), a hit outside
+    is refused (`spiele Scooter` → “Diesen Titel gibt es nicht in der
+    Demo-Playlist.”); administration requests are declined without touching the
+    station. (With the restricted key, `PUT /api/station/2/files/batch` answers
+    403 — probes in §3.1.)
+11. REST input: the curl from 5.4 answers with JSON in the right language; a
+    wrong key answers “Kein Zugang”.
+12. Chat window: open `../chat-fenster.html`, enter the key, send “was läuft
+    gerade” — the answer appears as a bubble.
 
 ---
 
@@ -340,9 +410,9 @@ After a rebuild, run through this list:
   triggers, deactivate/reactivate the workflow.
 * **“Kein Zugang” for a correct chat** — `staticData.global.erlaubte` must
   contain **strings**; numbers never match.
-* **English sentence is answered in German** — ambiguous words (`pause`,
-  `stop`, `start`) count as German by design; rare free sentences go through
-  the model, and its answer language depends on the model.
+* **English sentence is answered in German** — rare free sentences go through
+  the model, and its answer language depends on the model; the fast shortcuts
+  are bilingual.
 * **Content stays German** — news, weather and feeds come from German
   sources; only the bot’s own words switch language.
 * **Search does not find new tracks** — rebuild the catalogue
@@ -350,6 +420,12 @@ After a rebuild, run through this list:
 * **No announcements** — check `AQUA_TTS_URL`/voice service; look for the
   fallback line in the service log (`docker logs ddd-radio`); check the
   `LIVE_*` values against the station’s streamer page.
+* **An announcement repeats** — should not happen: the agent is limited to 4
+  steps, every tool is called at most once, and `ANSAGE_SPERRE_SEK` (90 s)
+  suppresses the same free text. If it still repeats, check those three places.
+* **Music wishes are refused (“noch nicht freigeschaltet”)** — no demo playlist
+  is set: check `../zugangsdaten/demo-playlist.txt` (name spelled exactly like
+  the playlist) and the `demo.playlist` value in the `Werte` node.
 * **Playlist selection “vanishes”** — the service keeps selections in
   memory; a restart clears them.
 * **Media index stalls in AzuraCast** — album-art permissions on the PVE
@@ -362,7 +438,7 @@ After a rebuild, run through this list:
 | File | Purpose |
 | --- | --- |
 | `../README.md` | overview: what is running, how the bilingual chat works |
-| `../ANORDNUNG.md` | generated canvas overview of the five workflows (working material; the workflow notes are German) |
+| `../ANORDNUNG.md` | generated canvas overview of the four workflows (working material; the workflow notes are German) |
 | `../werkzeuge/agent-wf-bauen-ddd.py` | workflow generator |
 | `../werkzeuge/{bauen,pruefen,einspielen,dienst-einspielen}.sh` | build, check, deploy |
 | `../werkzeuge/ausfuehrung-lesen.js` | read the last workflow execution from n8n |

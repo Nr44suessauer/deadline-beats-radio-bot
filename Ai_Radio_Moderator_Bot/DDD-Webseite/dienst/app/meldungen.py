@@ -58,6 +58,10 @@ MAX_ZEICHEN = int(os.environ.get("ANSAGE_MAX_ZEICHEN", "9000"))
 # Wie viele Meldungen und Ansagen aufgehoben werden.
 MAX_MELDUNGEN = int(os.environ.get("MELDUNGEN_MAX", "500"))
 MAX_ANSAGEN = int(os.environ.get("ANSAGEN_MAX", "100"))
+# Derselbe freie Text wird innerhalb dieser Sekunden nicht zweimal gesprochen.
+# Schutz vor Werkzeug-Schleifen des Modells (am 2026-09-25 sprach der Agent
+# eine Ansage versehentlich elfmal).
+ANSAGE_SPERRE_SEK = int(os.environ.get("ANSAGE_SPERRE_SEK", "90"))
 
 SPERRE = threading.Lock()
 
@@ -651,6 +655,25 @@ def _ansage_meldung_arbeit(anfrage: AnsageMeldung) -> dict[str, Any]:
             "bearbeiten": True, "tastatur": {"inline_keyboard": []}}
 
 
+def _vor_kurzem_gesprochen(text: str) -> bool:
+    """Wurde genau dieser Text (Anfang) gerade eben schon gesprochen?"""
+    grenze = text[:60]
+    with SPERRE:
+        daten = _laden()
+    jetzt = datetime.now(timezone.utc)
+    for a in reversed(daten.get("ansagen", [])):
+        if a.get("weg") != "text" or a.get("titel") != grenze:
+            continue
+        try:
+            dann = datetime.fromisoformat(str(a.get("zeit")))
+        except ValueError:
+            continue
+        if dann.tzinfo is None:
+            dann = dann.replace(tzinfo=timezone.utc)
+        return (jetzt - dann).total_seconds() < ANSAGE_SPERRE_SEK
+    return False
+
+
 @router.post("/ansage/text")
 def ansage_text(anfrage: AnsageText,
                 x_meldung_schluessel: str | None = Header(default=None)) -> dict[str, Any]:
@@ -660,6 +683,12 @@ def ansage_text(anfrage: AnsageText,
     if not text:
         raise HTTPException(status_code=400, detail="Kein Text uebergeben.")
     text = kuerzen(text)
+    # Schleifenschutz: denselben Text nicht kurz hintereinander sprechen.
+    if not anfrage.trocken and _vor_kurzem_gesprochen(text):
+        return {"ok": True, "gesprochen": text, "wiederholt": False,
+                "dauer_sekunden": 0,
+                "antwort": "\U0001f399\ufe0f Diese Ansage lief gerade eben schon - "
+                           "ich habe sie nicht wiederholt."}
     if anfrage.trocken:
         ergebnis = _trocken_text(text, anfrage.stimme, anfrage.speed)
     else:

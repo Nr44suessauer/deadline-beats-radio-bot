@@ -19,18 +19,19 @@ EINE Stelle fuer den ganzen Bot: Adressen, Schluessel, Modell, Aufgabentexte. Be
 
 ## DDD-Webseite Werkzeug Radio
 
-17 Knoten in 7 Rahmen. Jeder Knoten traegt seine Erklaerung als Notiz unter dem Namen.
+14 Knoten in 7 Rahmen. Jeder Knoten traegt seine Erklaerung als Notiz unter dem Namen.
 
 ### Weichen  ·  `Notiz W Weichen`
 
-Richtung, Zustand oder Titelsuche - eines von drei.
+Erst die Demo-Playlist holen; dann Richtung, Zustand oder Titelsuche.
 
 | Knoten | Erklaerung (Notiz am Knoten) | Position |
 | --- | --- | --- |
-| `Eingang` | Felder des Werkzeugs: suchtext, richtung, frage, einreihen. | -900, 0 |
-| `Konfiguration` | Alle Adressen, Schluessel und Aufgabentexte (Ablauf DDD-Webseite-Konfiguration). | -900, 260 |
-| `Richtung?` | Ja = Stimmung/Genre/Jahrzehnt -> Vorschlaege holen und den ersten spielen. | -660, 0 |
-| `Nur Status?` | Ja = Frage zum Programm, keine Suche. | -420, 0 |
+| `Eingang` | Felder des Werkzeugs: suchtext, richtung, frage. | -900, 208 |
+| `Konfiguration` | Alle Adressen, Schluessel und Aufgabentexte (Ablauf DDD-Webseite-Konfiguration). | -900, 468 |
+| `Playlist holen` | Titel der festgelegten Demo-Playlist (leer = Musikwege gesperrt). | -660, 208 |
+| `Richtung?` | Ja = Stimmung/Genre/Jahrzehnt -> Vorschlaege holen und den ersten spielen. | -420, 208 |
+| `Nur Status?` | Ja = Frage zum Programm, keine Suche. | -420, 408 |
 
 ### Zweig: Richtung  ·  `Notiz W Richtung`
 
@@ -38,18 +39,17 @@ Stimmung, Genre oder Jahrzehnt aus dem Katalogdienst.
 
 | Knoten | Erklaerung (Notiz am Knoten) | Position |
 | --- | --- | --- |
-| `Richtung suchen` | Katalogdienst nach Stimmung, Genre oder Jahrzehnt. | -420, -480 |
-| `Vorschlaege aufbereiten` | Macht aus den Vorschlaegen einen ersten Titel oder eine Liste. | -180, -480 |
+| `Richtung suchen` | Katalogdienst nach Stimmung, Genre oder Jahrzehnt. | -420, -220 |
+| `Vorschlaege aufbereiten` | Macht aus den Vorschlaegen einen ersten Titel oder eine Liste. | -180, -220 |
 
 ### Zweig: Titel suchen  ·  `Notiz W Suche`
 
-Katalogdienst (unscharf) und Volltextsuche des Senders.
+Nur der Katalogdienst (unscharf, tippfehlertolerant) - der Sender wird nur gelesen, nicht durchsucht.
 
 | Knoten | Erklaerung (Notiz am Knoten) | Position |
 | --- | --- | --- |
-| `Suche klug` | Unscharfe Suche im Katalogdienst (tippfehlertolerant). | -420, 706 |
-| `Suche Sender` | Volltextsuche des Senders als zweite Quelle. | -180, 706 |
-| `Treffer aufbereiten` | Treffer beider Quellen zu einer kurzen Liste machen. | 60, 706 |
+| `Suche klug` | Unscharfe Suche im Katalogdienst (tippfehlertolerant). | 1240, 548 |
+| `Treffer aufbereiten` | Treffer zu einer kurzen Liste machen (nur Demo-Playlist). | 1720, 428 |
 
 ### Zweig: Was laeuft  ·  `Notiz W Status`
 
@@ -57,20 +57,17 @@ Nur der Zustand - die Rueckgabe ist der Text.
 
 | Knoten | Erklaerung (Notiz am Knoten) | Position |
 | --- | --- | --- |
-| `NowPlaying` | Was laeuft, was kommt danach, wie viele Zuhoerer. | -420, 1134 |
-| `Status aufbereiten` | Formuliert den Zustand als Text (Rueckgabe des Werkzeugs). | -180, 1134 |
+| `NowPlaying` | Was laeuft, was kommt danach, wie viele Zuhoerer. | 90, 428 |
+| `Status aufbereiten` | Formuliert den Zustand als Text (Rueckgabe des Werkzeugs). | 330, 428 |
 
 ### Abspielen  ·  `Notiz W Abspielen`
 
-Ohne Pfad wird nichts eingetragen - dann bleibt es bei einer Auswahlliste. Mit Pfad: erst die unterbrechende Warteschlange leeren, dann sofort oder hinten an.
+Ohne Pfad wird nichts eingetragen - dann bleibt es bei einer Auswahlliste. Mit Pfad geht der Wunsch ueber die oeffentliche Wunsch-Schnittstelle des Senders (kein Schreibrecht noetig) und laeuft in Kuerze.
 
 | Knoten | Erklaerung (Notiz am Knoten) | Position |
 | --- | --- | --- |
 | `Treffer da?` | Ja = es gibt einen Titel, der laufen soll. | 540, 0 |
-| `Einreihen?` | Ja = nur einreihen, nicht unterbrechen. | 780, 0 |
-| `Warteschlange leeren` | Leert die unterbrechende Warteschlange des Senders. | 1020, -260 |
-| `Sofort eintragen` | Traegt den Titel sofort in die unterbrechende Warteschlange ein. | 1260, -260 |
-| `Danach eintragen` | Haengt den Titel hinter das Laufende. | 1260, 180 |
+| `Wunsch anfordern` | Traegt den Wunsch ueber die oeffentliche Wunsch-Schnittstelle ein. | 800, 0 |
 
 ### Ausgabe  ·  `Notiz W Ausgabe`
 
@@ -78,7 +75,7 @@ Hier endet der Werkzeug-Ablauf - der Text geht an den Agenten zurueck.
 
 | Knoten | Erklaerung (Notiz am Knoten) | Position |
 | --- | --- | --- |
-| `Ergebnis` | Ausgabeknoten: hier endet der Werkzeug-Ablauf. | 1700, 0 |
+| `Ergebnis` | Ausgabeknoten: hier endet der Werkzeug-Ablauf. | 1240, 0 |
 
 ### DDD-Webseite Werkzeug Radio  ·  `Notiz Doku`
 
@@ -88,7 +85,7 @@ Unterschnittstelle des Agenten fuer Musik: Weichen, Titel suchen, Richtung, Zust
 
 ## DDD-Webseite Bot - Telegram-Agent (DE/EN)
 
-90 Knoten in 10 Rahmen. Jeder Knoten traegt seine Erklaerung als Notiz unter dem Namen.
+87 Knoten in 10 Rahmen. Jeder Knoten traegt seine Erklaerung als Notiz unter dem Namen.
 
 ### Sprachnachricht (eigener Zweig oben)  ·  `Notiz Sprachnachricht`
 
@@ -187,7 +184,7 @@ Ein Befehl je Durchlauf - Ausgang 0 = fertig, Ausgang 1 = weiter. Drei Wege: Ers
 | `Postfach?` | Ja = Frage nach dem Postfach | -140, 1320 |
 | `Ueberblick?` | Ja = Quellen-Ueberblick | -140, 1580 |
 | `Ersatz Antwort` | Schreibt die Ausgabe in den Merker, dann zurueck in die Schleife. | 80, 800 |
-| `Kurz Steuern` | Naechster Titel, Start/Stop/Neustart - feste Adressen, kein Modell. | 80, 1060 |
+| `Kurz Steuern` | Naechster Titel - feste Adresse, kein Modell. | 80, 1060 |
 | `Postfach holen` | Offene Meldungen holen | 80, 1320 |
 | `Ausfuehren` | Ein Befehl je Durchlauf | 80, 1580 |
 | `Ueberblick holen` | Beitrag holen und sprechen | 80, 1840 |
@@ -206,9 +203,6 @@ Je Werkzeug ein Knoten; er ruft den Werkzeug-Ablauf per `executeWorkflow` auf. D
 | `Werkzeug Titel suchen` | Werkzeug `titel_suchen` fuer Ausfuehren und Nacharbeiten. | 740, 2200 |
 | `Werkzeug Richtung suchen` | Werkzeug `richtung_suchen` fuer Ausfuehren und Nacharbeiten. | 940, 2200 |
 | `Werkzeug Was laeuft` | Werkzeug `was_laeuft` fuer Ausfuehren und Nacharbeiten. | 1140, 2200 |
-| `Werkzeug Azura Adressen` | Werkzeug `azura_endpunkte` fuer Ausfuehren und Nacharbeiten. | 1340, 2200 |
-| `Werkzeug Azura Aufruf` | Werkzeug `azura_aufruf` fuer Ausfuehren und Nacharbeiten. | 1540, 2200 |
-| `Werkzeug Azura Ueberblick` | Werkzeug `azura_ueberblick` fuer Ausfuehren und Nacharbeiten. | 1740, 2200 |
 | `Werkzeug Meldungen` | Werkzeug `meldungen`: Postfach und Ansagen. | 1960, 2200 |
 | `Werkzeug Recherche` | Werkzeug `recherche`: Wetter, Nachrichten, Feed, Kurzinfo. | 2180, 2200 |
 
@@ -238,7 +232,7 @@ Je Werkzeug ein Knoten; er ruft den Werkzeug-Ablauf per `executeWorkflow` auf. D
 
 ### DDD-Webseite Bot - zweisprachiger Telegram-Agent (DE/EN)  ·  `Notiz Uebersicht`
 
-EIN Bot, EIN Chat: der Betreiber schreibt deutsch oder englisch. Die Sprache wird am Eingang erkannt (Feld `sprache`) und reist mit - Kurzbefehle, Werkzeugantworten und die Antworten des Modells folgen ihr. Inhalte (Nachrichten, Wetter) und die Verwaltungswege des Dienstes bleiben deutsch. Was der Bot kann: Liedwunsch, Richtungswunsch, skip/pause/Status, Wiedergabelisten, Postfach, Recherche (Wetter, Nachrichten, RSS) und Ansagen im laufenden Programm. Alles kommt aus Telegram und geht dorthin zurueck - oder per REST- oder Testeingang als JSON ({"text": "..."} plus Schluessel; Antwort {ok, antwort, tastatur, sprache}). Gespielt wird auf dem Sender "DDD-Webseite Demo" (Sender 2). Der Weg einer Nachricht: Eingang -> Stufe 0/1 Analyse -> Stufe 2 Ausfuehrung -> Stufe 3 Pruefung -> Antwort. Sprachnachrichten laufen oben durch Whisper, Dienste und Postfach haengen seitlich dran. Jeder Knoten traegt seinen Zweck als Notiz unter dem Namen, jeder Rahmen erklaert eine Stufe. Rahmenfarben: 1 Sprachnachricht | 2 Eingang | 3 Dienste | 4 Postfach | 5 Stufe 0+1 | 6 Stufe 2 + Werkzeuge | 7 Stufe 3 + Antwort Erzeugt von DDD-Webseite/werkzeuge/agent-wf-bauen-ddd.py - nie von Hand aendern. Aendern: bauen.sh, pruefen.sh, einspielen.sh. Doku: README.md (deutsch) und EN/README.md (englisch).
+EIN Bot, EIN Chat: der Betreiber schreibt deutsch oder englisch. Die Sprache wird am Eingang erkannt (Feld `sprache`) und reist mit - Kurzbefehle, Werkzeugantworten und die Antworten des Modells folgen ihr. Inhalte (Nachrichten, Wetter) und die Verwaltungswege des Dienstes bleiben deutsch. Was der Bot kann: Musikwuensche aus der festgelegten Demo-Wiedergabeliste, "weiter" (Titelwechsel), Programmstatus, Postfach, Recherche (Wetter, Nachrichten, RSS) und Ansagen im laufenden Programm. Verwalten kann der Bot nichts: der Schluessel darf nur zuhoeren, springen und Wuensche annehmen (siehe zugangsdaten/api_key.txt). Alles kommt aus Telegram und geht dorthin zurueck - oder per REST- oder Testeingang als JSON ({"text": "..."} plus Schluessel; Antwort {ok, antwort, tastatur, sprache}). Gespielt wird auf dem Sender "DDD-Webseite Demo" (Sender 2). Der Weg einer Nachricht: Eingang -> Stufe 0/1 Analyse -> Stufe 2 Ausfuehrung -> Stufe 3 Pruefung -> Antwort. Sprachnachrichten laufen oben durch Whisper, Dienste und Postfach haengen seitlich dran. Jeder Knoten traegt seinen Zweck als Notiz unter dem Namen, jeder Rahmen erklaert eine Stufe. Rahmenfarben: 1 Sprachnachricht | 2 Eingang | 3 Dienste | 4 Postfach | 5 Stufe 0+1 | 6 Stufe 2 + Werkzeuge | 7 Stufe 3 + Antwort Erzeugt von DDD-Webseite/werkzeuge/agent-wf-bauen-ddd.py - nie von Hand aendern. Aendern: bauen.sh, pruefen.sh, einspielen.sh. Doku: README.md (deutsch) und EN/README.md (englisch).
 
 *(Uebersichtskasten ohne Knoten)*
 

@@ -54,8 +54,8 @@ def darf_nicht(text, name, datei=None):
         fehler += 1
 
 
-print(" -- Kennungen: fuenf Ablaeufe, keine Sprach-Endung --")
-for kennung in ("DDD-Webseite-Konfiguration", "DDD-Webseite-Radio", "DDD-Webseite-AzuraCast",
+print(" -- Kennungen: vier Ablaeufe, keine Sprach-Endung --")
+for kennung in ("DDD-Webseite-Konfiguration", "DDD-Webseite-Radio",
                 "DDD-Webseite-Meldungen", "DDD-Webseite-Bot"):
     muss(alles, '"id": "' + kennung + '"')
 for rest in ('-DE"', '-EN"', "Configuration-EN", "Messages-EN"):
@@ -74,6 +74,22 @@ muss(alles, "ddd-webseite-test", 1)
 darf_nicht(alles, "ddd-webseite-test-de")
 muss(agent, "DDD-Webseite-Konfiguration")
 
+print(" -- Demo-Rechte: nur zuhoeren, springen, Wuensche --")
+darf_nicht(alles, "Werkzeug Azura")
+darf_nicht(alles, "azura_")
+darf_nicht(alles, "files/batch")
+darf_nicht(alles, "interrupting_requests")
+darf_nicht(alles, "/debug/")
+muss(werkzeuge, "'/request/'", 1)
+muss(werkzeuge, "Wunsch anfordern", 4)
+muss(werkzeuge, "Playlist holen", 4)
+muss(werkzeuge, "demo.playlist", 1)
+muss(werkzeuge, "ansage_max", 2)
+muss(agent, "'skip'", 3)
+darf_nicht(agent, "'lautstaerke'")
+darf_nicht(agent, "'restart'")
+darf_nicht(agent, "'pause'")
+
 print(" -- die Sprache reist mit (de/en) --")
 muss(agent, "sprache_raten", 2)
 muss(agent, "for (const q of ['Zugang'", 8)
@@ -84,19 +100,19 @@ muss(werkzeuge, '"name": "sprache"', 1)
 muss(werkzeuge, "eingang.sprache", 4)
 
 print(" -- deutsche Texte unveraendert vorhanden --")
-muss(alles, "laeuft jetzt sofort", 2)
+muss(alles, "ist als Wunsch eingeplant", 2)
 muss(alles, "Tippe den passenden Knopf oder antworte mit der Nummer", 1)
 muss(alles, "Im Postfach liegt nichts Offenes", 1)
 muss(alles, "naechster Titel laeuft an", 0)   # alte Schreibweise weg
 muss(alles, "Naechster Titel laeuft an", 1)
 
 print(" -- englische Texte vorhanden --")
-muss(alles, "is playing now", 1)
+muss(alles, "is queued as a request", 2)
 muss(alles, "NO MATCHES", 1)
 muss(alles, "Now playing: ", 1)
 muss(alles, "Tap the matching button or answer with the number", 1)
 muss(alles, "I did not understand that", 2)
-muss(alles, "will play afterwards", 2)
+muss(alles, "will play soon", 2)
 
 print(" -- Sprachanweisungen der Modelle --")
 muss(alles, "DEUTSCH ODER ENGLISCH", 1)

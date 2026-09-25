@@ -1,12 +1,13 @@
 #!/usr/bin/env bash
 # Spielt die Ablaeufe der DDD-Webseite-Fassung ein: EIN zweisprachiger Bot
-# (deutsche und englische Nachrichten in einem Chat), fuenf Ablaeufe.
+# (deutsche und englische Nachrichten in einem Chat), vier Ablaeufe.
 # Voraussetzung: bauen.sh ist gelaufen.
 #
 # Der Lauf erledigt alles in einem Zug:
-#   1. die fuenf neuen Ablaeufe importieren
-#   2. die alten zehn Ablaeufe (Fassungen mit -DE/-EN) aus n8n entfernen
-#   3. die fuenf neuen einschalten und in den Ordner "Sender 2: DDD-Webseite"
+#   1. die vier neuen Ablaeufe importieren
+#   2. die alten zehn Ablaeufe (Fassungen mit -DE/-EN) aus n8n entfernen und den
+#      entfallenen Ablauf "DDD-Webseite-AzuraCast" (Verwaltung, gibt es nicht mehr)
+#   3. die vier neuen einschalten und in den Ordner "Sender 2: DDD-Webseite"
 #      legen, dann n8n neu starten (Webhooks anmelden)
 #   4. Gesundheit, Testeingang, REST-Eingang und Ablaufliste pruefen
 #
@@ -25,9 +26,9 @@ W=/tmp/ddd-webseite-werkzeuge.json
 A=/tmp/ddd-webseite-agent.json
 
 # Kennungen der neuen Fassung (ohne Sprach-Endung)
-NEU="DDD-Webseite-Konfiguration DDD-Webseite-Radio DDD-Webseite-AzuraCast DDD-Webseite-Meldungen DDD-Webseite-Bot"
-# Kennungen der alten Fassungen (werden entfernt)
-ALT="DDD-Webseite-Konfiguration-DE DDD-Webseite-Radio-DE DDD-Webseite-AzuraCast-DE DDD-Webseite-Meldungen-DE DDD-Webseite-Bot-DE DDD-Webseite-Configuration-EN DDD-Webseite-Radio-EN DDD-Webseite-AzuraCast-EN DDD-Webseite-Messages-EN DDD-Webseite-Bot-EN"
+NEU="DDD-Webseite-Konfiguration DDD-Webseite-Radio DDD-Webseite-Meldungen DDD-Webseite-Bot"
+# Kennungen der alten Fassungen (werden entfernt) plus der entfallene AzuraCast-Ablauf
+ALT="DDD-Webseite-AzuraCast DDD-Webseite-Konfiguration-DE DDD-Webseite-Radio-DE DDD-Webseite-AzuraCast-DE DDD-Webseite-Meldungen-DE DDD-Webseite-Bot-DE DDD-Webseite-Configuration-EN DDD-Webseite-Radio-EN DDD-Webseite-AzuraCast-EN DDD-Webseite-Messages-EN DDD-Webseite-Bot-EN"
 
 for D in "$K" "$W" "$A"; do
   [ -f "$D" ] || { echo "Datei fehlt: $D - erst bauen (bauen.sh)"; exit 1; }
@@ -54,7 +55,7 @@ db.close(() => {
 JS
 
 # Kleines Hilfsprogramm: legt den Ordner "Sender 2: DDD-Webseite" an (falls er
-# fehlt) und ordnet die fuenf Ablaeufe zu. `n8n import:workflow` uebernimmt die
+# fehlt) und ordnet die vier Ablaeufe zu. `n8n import:workflow` uebernimmt die
 # Ordner-Zuordnung NICHT - ohne diesen Schritt liegen die Ablaeufe zuoberst
 # ohne Ordner (der private Bot liegt in "Sender 1: Deadline Beats").
 cat > /tmp/ddd-ordner.js <<'JS'
@@ -63,7 +64,7 @@ const db = new sqlite3.Database("/home/node/.n8n/database.sqlite");
 const ORDNER = "RWEPQ3wEjcfpTacL";
 const NAME = "Sender 2: DDD-Webseite";
 const PROJEKT = "rQ6DFC63JlNQbiar";
-const IDS = ["DDD-Webseite-Konfiguration", "DDD-Webseite-Radio", "DDD-Webseite-AzuraCast",
+const IDS = ["DDD-Webseite-Konfiguration", "DDD-Webseite-Radio",
              "DDD-Webseite-Meldungen", "DDD-Webseite-Bot"];
 db.serialize(() => {
   db.run("insert or ignore into folder (id, name, parentFolderId, projectId, createdAt, updatedAt)"

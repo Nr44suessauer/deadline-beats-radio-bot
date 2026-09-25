@@ -85,6 +85,10 @@ MODELL = Ausdruck(K + ".sprachmodell.modell")
 WHISPER = Ausdruck(K + ".sprache.adresse")
 TG = Ausdruck(K + ".telegram.bot")
 TG_DATEI = Ausdruck(K + ".telegram.datei")
+# Fuer die oeffentliche Wunsch-Schnittstelle des Senders: eine Bot-Kennung wird
+# dort abgelehnt, deshalb gibt sich der Aufruf als Browser aus.
+BROWSER_UA = ("Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 "
+              "(KHTML, like Gecko) Chrome/126 Safari/537.36")
 # Der Knoten "Ollama Chat Model" reicht in dieser n8n-Fassung keine Werkzeugaufrufe
 # durch (das Modell antwortet mit leerem Text, der Agent bricht ab). Ollama spricht
 # unter /v1 dieselbe Schnittstelle wie OpenAI - deshalb der OpenAI-Knoten.
@@ -161,14 +165,7 @@ ORDNER = "RWEPQ3wEjcfpTacL"          # Ordner "Sender 2: DDD-Webseite"
 W_WERKZEUG = "DDD-Webseite-Radio"
 W_WERKZEUG_NAME = "DDD-Webseite Werkzeug Radio"
 
-# Eigener Werkzeug-Ablauf fuer den Sender selbst (AzuraCast): Adressen
-# nachschlagen, beliebige Schnittstelle aufrufen, Ueberblick holen. Der Agent
-# haengt drei Werkzeugknoten daran - so kann der Betreiber den Server ueber den
-# Chat bedienen, ohne dass die Radio-Werkzeuge unuebersichtlich werden.
-W_AZURA = "DDD-Webseite-AzuraCast"
-W_AZURA_NAME = "DDD-Webseite Werkzeug AzuraCast"
-
-# Dritter Werkzeug-Ablauf: das Postfach fuer den Suchbot (Wetter, RSS, Nachrichten)
+# Zweiter Werkzeug-Ablauf: das Postfach fuer den Suchbot (Wetter, RSS, Nachrichten)
 # und die Ansagen des Moderators. Liegt bewusst getrennt, damit der neue Umfang
 # den bestehenden Bot nicht beruehrt (Schnittstelle: dienst/meldungen.py).
 W_MELDUNGEN = "DDD-Webseite-Meldungen"
@@ -312,20 +309,29 @@ const eingang = $('Eingang').first().json || {};
 const EN = String(eingang.sprache || '').toLowerCase() === 'en';
 const T = (de, eng) => (EN ? eng : de);
 const suchtext = String(eingang.suchtext || $json.suchtext || '').trim();
-const einreihen = eingang.einreihen === true
-  || String(eingang.einreihen || '').toLowerCase() === 'true';
+// Die Demo darf Musik nur in der festgelegten Wiedergabeliste aendern. Der
+// Knoten "Playlist holen" kennt ihre Titel; ohne Angabe bleibt der Musikweg zu.
+let liste = {};
+try { liste = $('Playlist holen').first().json || {}; } catch (e) { liste = {}; }
+if (liste.error || liste.statusCode) {
+  return [{ json: { ergebnis: T('Der Dienst antwortet gerade nicht - Musikwuensche '
+    + 'gehen im Moment nicht.', 'The service is not answering right now - requests are '
+    + 'unavailable.'), pfad: '' } }];
+}
+if (!liste.konfiguriert) {
+  return [{ json: { ergebnis: T('Musikwuensche sind in dieser Demo noch nicht '
+    + 'freigeschaltet.', 'Requests are not unlocked in this demo yet.'), pfad: '' } }];
+}
+const erlaubt = new Set((liste.pfade || []).map((x) => String(x)));
 if (!suchtext) {
   return [{ json: { ergebnis: T('FEHLER: Kein Suchbegriff. Nenne Interpret und/oder Titel, '
     + 'zum Beispiel "In Extremo Santa Maria". Suche nie ohne Begriff.',
     'ERROR: No search term. Name the artist and/or title, for example '
-    + '"In Extremo Santa Maria". Never search without a term.'), pfad: '',
-    einreihen: einreihen } }];
+    + '"In Extremo Santa Maria". Never search without a term.'), pfad: '' } }];
 }
 
-const okText = (t) => 'OK: "' + t + '" ' + (einreihen
-  ? T('laeuft danach (nach dem laufenden Titel).',
-      'will play afterwards (after the current track).')
-  : T('laeuft jetzt sofort.', 'is playing now.'));
+const okText = (t) => 'OK: "' + t + '" ' + T('ist als Wunsch eingeplant und laeuft in Kuerze.',
+  'is queued as a request and will play soon.');
 
 // Merker der letzten Auswahlliste: "2" oder "nummer 2" loest daraus auf. So muss
 // das Modell den Dateipfad nicht abschreiben - kleinere Modelle erfinden ihn sonst.
@@ -339,12 +345,11 @@ if (zahl) {
       ? T('Die Nummer ' + zahl[1] + ' gibt es nicht - zur Auswahl standen ' + vorher.length + ' Titel.',
           'There is no number ' + zahl[1] + ' - the list had ' + vorher.length + ' track(s).')
       : T('Es steht keine Auswahlliste bereit. Suche erst nach einem Titel.',
-          'There is no selection list. Search for a track first.')), pfad: '',
-      einreihen: einreihen } }];
+          'There is no selection list. Search for a track first.')), pfad: '' } }];
   }
   d.listen = [];
   return [{ json: { ergebnis: okText(t.titel), pfad: t.pfad, titel: t.titel,
-    einreihen: einreihen } }];
+    unique_id: t.unique_id || '' } }];
 }
 
 function quelle(quelleName) {
@@ -384,9 +389,12 @@ const kernS = (t) => kernTitel(t).split(' ').filter(Boolean);
 const treffer = [];
 const gesehen = new Set();
 const kerne = [];
-for (const t of quelle('Suche klug').concat(quelle('Suche Sender'))) {
+let ausserhalb = 0;
+for (const t of quelle('Suche klug')) {
   const pfad = t.path || '';
   if (!pfad) continue;
+  // Nur Titel der festgelegten Demo-Liste (Vergleich ueber den Dateipfad).
+  if (!erlaubt.has(pfad)) { ausserhalb += 1; continue; }
   // Live-/Bootleg-Mitschnitte liegen im Archiv und werden nie vorgeschlagen.
   // Der Schraegstrich muss einfach maskiert sein (\/) - mit \\/ waere der
   // regulaere Ausdruck in JavaScript ungueltig.
@@ -404,11 +412,13 @@ for (const t of quelle('Suche klug').concat(quelle('Suche Sender'))) {
 
 if (!treffer.length) {
   d.listen = [];
-  return [{ json: { ergebnis: T('KEINE TREFFER fuer "' + suchtext + '". '
-    + 'Versuche den Interpreten allein oder eine Richtung (richtung_suchen).',
-    'NO MATCHES for "' + suchtext + '". Try the artist alone or a direction '
-    + '(richtung_suchen).'), pfad: '',
-    einreihen: einreihen } }];
+  return [{ json: { ergebnis: (ausserhalb
+    ? T('Diesen Titel gibt es nicht in der Demo-Playlist.',
+        'That track is not part of the demo playlist.')
+    : T('KEINE TREFFER fuer "' + suchtext + '". '
+      + 'Versuche den Interpreten allein oder eine Richtung (richtung_suchen).',
+      'NO MATCHES for "' + suchtext + '". Try the artist alone or a direction '
+      + '(richtung_suchen).')), pfad: '' } }];
 }
 
 // Wie viele Titel eine Auswahlliste hoechstens zeigt. Telegram erlaubt deutlich
@@ -466,16 +476,17 @@ const bester = zeigen[0].t;
 
 if (klar) {
   d.listen = [];
-  // Klarer Treffer: das Werkzeug spielt selbst (Knoten "Sofort eintragen") - das
-  // Modell bekommt nur die fertige Meldung und kann den Titel nicht bloss ankuendigen.
+  // Klarer Treffer: das Werkzeug traegt den Wunsch selbst ein (Knoten "Wunsch
+  // anfordern") - das Modell bekommt nur die fertige Meldung und kann den Titel
+  // nicht bloss ankuendigen.
   return [{ json: { ergebnis: okText(name(bester)), pfad: bester.path || '',
-    titel: name(bester), einreihen: einreihen } }];
+    titel: name(bester), unique_id: bester.unique_id || '' } }];
 }
 
 // Auswahl merken: bei der naechsten Nachricht ("2" oder Knopfdruck) loest das
 // Werkzeug daraus auf. "auswahl" sind nur die Titel - der Bot baut daraus die
 // anklickbaren Knoepfe (callback_data "w" + Nummer), der Dateipfad bleibt hier.
-d.listen = zeigen.map((e) => ({ titel: name(e.t), pfad: e.t.path }));
+d.listen = zeigen.map((e) => ({ titel: name(e.t), pfad: e.t.path, unique_id: e.t.unique_id || '' }));
 return [{ json: {
   ergebnis: T('Mehrere Titel passen zu "' + suchtext + '":\n' + zeilen.join('\n')
     + '\n\nFrage kurz, welcher gemeint ist. Antwortet er mit einer Nummer, rufe titel_suchen\n'
@@ -484,14 +495,14 @@ return [{ json: {
     + '\n\nAsk briefly which one is meant. If the answer is a number, call titel_suchen\n'
     + 'with exactly that number as suchtext.'),
   auswahl: zeigen.map((e) => name(e.t)),
-  pfad: '', einreihen: einreihen } }];
+  pfad: '' } }];
 """
 
 WERKZEUG_ERGEBNIS_JS = r"""
-// Der Suchlauf hat bei einem klaren Treffer schon gespielt - hier nur noch die
-// Antwort des Senders pruefen und den Text weitergeben. Der Text steht je nach
-// Zweig in "Treffer aufbereiten" (Titelsuche) oder "Vorschlaege aufbereiten"
-// (Richtung); der jeweils andere Knoten ist nicht gelaufen.
+// Der Suchlauf hat den Wunsch schon eingetragen (Knoten "Wunsch anfordern") -
+// hier nur noch die Antwort des Senders pruefen und den Text weitergeben. Der
+// Text steht je nach Zweig in "Treffer aufbereiten" (Titelsuche) oder
+// "Vorschlaege aufbereiten" (Richtung); der jeweils andere Knoten ist nicht gelaufen.
 const eingang = $('Eingang').first().json || {};
 const EN = String(eingang.sprache || '').toLowerCase() === 'en';
 const T = (de, eng) => (EN ? eng : de);
@@ -500,18 +511,19 @@ try { auf = $('Treffer aufbereiten').first().json || {}; } catch (e) { auf = {};
 if (!auf.ergebnis) {
   try { auf = $('Vorschlaege aufbereiten').first().json || {}; } catch (e) { auf = {}; }
 }
-let antwort = null;
-if (auf.pfad) {
-  const quelle = auf.einreihen ? 'Danach eintragen' : 'Sofort eintragen';
-  try { antwort = $(quelle).first().json; } catch (e) { antwort = null; }
-}
-if (!auf.pfad || !antwort) return [{ json: { ergebnis: auf.ergebnis
+if (!auf.pfad || !auf.unique_id) return [{ json: { ergebnis: auf.ergebnis
   || T('Kein Treffer.', 'No match.'),
   auswahl: Array.isArray(auf.auswahl) ? auf.auswahl : [] } }];
-const fehler = (antwort.errors || []).length || antwort.error;
+let antwort = null;
+try { antwort = $('Wunsch anfordern').first().json; } catch (e) { antwort = null; }
+const fehler = antwort && antwort.error
+  ? String((antwort.error && (antwort.error.message || antwort.error.description))
+           || antwort.error).slice(0, 300)
+  : '';
 return [{ json: { ergebnis: (fehler
-  ? T('FEHLER beim Eintragen: ', 'ERROR while queueing: ')
-    + JSON.stringify(antwort.errors || antwort.error)
+  ? T('Der Wunsch ging gerade nicht: ', 'The request did not go through: ') + fehler
+    + T(' (vielleicht ist der Titel schon eingeplant).',
+        ' (maybe the track is already queued).')
   : auf.ergebnis),
   auswahl: Array.isArray(auf.auswahl) ? auf.auswahl : [] } }];
 """
@@ -523,12 +535,21 @@ const eingang = $('Eingang').first().json || {};
 const EN = String(eingang.sprache || '').toLowerCase() === 'en';
 const T = (de, eng) => (EN ? eng : de);
 const wort = String(eingang.richtung || $json.richtung || '').trim();
-const einreihen = eingang.einreihen === true
-  || String(eingang.einreihen || '').toLowerCase() === 'true';
+let liste = {};
+try { liste = $('Playlist holen').first().json || {}; } catch (e) { liste = {}; }
+if (liste.error || liste.statusCode) {
+  return [{ json: { ergebnis: T('Der Dienst antwortet gerade nicht - Musikwuensche '
+    + 'gehen im Moment nicht.', 'The service is not answering right now - requests are '
+    + 'unavailable.'), pfad: '' } }];
+}
+if (!liste.konfiguriert) {
+  return [{ json: { ergebnis: T('Musikwuensche sind in dieser Demo noch nicht '
+    + 'freigeschaltet.', 'Requests are not unlocked in this demo yet.'), pfad: '' } }];
+}
+const erlaubt = new Set((liste.pfade || []).map((x) => String(x)));
 if (!wort) {
   return [{ json: { ergebnis: T('FEHLER: Keine Richtung genannt.',
-    'ERROR: No direction given.'), pfad: '',
-    einreihen: einreihen } }];
+    'ERROR: No direction given.'), pfad: '' } }];
 }
 let j = {};
 try { j = $('Richtung suchen').first().json || {}; } catch (e) { j = {}; }
@@ -542,17 +563,21 @@ if (j.error || !j.treffer || !j.treffer.length) {
     + 'punk, grunge, folk, blues, jazz, klassik, schlager, deutschrap, ruhig, hart, 90er, 80er. '
     + 'Pick one of them and call richtung_suchen again.') } }];
 }
-const zeilen = j.treffer.slice(0, 4).map((t, i) => (i + 1) + '. '
+const erlaubte = (j.treffer || []).filter((t) => erlaubt.has(String(t.path || '')));
+if (!erlaubte.length) {
+  return [{ json: { ergebnis: T('Aus der Demo-Playlist passt nichts zur Richtung "' + wort
+    + '". Nimm eine andere Richtung.', 'Nothing in the demo playlist matches the direction "'
+    + wort + '". Pick another direction.'), pfad: '' } }];
+}
+const zeilen = erlaubte.slice(0, 4).map((t, i) => (i + 1) + '. '
   + ((t.artist ? t.artist + ' - ' : '') + (t.title || '?'))
   + (t.length_text ? '  (' + t.length_text + ')' : ''));
-const erster = j.treffer[0];
+const erster = erlaubte[0];
 const titel = (erster.artist ? erster.artist + ' - ' : '') + (erster.title || '?');
-// Eine Stimmung ist ein Auftrag, keine Frage: gespielt wird hier im Werkzeug,
-// das Modell meldet nur noch das Ergebnis (Knoten "Sofort eintragen").
-const wo = einreihen
-  ? T('laeuft danach (nach dem laufenden Titel).',
-      'will play afterwards (after the current track).')
-  : T('laeuft jetzt sofort.', 'is playing now.');
+// Eine Stimmung ist ein Auftrag, keine Frage: der Wunsch wird hier im Werkzeug
+// eingetragen, das Modell meldet nur noch das Ergebnis (Knoten "Wunsch anfordern").
+const wo = T('ist als Wunsch eingeplant und laeuft in Kuerze.',
+  'is queued as a request and will play soon.');
 return [{ json: {
   ergebnis: 'OK: "' + titel + '" ' + wo + T(' (Richtung ', ' (direction ')
     + (j.richtung || wort) + ').'
@@ -560,7 +585,7 @@ return [{ json: {
         + zeilen.slice(1, 4).join(', ') : ''),
   pfad: erster.path || '',
   titel: titel,
-  einreihen: einreihen } }];
+  unique_id: erster.unique_id || '' } }];
 """
 
 STATUS_JS = r"""
@@ -593,9 +618,13 @@ werkzeuge.append(werkzeug_arbeit(W_WERKZEUG, W_WERKZEUG_NAME, [
     trigger([-900, 0], [{"name": "suchtext", "type": "string"},
                         {"name": "richtung", "type": "string"},
                         {"name": "frage", "type": "string"},
-                        {"name": "einreihen", "type": "boolean"},
                         {"name": "sprache", "type": "string"}]),
-    wenn("Richtung?", [-660, 0], "={{ !!String($json.richtung || '').trim() }}",
+    # Die Grenze der Demo: Musik nur in der festgelegten Wiedergabeliste.
+    # Ohne Namen (oder ohne Fund) sperren SUCHE_JS/RICHTUNG_JS den Musikweg.
+    http_get("Playlist holen", [-660, 0], KATALOG + "/playlist/titel",
+             [{"name": "name", "value": kwert("demo.playlist")}],
+             "Titel der festgelegten Demo-Playlist (leer = Musikwege gesperrt)."),
+    wenn("Richtung?", [-420, 0], "={{ !!String($('Eingang').first().json.richtung || '').trim() }}",
          "Ja = Stimmung/Genre/Jahrzehnt -> Vorschlaege holen und den ersten spielen."),
 
     # --- Zweig: Richtung
@@ -607,13 +636,14 @@ werkzeuge.append(werkzeug_arbeit(W_WERKZEUG, W_WERKZEUG_NAME, [
     code("Vorschlaege aufbereiten", [-180, -220], RICHTUNG_JS),
 
     # --- Zweig: nur Status
-    wenn("Nur Status?", [-420, 200], "={{ !!String($json.frage || '').trim() }}",
+    wenn("Nur Status?", [-420, 200], "={{ !!String($('Eingang').first().json.frage || '').trim() }}",
          "Ja = Frage zum Programm, keine Suche."),
     http("NowPlaying", [-180, 400], "GET", NOWPLAYING, None, AZ_KOPF,
          "Was laeuft, was kommt danach, wie viele Zuhoerer."),
     code("Status aufbereiten", [60, 400], STATUS_JS),
 
-    # --- Zweig: Titel suchen (Katalogdienst unscharf + Volltextsuche des Senders)
+    # --- Zweig: Titel suchen (nur der unscharfe Katalogdienst; die Volltextsuche
+    # des Senders braucht Medienrechte und faellt fuer die Demo weg)
     # Der Suchtext wird vorher von Fuellwoertern befreit: die Volltextsuche des Senders
     # verknuepft die Woerter mit ODER, sonst liefert "spiele Benzin von Rammstein"
     # jeden Titel, in dem "von" vorkommt.
@@ -622,29 +652,26 @@ werkzeuge.append(werkzeug_arbeit(W_WERKZEUG, W_WERKZEUG_NAME, [
         {"name": "anzahl", "value": "8"},
         {"name": "min_punkte", "value": "40"}],
         "Unscharfe Suche im Katalogdienst (Tippfehler-tolerant)."),
-    http_get("Suche Sender", [60, 120], API + "/files", [
-        {"name": "searchPhrase", "value": SUCHTEXT},
-        {"name": "rowCount", "value": "40"}],
-        "Volltextsuche des Senders als zweite Quelle."),
     code("Treffer aufbereiten", [300, 0], SUCHE_JS),
 
-    # --- gemeinsames Abspielen (beide Zweige laufen hier zusammen)
-    wenn("Treffer da?", [540, 0], "={{ !!$json.pfad }}",
+    # --- gemeinsames Eintragen (beide Zweige laufen hier zusammen): der Wunsch
+    # geht ueber die oeffentliche Wunsch-Schnittstelle des Senders - kein
+    # Schreibrecht, keine unterbrechende Warteschlange.
+    wenn("Treffer da?", [540, 0], "={{ !!($json.pfad && $json.unique_id) }}",
          "Ja = der Titel soll laufen (klarer Treffer oder Nummer aus der Auswahl)."),
-    wenn("Einreihen?", [780, 0], "={{ $('Treffer da?').first().json.einreihen }}",
-         "Ja = nur einreihen, nicht unterbrechen."),
-    http("Warteschlange leeren", [1020, -180], "PUT", API_ADMIN + "/debug/station/2/telnet",
-         "={{ JSON.stringify({ command: 'interrupting_requests.flush_and_skip' }) }}",
-         AZ_KOPF, "Leert die unterbrechende Warteschlange des Senders."),
-    http("Sofort eintragen", [1260, -180], "PUT", API + "/files/batch",
-         "={{ JSON.stringify({ do: 'immediate', files: [$('Treffer da?').first().json.pfad] }) }}",
-         AZ_KOPF, "Traegt den Titel sofort in die unterbrechende Warteschlange ein."),
-    http("Danach eintragen", [1260, 60], "PUT", API + "/files/batch",
-         "={{ JSON.stringify({ do: 'queue', files: [$('Treffer da?').first().json.pfad] }) }}",
-         AZ_KOPF, "Haengt den Titel hinter das Laufende."),
-    code("Ergebnis", [1500, 0], WERKZEUG_ERGEBNIS_JS),
+    n("Wunsch anfordern", "n8n-nodes-base.httpRequest", 4.2, [800, 0], {
+        "method": "POST",
+        "url": "={{ " + K + ".sender.api + '/request/' + $('Treffer da?').first().json.unique_id }}",
+        "sendHeaders": True, "headerParameters": {"parameters": [
+            {"name": "User-Agent", "value": BROWSER_UA}]},
+        "options": {"timeout": 20000},
+    }, onError="continueRegularOutput",
+       notes="Wunsch ueber die oeffentliche Wunsch-Schnittstelle des Senders - "
+             "kein Schreibrecht noetig; der Titel laeuft in Kuerze."),
+    code("Ergebnis", [1100, 0], WERKZEUG_ERGEBNIS_JS),
 ], {
-    "Eingang": {"main": [[{"node": "Richtung?", "type": "main", "index": 0}]]},
+    "Eingang": {"main": [[{"node": "Playlist holen", "type": "main", "index": 0}]]},
+    "Playlist holen": {"main": [[{"node": "Richtung?", "type": "main", "index": 0}]]},
     "Richtung?": {"main": [
         [{"node": "Richtung suchen", "type": "main", "index": 0}],
         [{"node": "Nur Status?", "type": "main", "index": 0}]]},
@@ -654,209 +681,14 @@ werkzeuge.append(werkzeug_arbeit(W_WERKZEUG, W_WERKZEUG_NAME, [
         [{"node": "NowPlaying", "type": "main", "index": 0}],
         [{"node": "Suche klug", "type": "main", "index": 0}]]},
     "NowPlaying": {"main": [[{"node": "Status aufbereiten", "type": "main", "index": 0}]]},
-    "Suche klug": {"main": [[{"node": "Suche Sender", "type": "main", "index": 0}]]},
-    "Suche Sender": {"main": [[{"node": "Treffer aufbereiten", "type": "main", "index": 0}]]},
+    "Suche klug": {"main": [[{"node": "Treffer aufbereiten", "type": "main", "index": 0}]]},
     "Treffer aufbereiten": {"main": [[{"node": "Treffer da?", "type": "main", "index": 0}]]},
     "Treffer da?": {"main": [
-        [{"node": "Einreihen?", "type": "main", "index": 0}],
+        [{"node": "Wunsch anfordern", "type": "main", "index": 0}],
         [{"node": "Ergebnis", "type": "main", "index": 0}]]},
-    "Einreihen?": {"main": [
-        [{"node": "Danach eintragen", "type": "main", "index": 0}],
-        [{"node": "Warteschlange leeren", "type": "main", "index": 0}]]},
-    "Warteschlange leeren": {"main": [[{"node": "Sofort eintragen", "type": "main", "index": 0}]]},
-    "Sofort eintragen": {"main": [[{"node": "Ergebnis", "type": "main", "index": 0}]]},
-    "Danach eintragen": {"main": [[{"node": "Ergebnis", "type": "main", "index": 0}]]},
+    "Wunsch anfordern": {"main": [[{"node": "Ergebnis", "type": "main", "index": 0}]]},
 }))
 
-
-# ------------------------------------------------------------------ Sender-Schnittstelle
-
-# --- Adressen nachschlagen: aus der OpenAPI-Beschreibung die passenden Pfade
-ENDPUNKTE_JS = r"""
-// Das Modell soll Adressen nicht raten: hier bekommt es die echten Pfade aus der
-// Beschreibung des Senders (Offene Schnittstelle, OpenAPI). Die Beschreibung ist
-// eine YAML-Datei mit sehr regelmaessigem Aufbau - ein Zeilenscan genuegt.
-const roh = $json || {};
-const text = String(typeof roh.data === 'string' ? roh.data : (roh.body || ''));
-if (!text) {
-  return [{ json: { ergebnis: 'FEHLER: Die Beschreibung des Senders kam nicht an. '
-    + 'Rufe die Adresse spaeter erneut auf.' } }];
-}
-const eingang = $('Eingang').first().json || {};
-const suche = String(eingang.suche || '').trim().toLowerCase();
-
-const punkte = [];
-let pfad = '';
-let methode = '';
-for (const z of text.split('\n')) {
-  const mp = z.match(/^    '(\/[^']*)':\s*$/);
-  if (mp) { pfad = mp[1]; methode = ''; continue; }
-  const mm = z.match(/^        (get|post|put|delete|patch):\s*$/);
-  if (mm && pfad) { methode = mm[1].toUpperCase(); continue; }
-  const ms = z.match(/^            summary: (.*)$/);
-  if (ms && pfad && methode) {
-    punkte.push({ m: methode, p: pfad, s: ms[1].replace(/^['"]|['"]$/g, '').trim() });
-    methode = '';
-  }
-}
-if (!punkte.length) {
-  return [{ json: { ergebnis: 'FEHLER: Die Beschreibung des Senders liess sich nicht lesen.' } }];
-}
-
-const treffer = punkte.filter((x) => !suche
-  || (x.p + ' ' + x.s).toLowerCase().includes(suche));
-if (!treffer.length) {
-  return [{ json: { ergebnis: 'Keine Adresse gefunden fuer "' + suche + '". '
-    + 'Versuche ein anderes Stichwort (playlist, user, backup, report, mount, webhook, '
-    + 'storage, settings, media).' } }];
-}
-const zeilen = treffer.slice(0, 40).map((x, i) => (i + 1) + '. ' + x.m + ' /api' + x.p
-  + '  - ' + x.s);
-return [{ json: { ergebnis: 'Adressen zum Stichwort "' + suche + '" (' + treffer.length
-  + ' Treffer):\n' + zeilen.join('\n')
-  + '\n\nPfade immer mit /api/ beginnen lassen ({id} durch die Kennung ersetzen). '
-  + 'Lesen mit azura_aufruf und methode=GET. Schreiben nur nach Rueckfrage des Betreibers '
-  + 'und dann mit bestaetigt=true.' } }];
-"""
-
-# --- Wache: Pfad und Methode pruefen, Schreiben nur mit Bestaetigung
-WACHE_JS = r"""
-const j = $('Eingang').first().json || {};
-const methode = String(j.methode || 'GET').trim().toUpperCase();
-let pfad = String(j.pfad || '').trim();
-const koerper = String(j.koerper || '').trim();
-const bestaetigt = j.bestaetigt === true || String(j.bestaetigt).toLowerCase() === 'true';
-const erlaubt = ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'];
-
-if (!erlaubt.includes(methode)) {
-  return [{ json: { bereit: false, ergebnis: 'FEHLER: "' + methode + '" ist keine bekannte '
-    + 'Methode. Nimm GET (lesen) oder POST/PUT/DELETE (aendern).' } }];
-}
-if (pfad && !pfad.startsWith('/')) pfad = '/' + pfad;
-if (!pfad.startsWith('/api/')) {
-  return [{ json: { bereit: false, ergebnis: 'FEHLER: Der Pfad muss mit /api/ beginnen '
-    + '(z. B. /api/station/2/playlists). Nutze azura_endpunkte zum Nachschlagen.' } }];
-}
-// Schreiben (anlegen, aendern, loeschen) nur nach Rueckfrage - ein Modell soll
-// nicht von sich aus in den Server schreiben. Ohne Bestaetigung gibt es einen
-// Trockenlauf, den der Agent dem Betreiber vorlegen kann.
-if (methode !== 'GET' && !bestaetigt) {
-  return [{ json: { bereit: false, ergebnis: 'Trockenlauf (nichts geaendert): ' + methode
-    + ' ' + pfad + (koerper ? ' mit ' + koerper.slice(0, 400) : '')
-    + '\nFrage den Betreiber, ob das ausgefuehrt werden soll, und rufe dann erneut mit '
-    + 'bestaetigt=true auf.' } }];
-}
-return [{ json: { bereit: true, methode: methode, pfad: pfad, koerper: koerper } }];
-"""
-
-TROCKENLAUF_JS = r"""
-// Nichts ausgefuehrt - nur die Meldung der Wache weitergeben.
-return [{ json: { ergebnis: String($json.ergebnis || 'Nichts zu tun.') } }];
-"""
-
-AUFRUF_ERGEBNIS_JS = r"""
-// Antwort des Senders in eine kurze Meldung packen. Grosse Antworten (z. B. das
-// ganze Musikarchiv) werden gekuerzt - sonst laeuft der Gespraechsspeicher voll.
-const wache = $('Wache').first().json || {};
-// Listen-Antworten kommen als mehrere Elemente an - alle zusammenfassen.
-const alle = $input.all().map((i) => i.json);
-const j = alle.length === 1 ? alle[0] : alle;
-let text;
-if (j && j.error) {
-  text = 'FEHLER: ' + JSON.stringify(j.error).slice(0, 600);
-} else if (j && typeof j.data === 'string') {
-  text = j.data;
-} else {
-  text = JSON.stringify(j);
-}
-const gekuerzt = text.length > 4000;
-return [{ json: { ergebnis: 'Antwort auf ' + wache.methode + ' ' + wache.pfad
-  + (gekuerzt ? ' (gekuerzt)' : '') + ':\n' + text.slice(0, 4000) } }];
-"""
-
-UEBERSICHT_JS = r"""
-// Kurzer Zustandsbericht des Senders: Anlagen, Technik, Wiedergabelisten.
-// Achtung: n8n verteilt Listen-Antworten (Anlagen, Wiedergabelisten) auf mehrere
-// Elemente - deshalb .all() und nicht .first().
-const hole = (name) => { try { return $(name).all().map((i) => i.json || {}); } catch (e) { return []; } };
-
-const zeilen = [];
-for (const anlage of hole('Anlagen').slice(0, 5)) {
-  zeilen.push('- Anlage: ' + (anlage.name || '?')
-    + ' (' + (anlage.short_name || anlage.shortcode || '') + ')'
-    + (anlage.is_enabled === false ? ' [aus]' : ''));
-}
-const zustand = hole('Zustand')[0] || {};
-zeilen.push('Technik: Sendeteil ' + (zustand.backendRunning ? 'laeuft' : 'steht')
-  + ', Ausgabe ' + (zustand.frontendRunning ? 'laeuft' : 'steht'));
-const listen = hole('Wiedergabelisten');
-for (const liste of listen.slice(0, 10)) {
-  zeilen.push('- Wiedergabeliste: ' + (liste.name || '?') + ' (' + (liste.type || '?') + ')'
-    + (liste.is_enabled === false ? ' [aus]' : '') + ' | Titel: ' + (liste.num_songs ?? '?'));
-}
-if (listen.length > 10) zeilen.push('- ... und ' + (listen.length - 10) + ' weitere Wiedergabelisten');
-return [{ json: { ergebnis: 'Ueberblick ueber den Sender:\n' + zeilen.join('\n') } }];
-"""
-
-# Ein Werkzeug-Ablauf fuer den Sender selbst. Drei Werkzeugknoten des Agenten
-# zeigen darauf; welcher Zweig laeuft, entscheidet die Eingabe (suche / pfad / frage).
-werkzeuge.append(werkzeug_arbeit(W_AZURA, W_AZURA_NAME, [
-    trigger([-900, 0], [{"name": "suche", "type": "string"},
-                        {"name": "methode", "type": "string"},
-                        {"name": "pfad", "type": "string"},
-                        {"name": "koerper", "type": "string"},
-                        {"name": "bestaetigt", "type": "boolean"},
-                        {"name": "frage", "type": "string"}]),
-    wenn("Adressen suchen?", [-660, 0], "={{ !!String($json.suche || '').trim() }}",
-         "Ja = Adressen der Senderschnittstelle nachschlagen."),
-    http("Beschreibung holen", [-420, -200], "GET", AZ + "/api/openapi.yml", None, AZ_KOPF,
-         "Offene Schnittstelle des Senders (OpenAPI, YAML)."),
-    code("Adressen finden", [-180, -200], ENDPUNKTE_JS),
-
-    wenn("Aufruf?", [-420, 150], "={{ !!String($json.pfad || '').trim() }}",
-         "Ja = eine Adresse aufrufen (lesen oder schreiben)."),
-    code("Wache", [-180, 100], WACHE_JS),
-    wenn("Ausfuehren?", [60, 100], "={{ $json.bereit }}",
-         "Nein = Trockenlauf (Schreiben ohne Bestaetigung) -> nur melden."),
-    wenn("Nur lesen?", [300, 60], "={{ $('Wache').first().json.methode === 'GET' }}",
-         "Ja = GET ohne Koerper, sonst mit Koerper."),
-    http("Lesen", [540, -60], "GET", "={{ " + K + ".sender.adresse + $('Wache').first().json.pfad }}",
-         None, AZ_KOPF, "Liest eine Adresse des Senders."),
-    http("Schreiben", [540, 220], "={{ $('Wache').first().json.methode }}",
-         "={{ " + K + ".sender.adresse + $('Wache').first().json.pfad }}",
-         "={{ $('Wache').first().json.koerper || '{}' }}", AZ_KOPF,
-         "Aendert etwas am Sender (nur mit Bestaetigung)."),
-    code("Aufruf Ergebnis", [800, 60], AUFRUF_ERGEBNIS_JS),
-    code("Trockenlauf", [300, 320], TROCKENLAUF_JS),
-
-    # --- Ueberblick (wenn weder Adresssuche noch Aufruf)
-    http("Anlagen", [-180, 420], "GET", API_ADMIN + "/stations", None, AZ_KOPF, "Alle Anlagen."),
-    http("Zustand", [60, 420], "GET", API + "/status", None, AZ_KOPF, "Laeuft der Sendeteil?"),
-    http("Wiedergabelisten", [300, 420], "GET", API + "/playlists", None, AZ_KOPF,
-         "Wiedergabelisten der Anlage 1."),
-    code("Ueberblick", [540, 420], UEBERSICHT_JS),
-], {
-    "Eingang": {"main": [[{"node": "Adressen suchen?", "type": "main", "index": 0}]]},
-    "Adressen suchen?": {"main": [
-        [{"node": "Beschreibung holen", "type": "main", "index": 0}],
-        [{"node": "Aufruf?", "type": "main", "index": 0}]]},
-    "Beschreibung holen": {"main": [[{"node": "Adressen finden", "type": "main", "index": 0}]]},
-    "Aufruf?": {"main": [
-        [{"node": "Wache", "type": "main", "index": 0}],
-        [{"node": "Anlagen", "type": "main", "index": 0}]]},
-    "Wache": {"main": [[{"node": "Ausfuehren?", "type": "main", "index": 0}]]},
-    "Ausfuehren?": {"main": [
-        [{"node": "Nur lesen?", "type": "main", "index": 0}],
-        [{"node": "Trockenlauf", "type": "main", "index": 0}]]},
-    "Nur lesen?": {"main": [
-        [{"node": "Lesen", "type": "main", "index": 0}],
-        [{"node": "Schreiben", "type": "main", "index": 0}]]},
-    "Lesen": {"main": [[{"node": "Aufruf Ergebnis", "type": "main", "index": 0}]]},
-    "Schreiben": {"main": [[{"node": "Aufruf Ergebnis", "type": "main", "index": 0}]]},
-    "Anlagen": {"main": [[{"node": "Zustand", "type": "main", "index": 0}]]},
-    "Zustand": {"main": [[{"node": "Wiedergabelisten", "type": "main", "index": 0}]]},
-    "Wiedergabelisten": {"main": [[{"node": "Ueberblick", "type": "main", "index": 0}]]},
-}))
 
 # ------------------------------------------------------------------ der Bot
 
@@ -1163,13 +995,13 @@ PLANEN_SYSTEM = """Du zerlegst die Anweisung des Betreibers in einzelne Befehle.
 JSON - kein Text davor oder danach, keine Erklaerung, keine Code-Umrandung.
 
 Der Betreiber schreibt DEUTSCH ODER ENGLISCH (derselbe Bot, derselbe Chat). Verstehe
-beides. Die Feldwerte deiner Antwort bleiben deutsch wie im Format unten (art, einreihen,
-ansagen, bestaetigt ...); Suchbegriffe, Orte und Themen uebernimmst du woertlich, auch
+beides. Die Feldwerte deiner Antwort bleiben deutsch wie im Format unten (art, ansagen,
+suche ...); Suchbegriffe, Orte und Themen uebernimmst du woertlich, auch
 englisch ("play In Extremo" -> {"art": "spielen", "suchtext": "In Extremo"}).
 
 Format:
 {"befehle": [
-  {"art": "spielen", "suchtext": "Interpret und/oder Titel", "einreihen": false},
+  {"art": "spielen", "suchtext": "Interpret und/oder Titel"},
   {"art": "richtung", "richtung": "party"},
   {"art": "programm", "frage": "was laeuft gerade"},
   {"art": "ansage", "text": "frei gesprochener Text"},
@@ -1182,10 +1014,8 @@ REGELN
 1. Ein Befehl pro Aufgabe, in der Reihenfolge, in der sie genannt wurden. Auch viele
    Aufgaben bleiben viele Befehle - bis zu zehn sind in Ordnung. Fasse NIE zwei Aufgaben
    zu einem Befehl zusammen, und lasse keine Aufgabe weg.
-2. art=spielen: konkreter Titel oder Interpret. einreihen=true nur bei "danach", "spaeter",
-   "anschliessend", "hinterher" - englisch "then", "later", "after that" - sonst false.
-   Bei mehreren Titeln in einer Nachricht bleibt einreihen false (die Reihenfolge macht der
-   Bot selbst: der erste sofort, der Rest danach).
+2. art=spielen: konkreter Titel oder Interpret. Bei mehreren Titeln in einer Nachricht
+   bleibt die Reihenfolge wie genannt (der Bot traegt sie der Reihe nach ein).
 3. art=richtung: Stimmung, Genre oder Jahrzehnt. Uebersetze auf EINES dieser Worte: party, dance,
    rock, pop, metal, hiphop, electronic, disco, punk, grunge, folk, blues, jazz, klassik,
    schlager, deutschrap, ruhig, hart, 90er, 80er. "peppig"/"flott"/"Tempo" -> party,
@@ -1256,7 +1086,6 @@ if (!befehle) {
     : (roh === '' ? (EN ? 'analysis returned nothing' : 'Analyse lieferte nichts')
         : (EN ? 'analysis failed' : 'Analyse fehlgeschlagen'));
   const rohText = String(eingang.text || '').trim();
-  const einreihen = /(danach|anschliessend|hinterher|spaeter|anschliessend|then|after that|later)/i.test(rohText);
   const sauber = rohText
     .replace(/\b(bitte|mal|doch|sofort|gleich|jetzt|danach|anschliessend|hinterher|spaeter|einmal|please|now|just|later|then)\b/gi, ' ')
     .replace(/^\s*(spiele|spiel|leg|lege|mach|setz|setze|pack|starte|nimm|will|moechte|ich|play|queue|spin|drop|put|add|give|want|id|like)\s+/i, '')
@@ -1264,7 +1093,7 @@ if (!befehle) {
     .replace(/^\s*(was|etwas|was von|was fuer)\s+/i, '')
     .replace(/\s+/g, ' ')
     .trim();
-  befehle = [{ art: 'direkt', suchtext: sauber || rohText, einreihen: einreihen }];
+  befehle = [{ art: 'direkt', suchtext: sauber || rohText }];
 }
 if (!befehle.length) {
   // Kein Auftrag: ohne Sprachmodell, ohne Schleife und ohne Zustandsabfrage antworten.
@@ -1285,11 +1114,9 @@ for (let i = 0; i < befehle.length; i += 1) {
   // Ausfuehrung spricht ihn ueber das Meldungs-Werkzeug.
   if (!['spielen', 'richtung', 'programm', 'recherche', 'verwalten', 'ansage', 'direkt'].includes(art)) continue;
   if (ausgabe.length >= AUFGABEN_MAX) { uebrig += 1; continue; }
-  // Mehrere Musikwuensche in einer Nachricht: der ERSTE laeuft sofort, alle weiteren
-  // werden eingereiht. Sonst schneidet jeder Wunsch den vorigen ab, und die Pruefung
-  // meldet die ersten als nicht erledigt (am 2026-09-20 gemessen).
+  // Mehrere Musikwuensche in einer Nachricht: alle gehen der Reihe nach ueber die
+  // Wunsch-Schnittstelle des Senders (geplant, nicht unterbrechend).
   if (art === 'spielen' || art === 'richtung') {
-    if (musik > 0) b.einreihen = true;
     musik += 1;
   }
   d.lauf.befehle.push({ nr: i + 1, art: art, befehl: b, ausgabe: '', ok: null, grund: '', versuche: 0 });
@@ -1339,16 +1166,16 @@ return [{ json: Object.assign({}, j, { auftrag: auftrag }) }];
 
 # --------------------------------------------------- Stufe 0: Kurzbefehl ohne KI
 
-# Einfache Befehle (Liedwunsch, naechster Titel, Pause, Neustart, Status) laufen
+# Einfache Befehle (Liedwunsch, naechster Titel, Status) laufen
 # ohne Sprachmodell. Die Regeln sind an einer Beispielsammlung geprueft (2026-09-20);
 # was nicht sicher erkannt wird, geht unveraendert an die Analyse.
 KURZ_JS = r"""
 // Vorschaltstufe ohne Sprachmodell. Sie versteht DEUTSCH UND ENGLISCH -
 // in einem Chat. Erkannt werden:
 //   wunsch      "spiele X", "danach X", "X bitte", "play X", "queue X", "X please"
-//   steuerung   "naechster", "weiter", "pause", "lauter",
-//               "sender neu starten/starten/stoppen" - englisch "next",
-//               "skip", "resume", "volume up", "restart the station" ...
+//   steuerung   NUR "naechster", "weiter" - englisch "next", "skip".
+//               Die Demo darf nicht pausieren, stoppen, neu starten oder die
+//               Lautstaerke aendern (das wuerde alle Zuhoerer treffen).
 //   status      "was laeuft", "status" - englisch "what is playing",
 //               "how many listeners", "what comes next"
 // Die Sprache der Antwort kommt aus dem Eingang (Feld "sprache") und wird hier
@@ -1369,22 +1196,9 @@ function norm(t) {
 // englische Antwort, "neustart" -> deutsche), auch wenn der Satz sonst keine
 // Merkmale traegt.
 const STEUER = [
-  ['skip', /^(wechsel|wechsle|aendere|naechst\w*|ueberspring\w*|spring|weiter zum naechsten|titel wechseln|song wechseln|mach den naechsten|zum naechsten)\b[\w\s:]{0,14}$/, 'de'],
+  ['skip', /^(wechsel|wechsle|aendere|naechst\w*|ueberspring\w*|spring|weiter|weiter zum naechsten|titel wechseln|song wechseln|mach den naechsten|zum naechsten)\b[\w\s:]{0,14}$/, 'de'],
   ['skip', /^(song|titel|lied|track)\s*(wechseln|ueberspringen|vor|skip)$/, 'de'],
   ['skip', /^(next|skip|skip this|next one|next song|next track|jump to the next)\b[\w\s:]{0,14}$/, 'en'],
-  ['play', /^(weiter|weiter spielen|play weiter|abspielen|fortsetzen|weiterlaufen|mach weiter|spiel weiter)\b[\w\s]{0,12}$/, 'de'],
-  ['play', /^play$/, 'en'],
-  ['play', /^(continue|resume|keep playing|play on|go on)\b[\w\s]{0,12}$/, 'en'],
-  ['pause', /^(pause|pausieren|anhalten|halt|stopp|stop|unterbrechen|kurz pause|musik aus)\b[\w\s]{0,6}$/, 'de'],
-  ['pause', /^(pause the music|silence|quiet please|stop the music)\b[\w\s]{0,6}$/, 'en'],
-  ['lautstaerke', /^(lauter|leiser|laut|leise|lautstaerke|ton lauter|ton leiser|mach lauter|mach leiser|leiser machen|lauter machen)\b[\w\s]{0,10}$/, 'de'],
-  ['lautstaerke', /^(volume|volume up|volume down|louder|quieter|turn it up|turn it down)\b[\w\s]{0,10}$/, 'en'],
-  ['restart', /^(neustart|sender neu starten|radio neu starten|stream neu starten|starte den sender neu|starte den stream neu|sender neustarten|alles neu starten|neu starten)\b[\w\s]{0,12}$/, 'de'],
-  ['restart', /^(restart|restart the (station|stream|radio)|reboot)\b[\w\s]{0,12}$/, 'en'],
-  ['start', /^(sender starten|stream starten|radio starten|starte den sender|starte den stream|sender an|radio an|lauf wieder|start)\b[\w\s]{0,10}$/, 'de'],
-  ['start', /^(start the (station|stream|radio)|turn on the (station|radio))\b[\w\s]{0,10}$/, 'en'],
-  ['stop', /^(sender stoppen|stream stoppen|radio stoppen|sender aus|radio aus|stream aus|alles stoppen|sender abschalten)\b[\w\s]{0,10}$/, 'de'],
-  ['stop', /^(stop the (station|stream|radio)|turn off the (station|radio|stream))\b[\w\s]{0,10}$/, 'en'],
 ];
 const STATUS = /^(was laeuft|was laeuft gerade|was spielt|welcher (song|titel|interpret) laeuft|was ist das fuer ein (song|titel)|status|zustand|sender status|wie ist der zustand|laeuft der (sender|stream|das radio)|laeuft das radio|laeuft der stream|wie viele (hoeren|hoerer|zuhoerer|leute|menschen)|wieviele (hoeren|hoerer|zuhoerer|leute)|wer hoert|wie ist die auslastung|programm|was kommt danach|welcher titel kommt|whats playing|what is playing|what is playing right now|whats on|what is on|now playing|what comes next|whats next|what is next|what s playing|what s on|what s next|which song is playing|what song is playing|current (song|track|title)|how many listeners|who is listening)\b/;
 const FEHLER = /\b(fehler|problem|stoerung|offline|ausgefallen|abgestuerzt|geht nicht|laeuft nicht|funktioniert nicht|klappt nicht|spinnt|haengt|kein ton|keine verbindung|down|tot|error|not working|is down|no sound|broken)\b/;
@@ -1535,7 +1349,7 @@ if (STATUS.test(n)) {
 
 // Auswahlliste: getippte Nummer oder angetippter Knopf (beides wird zu "2").
 if (/^\d{1,2}$/.test(n)) {
-  return erkannt('wunsch', { art: 'direkt', suchtext: n, einreihen: false });
+  return erkannt('wunsch', { art: 'direkt', suchtext: n });
 }
 
 // Stimmung pur ("was Peppiges", "mal was Ruhiges") - ohne Sprachmodell auf eine
@@ -1569,7 +1383,7 @@ if (gesprochen !== n && !VERWALTUNG.test(gesprochen) && !MEHRFACH.test(gesproche
     const s2 = saeubern(rest2);
     if (s2.length >= 2 && ZU_VIEL.indexOf(s2) < 0 && s2.indexOf(' und ') < 0
         && !STIMMUNG_VERBOT.test(s2)) {
-      return erkannt('wunsch', { art: 'direkt', suchtext: s2, einreihen: false });
+      return erkannt('wunsch', { art: 'direkt', suchtext: s2 });
     }
   }
 }
@@ -1598,7 +1412,7 @@ if (!MEHRFACH.test(n) && !VERWALTUNG.test(n)) {
     }
     if ((s.length >= 2 || zahl) && ZU_VIEL.indexOf(s) < 0 && s.indexOf(' und ') < 0
         && !MENGE.test(s)) {
-      return erkannt('wunsch', { art: 'direkt', suchtext: s, einreihen: hinten });
+      return erkannt('wunsch', { art: 'direkt', suchtext: s });
     }
   }
 }
@@ -1622,36 +1436,10 @@ const r = $json || {};
 const fehler = !!r.error || r.success === false;
 
 let text = '';
-if (aktion === 'pause') {
-  text = EN
-    ? 'The station cannot pause - every device stops its own playback. Say "continue" '
-      + 'when the stream should keep playing, or "next track".'
-    : 'Am Sender gibt es kein Pausieren - anhalten kann jedes Geraet selbst. '
-      + 'Sag "weiter", wenn der Sendeteil weiterspielen soll, oder "naechster Titel".';
-} else if (aktion === 'lautstaerke') {
-  text = EN
-    ? 'The volume is set on your own device - the station cannot change it.'
-    : 'Die Lautstaerke stellt jedes Geraet selbst ein - am Sender laesst sie sich nicht aendern.';
-} else if (aktion === 'skip') {
+if (aktion === 'skip') {
   text = fehler
     ? (EN ? 'ERROR: The station did not accept the skip.' : 'FEHLER: Der Sender nimmt den Sprung nicht an.')
     : (EN ? 'The next track is starting.' : 'Naechster Titel laeuft an.');
-} else if (aktion === 'play') {
-  text = fehler
-    ? (EN ? 'ERROR: The stream did not start.' : 'FEHLER: Der Sendeteil laeuft nicht an.')
-    : (EN ? 'The stream is running.' : 'Der Sendeteil laeuft.');
-} else if (aktion === 'start') {
-  text = fehler
-    ? (EN ? 'ERROR: The stream could not be started.' : 'FEHLER: Der Sendeteil liess sich nicht starten.')
-    : (EN ? 'The stream is started.' : 'Der Sendeteil ist gestartet.');
-} else if (aktion === 'stop') {
-  text = fehler
-    ? (EN ? 'ERROR: The stream could not be stopped.' : 'FEHLER: Der Sendeteil liess sich nicht stoppen.')
-    : (EN ? 'The stream is stopped.' : 'Der Sendeteil ist gestoppt.');
-} else if (aktion === 'restart') {
-  text = fehler
-    ? (EN ? 'ERROR: The stream could not be restarted.' : 'FEHLER: Der Sendeteil liess sich nicht neu starten.')
-    : (EN ? 'The stream was restarted.' : 'Der Sendeteil wurde neu gestartet.');
 } else {
   text = fehler
     ? (EN ? 'ERROR: The command did not get through.' : 'FEHLER: Der Befehl kam nicht durch.')
@@ -1763,13 +1551,15 @@ Der Betreiber schreibt deutsch oder englisch. Verstehe beides. Antworte in der S
 des Befehls (deutsch auf deutsch, englisch auf englisch) - auch die Bestaetigung.
 Antworte NIE deutsch, wenn der Betreiber englisch geschrieben hat, auch wenn ein
 Werkzeug oder der Sender deutsch antwortet. Die internen Werte (art,
-auftrag, ansagen, bestaetigt ...) bleiben deutsch - sie sind nur fuer den Bot, nicht
+auftrag, ansagen, suche ...) bleiben deutsch - sie sind nur fuer den Bot, nicht
 fuer den Betreiber. Werkzeugaufrufe der Musik (titel_suchen, richtung_suchen,
 was_laeuft) bekommen immer das Feld sprache (de oder en) mit.
 
 WERKZEUGE
-- titel_suchen, richtung_suchen, was_laeuft: Musik und Programm. Diese Werkzeuge spielen selbst.
-- azura_endpunkte, azura_aufruf, azura_ueberblick: der Sender selbst (Verwaltung).
+- titel_suchen, richtung_suchen, was_laeuft: Musik und Programm. Diese Werkzeuge tragen
+  Wuensche ein bzw. zeigen den Programmstand. Musik kommt NUR aus der festgelegten
+  Demo-Wiedergabeliste - der Katalogdienst prueft das; meldet er, dass ein Titel nicht
+  vorgesehen ist, sage das freundlich und erfinde nichts dazu.
 - meldungen: das Postfach (Wetter, RSS-Feeds, Nachrichten) und die Ansagen des Moderators.
   auftrag=anzeigen listet offene Meldungen NUR AUF (keine Ansage) - das ist der richtige Auftrag
   bei Fragen wie "was gibt es fuer Meldungen", "was liegt im Postfach". auftrag=lesen zeigt den
@@ -1789,9 +1579,13 @@ WAS IST WAS
 - "was gibt es Neues", "lies die Nachrichten vor" -> recherche mit art=nachrichten. Das holt
   die aktuelle Nachricht und sagt sie an (ansagen=true).
 - "suche nach dem wetter fuer X" -> recherche mit art=wetter, wort=X, ansagen=true.
-- "sag durch: ...", "announce: ..." -> meldungen mit auftrag=text (freier Text).
-- Steht im Befehl art=ansage (Feld "text"), sprich genau diesen Text: meldungen mit
-  auftrag=text und text aus dem Befehl. Nichts umformulieren, nichts ergaenzen.
+- "sag durch: ...", "announce: ..." -> meldungen mit auftrag=text (freier Text,
+  hoechstens 240 Zeichen; ist der Text laenger, kuerze ihn sinngemaess - er wird sonst abgelehnt).
+  Sprich ihn GENAU EINMAL - kein zweiter Aufruf, keine Wiederholung.
+- Steht im Befehl art=ansage (Feld "text"), sprich den Text ueber meldungen mit
+  auftrag=text - GENAU EINMAL, nicht wiederholen. Ist der Text laenger als 240 Zeichen,
+  kuerze ihn sinngemaess auf hoechstens 240 Zeichen und sage in deiner Antwort kurz,
+  dass du gekuerzt hast.
 
 WANN WIRD GESPROCHEN
 Eine Ansage in den laufenden Sendebetrieb ist die Ausnahme, nicht die Regel. Gesprochen wird
@@ -1800,11 +1594,14 @@ wetter fuer X", "lies die nachrichten"). Fragen nach dem Inhalt ("was gibt es fu
 "was liegt an") beantwortest du als Text, ohne etwas in den Sender zu sprechen.
 
 REGELN
-1. Fuehre den Befehl aus - erklaere ihn nicht.
-2. Verwaltungsauftrag: erst azura_endpunkte (Adresse nachschlagen), dann azura_aufruf.
-   Aendern (POST/PUT/DELETE) nur, wenn im Befehl "bestaetigt": true steht - sonst nur lesen
-   bzw. den Trockenlauf melden und in der Antwort in einfachen Worten um Erlaubnis bitten
-   ("Soll ich das anlegen?"). Keine Fachbegriffe wie "bestaetigt" oder Feldnamen nennen.
+1. Fuehre den Befehl aus - erklaere ihn nicht. Rufe jedes Werkzeug HOECHSTENS EINMAL
+   je Befehl auf. Sobald ein Werkzeug geantwortet hat, schreibe SOFORT deine Antwort -
+   wiederhole keinen Aufruf, auch wenn dir das Ergebnis unklar erscheint. Eine Ansage
+   wird genau EINMAL gesprochen; zweimal sprechen ist ein Fehler.
+2. Verwaltungsauftrag (art=verwalten): dafuer hast du KEIN Werkzeug - die Demo darf den
+   Sender nicht verwalten (nichts anlegen, aendern, loeschen, neu starten). Antworte
+   freundlich in einem Satz, dass das in dieser Demo nicht geht, und nenne kurz, was
+   moeglich ist (Musikwuensche, Programm, Postfach, Recherche, Ansagen).
 3. Antworte in EINEM kurzen Satz mit dem Ergebnis - in der Sprache des Betreibers
    (deutsch oder englisch), ohne Dateipfade, ohne Technik, ohne Aufzaehlung der Werkzeuge.
 4. Ging etwas schief, sag in einem Satz was.
@@ -1812,9 +1609,6 @@ REGELN
    und ZEILE FUER ZEILE weiter - jede Nummer in einer eigenen Zeile, nichts umformulieren, nichts
    zusammenziehen und nichts ergaenzen. An die Liste haengst du genau die Frage, welcher gemeint
    ist. Der Bot baut aus diesen Zeilen die Antwortknoepfe.
-6. Steht im Befehl "einreihen": true, rufe titel_suchen oder richtung_suchen mit
-   einreihen=true auf - der Titel darf dann nicht unterbrechen, er laeuft danach.
-
 /no_think"""
 
 AUSFUEHREN_TEXT = ("={{ 'Befehl: ' + JSON.stringify($json.befehl)"
@@ -1958,16 +1752,12 @@ function urteil(b) {
     // Nennt die Ausgabe den gewuenschten Titel, gilt der Befehl als erledigt - der
     // Sender meldet den laufenden Titel mit Verzoegerung.
     if (genannt) return { ok: true, grund: '' };
-    if (b2.einreihen === true) {
-      const wartend = (lage.warteschlange || []).join(' ').toLowerCase();
-      if (w.length && !w.some((x) => wartend.includes(x))) {
-        return { ok: false, grund: 'nicht in der Warteschlange' };
-      }
-    } else {
-      const laeuft = String(lage.laeuft || '').toLowerCase();
-      if (w.length && !w.some((x) => laeuft.includes(x))) {
-        return { ok: false, grund: 'der Sender spielt "' + (lage.laeuft || '?') + '"' };
-      }
+    // Wuensche gehen ueber die Wunsch-Schnittstelle und laufen "in Kuerze" -
+    // deshalb zaehlen Warteschlange UND laufender Titel als Beleg.
+    const beide = (String(lage.laeuft || '') + ' '
+      + (Array.isArray(lage.warteschlange) ? lage.warteschlange.join(' ') : '')).toLowerCase();
+    if (w.length && !w.some((x) => beide.includes(x))) {
+      return { ok: false, grund: 'der Titel ist noch nicht eingeplant' };
     }
   }
   return { ok: true, grund: '' };
@@ -2110,14 +1900,11 @@ return [{ json: { chatId: $('Eingabe').first().json.chatId, antwort: gesamt,
 # Diese Texte liest das Sprachmodell, um zu entscheiden, welches Werkzeug es
 # braucht. Sie stehen im Knoten "Konfiguration" und werden von dort geholt.
 AUFGABEN_WERKZEUGE = {
-    "titel_suchen": 'Spielt einen Titel oder Interpreten. Eingabe: suchtext (Interpret und/oder Titel) ODER eine Nummer aus der letzten Auswahlliste, plus sprache (de oder en - die Sprache des Betreibers, damit die Antwort darin zurueckkommt). Klarer Treffer: er laeuft sofort. Mehrere verschiedene Titel: Antwort ist eine Liste (dann nachfragen). einreihen=true reiht nur ein, ohne zu unterbrechen.',
-    "richtung_suchen": 'Spielt zur Stimmung, zum Genre oder Jahrzehnt den ersten passenden Titel. Eingabe: richtung (party, dance, rock, metal, ruhig, hart, 90er, 80er ...) plus sprache (de oder en). einreihen=true reiht nur ein, ohne zu unterbrechen.',
+    "titel_suchen": 'Spielt einen Titel oder Interpreten aus der festgelegten Demo-Wiedergabeliste. Eingabe: suchtext (Interpret und/oder Titel) ODER eine Nummer aus der letzten Auswahlliste, plus sprache (de oder en - die Sprache des Betreibers, damit die Antwort darin zurueckkommt). Klarer Treffer: der Titel wird als Wunsch eingetragen und laeuft in Kuerze. Mehrere verschiedene Titel: Antwort ist eine Liste (dann nachfragen). Ist die Demo-Playlist noch nicht festgelegt, meldet das Werkzeug, dass Musikwuensche gesperrt sind - versuche es dann nicht erneut.',
+    "richtung_suchen": 'Traegt zur Stimmung, zum Genre oder Jahrzehnt den ersten passenden Titel aus der Demo-Wiedergabeliste als Wunsch ein. Eingabe: richtung (party, dance, rock, metal, ruhig, hart, 90er, 80er ...) plus sprache (de oder en).',
     "was_laeuft": 'Sagt, was gerade laeuft, wie lange noch, was danach kommt und wie viele Zuhoerer da sind. Eingabe: frage und sprache (de oder en). Keine weitere Eingabe.',
-    "azura_endpunkte": 'Schlaegt Adressen der Senderschnittstelle nach (Stichwort, z. B. playlist, user, backup, report, mount, webhook, storage, settings, media). Immer zuerst benutzen, wenn du eine Verwaltungsaufgabe am Sender hast - Adressen und Felder nie raten.',
-    "azura_aufruf": 'Ruft eine Schnittstelle des Senders auf (AzuraCast). Eingaben: methode (GET liest, POST/PUT/DELETE aendern), pfad (voll, z. B. /api/station/2/playlists), koerper (JSON, nur beim Schreiben), bestaetigt (true, wenn der Betreiber das Aendern ausdruecklich erlaubt hat). Ohne bestaetigt=true passiert beim Schreiben nichts - dann kommt nur ein Trockenlauf zurueck.',
-    "azura_ueberblick": 'Ueberblick ueber den Sender: Anlagen, ob Sendeteil und Ausgabe laufen, Wiedergabelisten mit Titelzahl. Fuer Verwaltungsfragen (Zustand, Listen), nicht fuer Musikwuensche.',
-    "meldungen": 'Postfach (Wetter, RSS-Feeds, Nachrichten) und Ansagen des Moderators. auftrag=anzeigen listet offene Meldungen auf - das ist KEINE Ansage. auftrag=lesen zeigt den Sprechtext einer Meldung (dann kennung angeben). auftrag=ansagen spricht die Meldung live in den Sender (dann kennung angeben, nur auf ausdruecklichen Wunsch). auftrag=verwerfen legt sie weg (dann kennung angeben). auftrag=text spricht freien Text (dann text angeben).',
-    "recherche": "Holt etwas NEUES aus dem Netz und legt es als Meldung ab - Wetter, Nachrichten, ein RSS-Feed, einen Ueberblick ueber Themen oder eine Kurzinfo. NICHT fuer Fragen nach dem Postfach benutzen (dafuer meldungen mit auftrag=anzeigen). art=wetter (dann wort=Ort, z. B. 'Marbach am Neckar'), art=nachrichten (aktuellste Nachricht), art=rss (dann wort=Feed-Adresse oder Kurzname wie tagesschau, heise, spiegel), art=wikipedia (dann wort=Stichwort), art=ueberblick (dann themen=die Themen, zu denen gesucht werden soll, z. B. 'ki, raumfahrt'; optional quellen=gewuenschte Quellen wie 'heise golem'). Der Ueberblick sucht zu jedem Thema in Presse, im Netz und in den Feeds und dauert so lange, wie das Gefundene braucht. ansagen=true spricht die Meldung sofort im Radio an - das ist gewuenscht, wenn der Betreiber sie hoeren will ('suche nach dem wetter fuer X'); bei 'nur suchen' oder 'zeig mir' ansagen=false setzen.",
+    "meldungen": 'Postfach (Wetter, RSS-Feeds, Nachrichten) und Ansagen des Moderators. auftrag=anzeigen listet offene Meldungen auf - das ist KEINE Ansage. auftrag=lesen zeigt den Sprechtext einer Meldung (dann kennung angeben). auftrag=ansagen spricht die Meldung live in den Sender (dann kennung angeben, nur auf ausdruecklichen Wunsch). auftrag=verwerfen legt sie weg (dann kennung angeben). auftrag=text spricht freien Text (dann text angeben; hoechstens 240 Zeichen - ist der Text laenger, kuerze ihn sinngemaess). Rufe dieses Werkzeug hoechstens EINMAL je Befehl auf und wiederhole eine Ansage nie.',
+    "recherche": "Holt etwas NEUES aus dem Netz und legt es als Meldung ab - Wetter, Nachrichten, ein RSS-Feed, einen Ueberblick ueber Themen oder eine Kurzinfo. NICHT fuer Fragen nach dem Postfach benutzen (dafuer meldungen mit auftrag=anzeigen). art=wetter (dann wort=Ort, z. B. 'Marbach am Neckar'), art=nachrichten (aktuellste Nachricht), art=rss (dann wort=Feed-Adresse oder Kurzname wie tagesschau, heise, spiegel), art=wikipedia (dann wort=Stichwort), art=ueberblick (dann themen=die Themen, zu denen gesucht werden soll, z. B. 'ki, raumfahrt'; optional quellen=gewuenschte Quellen wie 'heise golem'). Der Ueberblick sucht zu jedem Thema in Presse, im Netz und in den Feeds und dauert so lange, wie das Gefundene braucht. ansagen=true spricht die Meldung sofort im Radio an - das ist gewuenscht, wenn der Betreiber sie hoeren will ('suche nach dem wetter fuer X'); bei 'nur suchen' oder 'zeig mir' ansagen=false setzen. Rufe dieses Werkzeug hoechstens EINMAL je Befehl auf und wiederhole eine Ansage nie.",
 }
 
 # ======================================================================= der Bot
@@ -2299,7 +2086,8 @@ bot = [
     n("Ausfuehren", "@n8n/n8n-nodes-langchain.agent", 2.2, [160, -140], {
         "promptType": "define",
         "text": AUSFUEHREN_TEXT,
-        "options": {"systemMessage": kwert("aufgaben.ausfuehren")},
+        "options": {"systemMessage": kwert("aufgaben.ausfuehren"),
+                    "maxIterations": 4},
         "hasOutputParser": False,
     }, retryOnFail=True, maxTries=2, waitBetweenTries=3000, onError="continueRegularOutput",
        notes="Fuehrt genau einen Befehl aus."),
@@ -2348,7 +2136,8 @@ bot = [
                  "anderen Weg. Antworte in einem kurzen Satz in der Sprache des Betreibers: '"
                  " + String(($('Zugang').first().json.sprache || 'de'))"
                  " + ' (en = englisch, de = deutsch) - auch die Bestaetigung.\\n/no_think' }}"),
-        "options": {"systemMessage": kwert("aufgaben.ausfuehren")},
+        "options": {"systemMessage": kwert("aufgaben.ausfuehren"),
+                    "maxIterations": 3},
         "hasOutputParser": False,
     }, retryOnFail=True, maxTries=2, waitBetweenTries=3000, onError="continueRegularOutput",
        notes="Zweiter Versuch fuer einen fehlgeschlagenen Befehl."),
@@ -2410,14 +2199,10 @@ bot = [
         "workflowInputs": {
             "mappingMode": "defineBelow",
             "value": {"suchtext": feld("suchtext", "Interpret und/oder Titel, z. B. In Extremo Santa Maria. Oder eine Nummer aus der letzten Auswahlliste, z. B. 2"),
-                      "einreihen": feld("einreihen", "true, wenn der Titel nur eingereiht werden soll (nicht sofort laufen)", "boolean", False),
                       "sprache": feld("sprache", "Sprache des Betreibers: de oder en. Immer mitgeben - die Antwort des Werkzeugs kommt in dieser Sprache zurueck.", "string", "de")},
             "matchingColumns": [],
             "schema": [{"id": "suchtext", "displayName": "suchtext", "required": False,
                         "defaultMatch": False, "display": True, "type": "string",
-                        "canBeUsedToMatch": True, "removed": False},
-                       {"id": "einreihen", "displayName": "einreihen", "required": False,
-                        "defaultMatch": False, "display": True, "type": "boolean",
                         "canBeUsedToMatch": True, "removed": False},
                        {"id": "sprache", "displayName": "sprache", "required": False,
                         "defaultMatch": False, "display": True, "type": "string",
@@ -2433,14 +2218,10 @@ bot = [
         "workflowInputs": {
             "mappingMode": "defineBelow",
             "value": {"richtung": feld("richtung", "Stimmung, Genre oder Jahrzehnt - eines von: party, dance, rock, pop, metal, hiphop, electronic, disco, punk, grunge, folk, blues, jazz, klassik, schlager, deutschrap, ruhig, hart, 90er, 80er"),
-                      "einreihen": feld("einreihen", "true, wenn der Titel nur eingereiht werden soll (nicht sofort laufen)", "boolean", False),
                       "sprache": feld("sprache", "Sprache des Betreibers: de oder en. Immer mitgeben - die Antwort des Werkzeugs kommt in dieser Sprache zurueck.", "string", "de")},
             "matchingColumns": [],
             "schema": [{"id": "richtung", "displayName": "richtung", "required": False,
                         "defaultMatch": False, "display": True, "type": "string",
-                        "canBeUsedToMatch": True, "removed": False},
-                       {"id": "einreihen", "displayName": "einreihen", "required": False,
-                        "defaultMatch": False, "display": True, "type": "boolean",
                         "canBeUsedToMatch": True, "removed": False},
                        {"id": "sprache", "displayName": "sprache", "required": False,
                         "defaultMatch": False, "display": True, "type": "string",
@@ -2465,63 +2246,6 @@ bot = [
                         "canBeUsedToMatch": True, "removed": False}],
             "attemptToConvertTypes": False, "convertFieldsToString": False},
     }),
-    n("Werkzeug Azura Adressen", "@n8n/n8n-nodes-langchain.toolWorkflow", 2.2, [980, 420], {
-        "name": "azura_endpunkte",
-        "description": kwert("aufgaben.werkzeuge.azura_endpunkte"),
-        "source": "database",
-        "workflowId": {"__rl": True, "value": W_AZURA, "mode": "list",
-                       "cachedResultName": W_AZURA_NAME},
-        "workflowInputs": {
-            "mappingMode": "defineBelow",
-            "value": {"suche": feld("suche", "Stichwort zur gesuchten Adresse, z. B. playlist")},
-            "matchingColumns": [],
-            "schema": [{"id": "suche", "displayName": "suche", "required": False,
-                        "defaultMatch": False, "display": True, "type": "string",
-                        "canBeUsedToMatch": True, "removed": False}],
-            "attemptToConvertTypes": False, "convertFieldsToString": False},
-    }),
-    n("Werkzeug Azura Aufruf", "@n8n/n8n-nodes-langchain.toolWorkflow", 2.2, [1180, 420], {
-        "name": "azura_aufruf",
-        "description": kwert("aufgaben.werkzeuge.azura_aufruf"),
-        "source": "database",
-        "workflowId": {"__rl": True, "value": W_AZURA, "mode": "list",
-                       "cachedResultName": W_AZURA_NAME},
-        "workflowInputs": {
-            "mappingMode": "defineBelow",
-            "value": {"methode": feld("methode", "GET zum Lesen, POST/PUT/DELETE zum Aendern", "string", "GET"),
-                      "pfad": feld("pfad", "Vollstaendiger Pfad mit /api/, z. B. /api/station/2/playlists"),
-                      "koerper": feld("koerper", "JSON-Koerper beim Schreiben, z. B. {\"name\":\"Neu\",\"type\":\"default\"}", "string", ""),
-                      "bestaetigt": feld("bestaetigt", "true, wenn der Betreiber das Aendern ausdruecklich erlaubt hat", "boolean", False)},
-            "matchingColumns": [],
-            "schema": [{"id": "methode", "displayName": "methode", "required": False,
-                        "defaultMatch": False, "display": True, "type": "string",
-                        "canBeUsedToMatch": True, "removed": False},
-                       {"id": "pfad", "displayName": "pfad", "required": False,
-                        "defaultMatch": False, "display": True, "type": "string",
-                        "canBeUsedToMatch": True, "removed": False},
-                       {"id": "koerper", "displayName": "koerper", "required": False,
-                        "defaultMatch": False, "display": True, "type": "string",
-                        "canBeUsedToMatch": True, "removed": False},
-                       {"id": "bestaetigt", "displayName": "bestaetigt", "required": False,
-                        "defaultMatch": False, "display": True, "type": "boolean",
-                        "canBeUsedToMatch": True, "removed": False}],
-            "attemptToConvertTypes": False, "convertFieldsToString": False},
-    }),
-    n("Werkzeug Azura Ueberblick", "@n8n/n8n-nodes-langchain.toolWorkflow", 2.2, [1380, 420], {
-        "name": "azura_ueberblick",
-        "description": kwert("aufgaben.werkzeuge.azura_ueberblick"),
-        "source": "database",
-        "workflowId": {"__rl": True, "value": W_AZURA, "mode": "list",
-                       "cachedResultName": W_AZURA_NAME},
-        "workflowInputs": {
-            "mappingMode": "defineBelow",
-            "value": {"frage": feld("frage", "Was der Betreiber wissen will, z. B. Zustand oder Wiedergabelisten", "string", "Ueberblick")},
-            "matchingColumns": [],
-            "schema": [{"id": "frage", "displayName": "frage", "required": False,
-                        "defaultMatch": False, "display": True, "type": "string",
-                        "canBeUsedToMatch": True, "removed": False}],
-            "attemptToConvertTypes": False, "convertFieldsToString": False},
-    }),
     n("Werkzeug Meldungen", "@n8n/n8n-nodes-langchain.toolWorkflow", 2.2, [1780, 420], {
         "name": "meldungen",
         "description": kwert("aufgaben.werkzeuge.meldungen"),
@@ -2532,7 +2256,7 @@ bot = [
             "mappingMode": "defineBelow",
             "value": {"auftrag": feld("auftrag", "anzeigen (offene Meldungen), lesen (Sprechtext), ansagen (live sprechen), verwerfen oder text (freier Text)", "string", "anzeigen"),
                       "kennung": feld("kennung", "Kennung der Meldung, z. B. m260920-0007 (bei lesen, ansagen, verwerfen)", "string", ""),
-                      "text": feld("text", "Freier Ansagetext (nur bei auftrag=text)", "string", "")},
+                      "text": feld("text", "Freier Ansagetext (nur bei auftrag=text, hoechstens 240 Zeichen)", "string", "")},
             "matchingColumns": [],
             "schema": [{"id": "auftrag", "displayName": "auftrag", "required": False,
                         "defaultMatch": False, "display": True, "type": "string",
@@ -2585,7 +2309,6 @@ bot = [
             "value": {"suchtext": "={{ $json.befehl.suchtext || '' }}",
                       "richtung": "={{ $json.befehl.richtung || '' }}",
                       "frage": "={{ $json.befehl.frage || '' }}",
-                      "einreihen": "={{ $json.befehl.einreihen === true }}",
                       "sprache": "={{ $('Zugang').first().json.sprache || 'de' }}"},
             "matchingColumns": [],
             "schema": [{"id": "suchtext", "displayName": "suchtext", "required": False,
@@ -2593,9 +2316,6 @@ bot = [
                         "canBeUsedToMatch": True, "removed": False},
                        {"id": "richtung", "displayName": "richtung", "required": False,
                         "defaultMatch": False, "display": True, "type": "string",
-                        "canBeUsedToMatch": True, "removed": False},
-                       {"id": "einreihen", "displayName": "einreihen", "required": False,
-                        "defaultMatch": False, "display": True, "type": "boolean",
                         "canBeUsedToMatch": True, "removed": False},
                        {"id": "sprache", "displayName": "sprache", "required": False,
                         "defaultMatch": False, "display": True, "type": "string",
@@ -2654,12 +2374,12 @@ bot = [
     code("Ueberblick Antwort", [300, -1140], UEBERBLICK_ANTWORT_JS),
 
     n("Kurz Steuern", "n8n-nodes-base.httpRequest", 4.2, [380, -520], {
-        "method": "={{ ['pause', 'lautstaerke'].includes($json.befehl.steuerung) ? 'GET' : 'POST' }}",
-        "url": "={{ ['pause', 'lautstaerke'].includes($json.befehl.steuerung) ? " + K + ".sender.api + '/status' : " + K + ".sender.api + '/backend/' + $json.befehl.steuerung }}",
+        "method": "POST",
+        "url": "={{ " + K + ".sender.api + '/backend/' + $json.befehl.steuerung }}",
         "sendHeaders": True, "headerParameters": {"parameters": AZ_KOPF},
         "options": {"timeout": 20000},
     }, onError="continueRegularOutput",
-       notes="Naechster Titel, Start/Stop/Neustart - feste Adressen, kein Modell."),
+       notes="Naechster Titel - feste Adresse, kein Modell. Nur 'skip' ist erlaubt."),
     n("Steuerung Antwort", "n8n-nodes-base.code", 2, [600, -520], {"jsCode": STEUERUNG_ANTWORT_JS}),
     n("Ersatz Antwort", "n8n-nodes-base.code", 2, [600, -320], {"jsCode": ERSATZ_ANTWORT_JS}),
 
@@ -2843,12 +2563,6 @@ bot_verbindungen = {
                                               {"node": "Nacharbeiten", "type": "ai_tool", "index": 0}]]},
     "Werkzeug Was laeuft": {"ai_tool": [[{"node": "Ausfuehren", "type": "ai_tool", "index": 0},
                                          {"node": "Nacharbeiten", "type": "ai_tool", "index": 0}]]},
-    "Werkzeug Azura Adressen": {"ai_tool": [[{"node": "Ausfuehren", "type": "ai_tool", "index": 0},
-                                             {"node": "Nacharbeiten", "type": "ai_tool", "index": 0}]]},
-    "Werkzeug Azura Aufruf": {"ai_tool": [[{"node": "Ausfuehren", "type": "ai_tool", "index": 0},
-                                           {"node": "Nacharbeiten", "type": "ai_tool", "index": 0}]]},
-    "Werkzeug Azura Ueberblick": {"ai_tool": [[{"node": "Ausfuehren", "type": "ai_tool", "index": 0},
-                                               {"node": "Nacharbeiten", "type": "ai_tool", "index": 0}]]},
     "Werkzeug Meldungen": {"ai_tool": [[{"node": "Ausfuehren", "type": "ai_tool", "index": 0},
                                         {"node": "Nacharbeiten", "type": "ai_tool", "index": 0}]]},
     "Werkzeug Recherche": {"ai_tool": [[{"node": "Ausfuehren", "type": "ai_tool", "index": 0},
@@ -2936,13 +2650,10 @@ ANORDNUNG = {
     "Ergebnis sammeln": (300, 1480),
     "Sprachmodell Ausfuehren": (80, 2000),
 
-    # -- 5 Werkzeuge (Unterschnittstellen des Agenten)
+    # -- Werkzeuge (Unterschnittstellen des Agenten)
     "Werkzeug Titel suchen": (560, 2200),
     "Werkzeug Richtung suchen": (760, 2200),
     "Werkzeug Was laeuft": (960, 2200),
-    "Werkzeug Azura Adressen": (1160, 2200),
-    "Werkzeug Azura Aufruf": (1360, 2200),
-    "Werkzeug Azura Ueberblick": (1560, 2200),
     "Werkzeug Meldungen": (1780, 2200),
     "Werkzeug Recherche": (2000, 2200),
 
@@ -2978,8 +2689,10 @@ am Eingang erkannt (Feld `sprache`) und reist mit - Kurzbefehle, Werkzeugantwort
 und die Antworten des Modells folgen ihr. Inhalte (Nachrichten, Wetter) und die
 Verwaltungswege des Dienstes bleiben deutsch.
 
-Was der Bot kann: Liedwunsch, Richtungswunsch, skip/pause/Status, Wiedergabelisten,
-Postfach, Recherche (Wetter, Nachrichten, RSS) und Ansagen im laufenden Programm.
+Was der Bot kann: Musikwuensche aus der festgelegten Demo-Wiedergabeliste, "weiter"
+(Titelwechsel), Programmstatus, Postfach, Recherche (Wetter, Nachrichten, RSS) und
+Ansagen im laufenden Programm. Verwalten kann der Bot nichts: der Schluessel darf nur
+zuhoeren, springen und Wuensche annehmen (siehe zugangsdaten/api_key.txt).
 Alles kommt aus Telegram und geht dorthin zurueck - oder per REST- oder Testeingang
 als JSON ({"text": "..."} plus Schluessel; Antwort {ok, antwort, tastatur, sprache}).
 Gespielt wird auf dem Sender "DDD-Webseite Demo" (Sender 2).
@@ -3036,7 +2749,6 @@ Drei Wege: Ersatz ohne Modell, feste Steuerung, Agent mit Werkzeugen.""",
 Je Werkzeug ein Knoten; er ruft den Werkzeug-Ablauf per `executeWorkflow` auf.
 Dateipfade und Senderaufrufe bleiben dort - das Modell sieht sie nie.""",
      ["Werkzeug Titel suchen", "Werkzeug Richtung suchen", "Werkzeug Was laeuft",
-      "Werkzeug Azura Adressen", "Werkzeug Azura Aufruf", "Werkzeug Azura Ueberblick",
       "Werkzeug Meldungen", "Werkzeug Recherche"]),
     ("Notiz Pruefung", 7, """## Stufe 3: Pruefung, Nachfassen und Antwort
 **Lage holen** und **Warteschlange holen** belegen den Senderzustand, **Pruefen**
@@ -3122,7 +2834,7 @@ LANGNOTIZ = {
     "Plan Antwort": "Liest den Text des Modells aus.",
     "Plan nochmal?": "Ja = neuer Anlauf, Nein = Ersatzweg ueber die Ausfuehrung.",
     "Ersatz Antwort": "Schreibt die Ausgabe in den Merker, dann zurueck in die Schleife.",
-    "Kurz Steuern": "Naechster Titel, Start/Stop/Neustart - feste Adressen, kein Modell.",
+    "Kurz Steuern": "Naechster Titel - feste Adresse, kein Modell.",
     "Steuerung Antwort": "Formuliert die Antwort des Senders.",
     "Ergebnis sammeln": "Schreibt die Ausgabe in den Merker, dann zurueck in die Schleife.",
     "Ueberblick Antwort": "Schreibt die Ausgabe in den Merker, dann zurueck in die Schleife.",
@@ -3130,9 +2842,6 @@ LANGNOTIZ = {
     "Werkzeug Titel suchen": "Werkzeug `titel_suchen` fuer Ausfuehren und Nacharbeiten.",
     "Werkzeug Richtung suchen": "Werkzeug `richtung_suchen` fuer Ausfuehren und Nacharbeiten.",
     "Werkzeug Was laeuft": "Werkzeug `was_laeuft` fuer Ausfuehren und Nacharbeiten.",
-    "Werkzeug Azura Adressen": "Werkzeug `azura_endpunkte` fuer Ausfuehren und Nacharbeiten.",
-    "Werkzeug Azura Aufruf": "Werkzeug `azura_aufruf` fuer Ausfuehren und Nacharbeiten.",
-    "Werkzeug Azura Ueberblick": "Werkzeug `azura_ueberblick` fuer Ausfuehren und Nacharbeiten.",
     "Werkzeug Meldungen": "Werkzeug `meldungen`: Postfach und Ansagen.",
     "Werkzeug Recherche": "Werkzeug `recherche`: Wetter, Nachrichten, Feed, Kurzinfo.",
     "Lage holen": "Was laeuft gerade - Beleg fuer die Pruefung.",
@@ -3368,6 +3077,12 @@ KONFIG = {
         "schluessel": os.environ.get("AZ_KEY", ""),
         "senderId": 2,
     },
+    # Die Grenzen der Demo: Musik nur aus dieser Wiedergabeliste (leer = Wuensche
+    # gesperrt), freie Ansagen hoechstens so viele Zeichen.
+    "demo": {
+        "playlist": os.environ.get("DEMO_PLAYLIST", ""),
+        "ansage_max": int(os.environ.get("DEMO_ANSAGE_MAX", "240")),
+    },
     "dienst": {
         "adresse": os.environ.get("DIENST_URL", os.environ.get("KATALOG_URL",
                                                               "http://192.168.178.53:8882")),
@@ -3561,124 +3276,63 @@ dokunotiz(agent, "DDD-Webseite Bot - Telegram-Agent (DE/EN) mit REST-Eingang", [
 W_ANORDNUNG = {
     "Eingang": (-900, 0),
     "Konfiguration": (-900, 260),
-    "Richtung?": (-660, 0),
-    "Nur Status?": (-420, 0),
-    "Richtung suchen": (-420, -480),
-    "Vorschlaege aufbereiten": (-180, -480),
-    "Suche klug": (-420, 380),
-    "Suche Sender": (-180, 380),
-    "Treffer aufbereiten": (60, 380),
-    "NowPlaying": (-420, 760),
-    "Status aufbereiten": (-180, 760),
+    "Playlist holen": (-660, 0),
+    "Richtung?": (-420, 0),
+    "Richtung suchen": (-420, -220),
+    "Vorschlaege aufbereiten": (-180, -220),
+    "Nur Status?": (-420, 200),
+    "NowPlaying": (-180, 400),
+    "Status aufbereiten": (60, 400),
+    "Suche klug": (-180, 120),
+    "Treffer aufbereiten": (300, 0),
     "Treffer da?": (540, 0),
-    "Einreihen?": (780, 0),
-    "Warteschlange leeren": (1020, -260),
-    "Sofort eintragen": (1260, -260),
-    "Danach eintragen": (1260, 180),
-    "Ergebnis": (1500, 0),
+    "Wunsch anfordern": (800, 0),
+    "Ergebnis": (1100, 0),
 }
 
 W_BEREICHE = [
     ("Notiz W Weichen", 5, """## Weichen
-Richtung, Zustand oder Titelsuche - eines von drei.""",
-     ["Konfiguration", "Eingang", "Richtung?", "Nur Status?"]),
+Erst die Demo-Playlist holen; dann Richtung, Zustand oder Titelsuche.""",
+     ["Konfiguration", "Eingang", "Playlist holen", "Richtung?", "Nur Status?"]),
     ("Notiz W Richtung", 4, """## Zweig: Richtung
 Stimmung, Genre oder Jahrzehnt aus dem Katalogdienst.""",
      ["Richtung suchen", "Vorschlaege aufbereiten"]),
     ("Notiz W Suche", 1, """## Zweig: Titel suchen
-Katalogdienst (unscharf) und Volltextsuche des Senders.""",
-     ["Suche klug", "Suche Sender", "Treffer aufbereiten"]),
+Nur der Katalogdienst (unscharf, tippfehlertolerant) - der Sender wird nur
+gelesen, nicht durchsucht.""",
+     ["Suche klug", "Treffer aufbereiten"]),
     ("Notiz W Status", 6, """## Zweig: Was laeuft
 Nur der Zustand - die Rueckgabe ist der Text.""",
      ["NowPlaying", "Status aufbereiten"]),
     ("Notiz W Abspielen", 3, """## Abspielen
 Ohne Pfad wird nichts eingetragen - dann bleibt es bei einer Auswahlliste.
-Mit Pfad: erst die unterbrechende Warteschlange leeren, dann sofort oder hinten an.""",
-     ["Treffer da?", "Einreihen?", "Warteschlange leeren", "Sofort eintragen",
-      "Danach eintragen"]),
+Mit Pfad geht der Wunsch ueber die oeffentliche Wunsch-Schnittstelle des Senders
+(kein Schreibrecht noetig) und laeuft in Kuerze.""",
+     ["Treffer da?", "Wunsch anfordern"]),
     ("Notiz W Ausgabe", 2, """## Ausgabe
 Hier endet der Werkzeug-Ablauf - der Text geht an den Agenten zurueck.""",
      ["Ergebnis"]),
 ]
 
 W_LANGNOTIZ = {
-    "Eingang": "Felder des Werkzeugs: suchtext, richtung, frage, einreihen.",
+    "Eingang": "Felder des Werkzeugs: suchtext, richtung, frage.",
+    "Playlist holen": "Titel der festgelegten Demo-Playlist (leer = Musikwege gesperrt).",
     "Richtung suchen": "Katalogdienst nach Stimmung, Genre oder Jahrzehnt.",
     "Vorschlaege aufbereiten": "Macht aus den Vorschlaegen einen ersten Titel oder eine Liste.",
     "Suche klug": "Unscharfe Suche im Katalogdienst (tippfehlertolerant).",
-    "Suche Sender": "Volltextsuche des Senders als zweite Quelle.",
-    "Treffer aufbereiten": "Treffer beider Quellen zu einer kurzen Liste machen.",
+    "Treffer aufbereiten": "Treffer zu einer kurzen Liste machen (nur Demo-Playlist).",
     "NowPlaying": "Was laeuft, was kommt danach, wie viele Zuhoerer.",
     "Status aufbereiten": "Formuliert den Zustand als Text (Rueckgabe des Werkzeugs).",
     "Treffer da?": "Ja = es gibt einen Titel, der laufen soll.",
-    "Einreihen?": "Ja = nur einreihen, nicht unterbrechen.",
-    "Warteschlange leeren": "Leert die unterbrechende Warteschlange des Senders.",
-    "Sofort eintragen": "Traegt den Titel sofort in die unterbrechende Warteschlange ein.",
-    "Danach eintragen": "Haengt den Titel hinter das Laufende.",
+    "Wunsch anfordern": "Traegt den Wunsch ueber die oeffentliche Wunsch-Schnittstelle ein.",
     "Ergebnis": "Ausgabeknoten: hier endet der Werkzeug-Ablauf.",
 }
 
-W_ANORDNUNG_AZ = {
-    "Eingang": (-900, 0),
-    "Konfiguration": (-900, 260),
-    "Adressen suchen?": (-660, 0),
-    "Aufruf?": (-420, 0),
-    "Wache": (300, 0),
-    "Ausfuehren?": (540, 0),
-    "Nur lesen?": (780, 0),
-    "Aufruf Ergebnis": (1260, 0),
-    "Lesen": (1020, 220),
-    "Schreiben": (1020, 460),
-    "Trockenlauf": (780, 560),
-    "Beschreibung holen": (-420, -480),
-    "Adressen finden": (-180, -480),
-    "Anlagen": (-420, 1020),
-    "Zustand": (-180, 1020),
-    "Wiedergabelisten": (60, 1020),
-    "Ueberblick": (300, 1020),
-}
-
-W_AZ_BEREICHE = [
-    ("Notiz AZ Weichen", 5, """## Weichen
-Adressen nachschlagen, eine Schnittstelle aufrufen oder Ueberblick geben.""",
-     ["Konfiguration", "Eingang", "Adressen suchen?", "Aufruf?"]),
-    ("Notiz AZ Adressen", 4, """## Zweig: Adressen
-Das Verzeichnis des Katalogdienstes nach Adressen durchsuchen.""",
-     ["Beschreibung holen", "Adressen finden"]),
-    ("Notiz AZ Aufruf", 6, """## Zweig: Aufruf
-**Wache** prueft Methode und Pfad; Aendern nur mit `bestaetigt: true`.
-Zwei Schritte: Trockenlauf zurueckgeben oder wirklich aufrufen.""",
-     ["Wache", "Ausfuehren?", "Nur lesen?", "Lesen", "Schreiben", "Aufruf Ergebnis",
-      "Trockenlauf"]),
-    ("Notiz AZ Ueberblick", 3, """## Zweig: Ueberblick
-Anlagen, Sendeteil, Ausgabe und Wiedergabelisten in einem Text.""",
-     ["Anlagen", "Zustand", "Wiedergabelisten", "Ueberblick"]),
-]
-
-W_AZ_LANGNOTIZ = {
-    "Eingang": "Felder des Werkzeugs: suche, methode, pfad, koerper, bestaetigt, frage.",
-    "Adressen suchen?": "Ja = Adressen der Senderschnittstelle nachschlagen.",
-    "Beschreibung holen": "Adressverzeichnis vom Katalogdienst holen.",
-    "Adressen finden": "Kurze Liste der passenden Adressen mit Feldern.",
-    "Aufruf?": "Ja = eine Schnittstelle des Senders aufrufen.",
-    "Wache": "Prueft Methode und Pfad - Schreiben nur mit bestaetigt=true.",
-    "Ausfuehren?": "Ja = aufrufen, Nein = Trockenlauf zurueckgeben.",
-    "Nur lesen?": "Ja = GET (lesen), Nein = aendern (POST/PUT/DELETE).",
-    "Lesen": "Liest vom Sender.",
-    "Schreiben": "Aendert am Sender - nur nach ausdruecklicher Bestaetigung.",
-    "Trockenlauf": "Zeigt, was der Aufruf taete, ohne etwas zu aendern.",
-    "Aufruf Ergebnis": "Antwort des Senders kurz zusammengefasst.",
-    "Anlagen": "Anlagen und ob Sendeteil und Ausgabe laufen.",
-    "Zustand": "Zustand von Sendeteil und Ausgabe.",
-    "Wiedergabelisten": "Wiedergabelisten mit Titelzahl.",
-    "Ueberblick": "Fasst den Ueberblick als Text zusammen.",
-}
-
-# --- 3) Meldungen: Postfach des Suchbots und Ansagen des Moderators
+# --- 2) Meldungen: Postfach des Suchbots und Ansagen des Moderators
 MELDUNG_ERGEBNIS_JS = r"""
 // Je nach Auftrag hat einer der Knoten geantwortet - hier nur den Text weitergeben.
-const namen = ['Recherche holen', 'Meldung ansagen', 'Freie Ansage', 'Meldung verwerfen',
-               'Sprechtext holen', 'Offene holen'];
+const namen = ['Recherche holen', 'Meldung ansagen', 'Freie Ansage', 'Ansage zu lang',
+               'Meldung verwerfen', 'Sprechtext holen', 'Offene holen'];
 let j = {};
 let quelle = '';
 for (const name of namen) {
@@ -3707,6 +3361,14 @@ if (quelle === 'Sprechtext holen') {
 }
 return [{ json: { ergebnis: String(j.antwort || j.gesprochen || 'Erledigt.').slice(0, 400),
   auswahl: [String(j.id || '')].filter(Boolean) } }];
+"""
+
+ANSAGE_LANG_JS = r"""
+// Freie Ansagen sind in dieser Demo begrenzt - der Text waere sonst ein Vortrag.
+const grenze = (($('Konfiguration').first().json.konfig || {}).demo || {}).ansage_max || 240;
+const laenge = String($json.text || '').trim().length;
+return [{ json: { ergebnis: 'Freie Ansagen sind in dieser Demo auf ' + grenze
+  + ' Zeichen begrenzt - der Text hat ' + laenge + ' Zeichen. Bitte kuerze ihn.' } }];
 """
 
 werkzeuge.append(werkzeug_arbeit(W_MELDUNGEN, W_MELDUNGEN_NAME, [
@@ -3745,6 +3407,17 @@ werkzeuge.append(werkzeug_arbeit(W_MELDUNGEN, W_MELDUNGEN_NAME, [
     # --- Zweig: Ansage
     wenn("Freier Text?", [-420, -220], "={{ !!String($json.text || '').trim() }}",
          "Ja = freier Text, Nein = abgelegte Meldung."),
+    n("Ansage kurz?", "n8n-nodes-base.if", 2.2, [-420, -520], {
+        "conditions": {"options": {"caseSensitive": True, "leftValue": "",
+                                   "typeValidation": "loose", "version": 2},
+                       "combinator": "and",
+                       "conditions": [{"id": nid(),
+                                       "leftValue": "={{ String($json.text || '').trim().length <= " + K + ".demo.ansage_max }}",
+                                       "rightValue": "",
+                                       "operator": {"type": "boolean", "operation": "true",
+                                                    "singleValue": True}}]},
+        "options": {}}, notes="Nein = der freie Text ist fuer eine Ansage zu lang."),
+    code("Ansage zu lang", [-180, -700], ANSAGE_LANG_JS),
     n("Freie Ansage", "n8n-nodes-base.httpRequest", 4.2, [-180, -440], {
         "method": "POST", "url": MELDUNGEN + "/ansage/text",
         "sendHeaders": True, "headerParameters": {"parameters": MELDUNG_KOPF},
@@ -3802,9 +3475,13 @@ werkzeuge.append(werkzeug_arbeit(W_MELDUNGEN, W_MELDUNGEN_NAME, [
         [{"node": "Freier Text?", "type": "main", "index": 0}],
         [{"node": "Verwerfen?", "type": "main", "index": 0}]]},
     "Freier Text?": {"main": [
-        [{"node": "Freie Ansage", "type": "main", "index": 0}],
+        [{"node": "Ansage kurz?", "type": "main", "index": 0}],
         [{"node": "Meldung ansagen", "type": "main", "index": 0}]]},
+    "Ansage kurz?": {"main": [
+        [{"node": "Freie Ansage", "type": "main", "index": 0}],
+        [{"node": "Ansage zu lang", "type": "main", "index": 0}]]},
     "Freie Ansage": {"main": [[{"node": "Ergebnis Meldungen", "type": "main", "index": 0}]]},
+    "Ansage zu lang": {"main": [[{"node": "Ergebnis Meldungen", "type": "main", "index": 0}]]},
     "Meldung ansagen": {"main": [[{"node": "Ergebnis Meldungen", "type": "main", "index": 0}]]},
     "Verwerfen?": {"main": [
         [{"node": "Meldung verwerfen", "type": "main", "index": 0}],
@@ -3825,6 +3502,8 @@ W_MELD_ANORDNUNG = {
     "Recherche holen": (400, -140),
     "Sprechen?": (-660, 380),
     "Freier Text?": (-420, 160),
+    "Ansage kurz?": (-180, 40),
+    "Ansage zu lang": (400, 80),
     "Freie Ansage": (400, 300),
     "Meldung ansagen": (400, 520),
     "Verwerfen?": (-420, 620),
@@ -3845,8 +3524,9 @@ Jede Weiche prueft ein Feld des Werkzeugs.""",
 Wetter, Nachrichten, Feed oder Kurzinfo holen, als Meldung ablegen und ansagen.""",
      ["Recherche holen"]),
     ("Notiz M Ansage", 1, """## Ansagen
-Freien Text oder eine abgelegte Meldung live in den Sender sprechen.""",
-     ["Freie Ansage", "Meldung ansagen"]),
+Freien Text oder eine abgelegte Meldung live in den Sender sprechen.
+Freie Ansagen sind kurz begrenzt (demo.ansage_max).""",
+     ["Ansage kurz?", "Ansage zu lang", "Freie Ansage", "Meldung ansagen"]),
     ("Notiz M Postfach", 3, """## Postfach
 Offene Meldungen auflisten, Sprechtext zeigen oder eine Meldung verwerfen.""",
      ["Meldung verwerfen", "Sprechtext holen", "Offene holen"]),
@@ -3861,6 +3541,8 @@ W_MELD_LANGNOTIZ = {
     "Recherche holen": "Holt die Daten, legt sie als Meldung ab und sagt sie bei ansagen=true an.",
     "Sprechen?": "Ja = eine Ansage sprechen (auftrag ansagen oder text).",
     "Freier Text?": "Ja = freier Text, Nein = Meldung aus dem Postfach.",
+    "Ansage kurz?": "Prueft die Laenge der freien Ansage (Grenze aus den Werten).",
+    "Ansage zu lang": "Meldet die Grenze, ohne zu sprechen.",
     "Freie Ansage": "Spricht freien Text live in den Sender.",
     "Meldung ansagen": "Spricht eine abgelegte Meldung live in den Sender.",
     "Verwerfen?": "Ja = Meldung als verworfen weglegen.",
@@ -3874,21 +3556,14 @@ W_MELD_LANGNOTIZ = {
 for _w in werkzeuge:
     konfiguration_einsetzen(_w, ["Eingang"], [ablauf_erstes_ziel(_w)])
 anordnen(werkzeuge[0], W_ANORDNUNG, W_BEREICHE, {}, W_LANGNOTIZ)
-anordnen(werkzeuge[1], W_ANORDNUNG_AZ, W_AZ_BEREICHE, {}, W_AZ_LANGNOTIZ)
-anordnen(werkzeuge[2], W_MELD_ANORDNUNG, W_MELD_BEREICHE, {}, W_MELD_LANGNOTIZ)
+anordnen(werkzeuge[1], W_MELD_ANORDNUNG, W_MELD_BEREICHE, {}, W_MELD_LANGNOTIZ)
 dokunotiz(werkzeuge[0], "DDD-Webseite Werkzeug Radio", [
     "Unterschnittstelle des Agenten fuer Musik: Weichen, Titel suchen, Richtung, Zustand, abspielen.",
     "Aufgerufen wird sie ueber die Werkzeugknoten des Agenten (Werkzeug Titel suchen usw.).",
     "Der Plan ist die Quelle: DDD-Webseite/werkzeuge/agent-wf-bauen-ddd.py (W_ANORDNUNG, W_BEREICHE).",
     "Aendern/Pruefen wie beim Agenten; Beschreibung: HANDBUCH.md, HANDBUCH.md, ANHANG/n8n-oberflaeche.html",
 ])
-dokunotiz(werkzeuge[1], "DDD-Webseite Werkzeug AzuraCast", [
-    "Unterschnittstelle fuer den Sender: Adressen nachschlagen, Schnittstelle aufrufen, Ueberblick.",
-    "Die Adressen kommen aus der OpenAPI-Beschreibung des Senders (263 Endpunkte).",
-    "Der Plan ist die Quelle: DDD-Webseite/werkzeuge/agent-wf-bauen-ddd.py (W_ANORDNUNG_AZ, W_AZ_BEREICHE).",
-    "Aendern/Pruefen wie beim Agenten; Beschreibung: HANDBUCH.md, ANHANG/n8n-oberflaeche.html",
-])
-dokunotiz(werkzeuge[2], "DDD-Webseite Werkzeug Meldungen", [
+dokunotiz(werkzeuge[1], "DDD-Webseite Werkzeug Meldungen", [
     "Unterschnittstelle fuer Ansage und Postfach: Recherche, freie Ansage, Meldung sprechen/verwerfen.",
     "Spricht ueber den Dienst ddd-radio (Piper + DJ-Hafen), legt Meldungen im Postfach ab.",
     "Der Plan ist die Quelle: DDD-Webseite/werkzeuge/agent-wf-bauen-ddd.py (W_MELD_ANORDNUNG, W_MELD_BEREICHE).",

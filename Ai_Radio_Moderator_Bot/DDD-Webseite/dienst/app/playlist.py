@@ -685,3 +685,25 @@ def playlist_vorschlag(daten: Befehl) -> dict[str, Any]:
 def playlist_status() -> dict[str, Any]:
     return {"offene_auswahlen": len(ZUSTAND), "liste": list(ZUSTAND.keys())[:5],
             "senderschnittstelle": AZ_URL, "app": "playlist"}
+
+
+@router.get("/playlist/titel")
+def playlist_titel(name: str = "") -> dict[str, Any]:
+    """Mitglieder einer Wiedergabeliste - nur lesen.
+
+    Der Demo-Bot darf Musik nur innerhalb dieser Liste aendern; sein eigener
+    Schluessel hat dafuer KEINE Medienrechte, deshalb liest der Dienst die
+    Liste (Dienst-Schluessel) und der Bot fragt hier nach den Pfaden.
+    Ohne Namen oder ohne Fund: konfiguriert=false -> der Bot sperrt
+    Musikwünsche mit einem freundlichen Hinweis.
+    """
+    name = (name or "").strip()
+    leer = {"konfiguriert": False, "name": name, "anzahl": 0, "pfade": [], "titel": []}
+    if not name:
+        return leer
+    liste = liste_finden(name)
+    if not liste:
+        return leer
+    pfade, titel = liste_inhalt(int(liste["id"]))
+    return {"konfiguriert": True, "name": str(liste.get("name") or name),
+            "anzahl": len(pfade), "pfade": pfade, "titel": titel}
