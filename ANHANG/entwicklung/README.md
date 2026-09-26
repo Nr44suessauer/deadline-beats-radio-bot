@@ -576,7 +576,7 @@ Er nimmt eine Telegram-Nachricht als JSON entgegen und antwortet mit dem Ergebni
 
 ```bash
 CFG=~/.ssh/config
-S=$(cat <dokuordner>/NACHBAU/zugangsdaten/bot-test-schluessel.txt)
+S=$(cat <dein-zugangsordner>/bot-test-schluessel.txt)
 
 # Nachricht senden
 ssh -F $CFG ai-server "pct exec 103 -- curl -s -X POST \

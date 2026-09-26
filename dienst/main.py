@@ -461,6 +461,7 @@ def health() -> dict[str, Any]:
         "stimmen_verzeichnis": str(VOICE_DIR),
         "stimmen": len(stimmdateien()),
         "standard": STANDARD_STIMME,
+        "englisch": os.environ.get("TTS_EN_VOICE", "en_lessac"),
         "deine-stimme": {"name": EIGENE_NAME, "url": EIGENE_URL, "ersatz": EIGENE_STIMME_ERSATZ},
     }
 

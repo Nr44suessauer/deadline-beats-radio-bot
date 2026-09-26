@@ -8,8 +8,7 @@ Layout check (same check as the German edition): **0 finding(s)**. The check loo
 nodes without a frame, nodes in two frames, nodes sticking out of their frame,
 overlapping frames and nodes without a note — the target is **0 findings**.
 
-Stand: 24 Sep 2026 (English edition). Regenerate: `python3 EN/tools/anordnung-en.py
-EN/REBUILD/running-workflows/*.json`
+As of: 24 Sep 2026 (English edition). Regenerate: `bash tools/layout-docs.sh`
 
 ## Radio - Telegram Agent (EN)
 

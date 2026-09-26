@@ -74,7 +74,20 @@ FEEDS: dict[str, str] = {
     # Open-Meteo geholt (siehe _ueberblick).
     "wetter": "https://www.wetter.de/rss/wetter-deutschland.xml",
 }
+
+# Englische Quellen (zweite Sprache, seit 2026-09-26): Der Bot versteht deutsch
+# UND englisch in einem Chat. Englische Anfragen ("bbc", "guardian", ...) holen
+# aus dieser Liste; der Ueberblick und der Nachrichten-Weg waehlen die Liste nach
+# dem Feld "sprache" des Auftrags.
+FEEDS_EN: dict[str, str] = {
+    "bbc": "https://feeds.bbci.co.uk/news/world/rss.xml",
+    "guardian": "https://www.theguardian.com/world/rss",
+    "npr": "https://feeds.npr.org/1001/rss.xml",
+    "aljazeera": "https://www.aljazeera.com/xml/rss/all.xml",
+    "dw": "https://rss.dw.com/rdf/rss-en-world",
+}
 NACHRICHTEN_FEED = os.environ.get("RECHERCHE_NEWS_FEED", FEEDS["tagesschau"])
+NACHRICHTEN_FEED_EN = os.environ.get("RECHERCHE_NEWS_FEED_EN", FEEDS_EN["bbc"])
 
 # --- Ueberblick: mehrere Quellen und Themen in einem laengeren Beitrag -------
 # Gemessen am laufenden Dienst (2026-09-20): Piper/de_thorsten spricht rund
@@ -89,6 +102,8 @@ UEBERBLICK_QUELLEN = os.environ.get("RECHERCHE_UEBERBLICK_QUELLEN",
 # Mit Themen: alle Quellen durchsuchen (nur Treffer zum Thema werden verwendet) -
 # eine groessere Liste kostet hier nichts, sie bringt nur mehr Fundstellen.
 UEBERBLICK_QUELLEN_THEMEN = os.environ.get("RECHERCHE_UEBERBLICK_QUELLEN_THEMEN", "alle")
+# Standardquellen der englischen Fassung (Namen aus FEEDS_EN).
+UEBERBLICK_QUELLEN_EN = os.environ.get("RECHERCHE_UEBERBLICK_QUELLEN_EN", "bbc,guardian,npr")
 # Stehende Themen des Senders: "ueberblick" ohne eigene Themen nutzt diese Liste.
 UEBERBLICK_THEMEN = os.environ.get("RECHERCHE_UEBERBLICK_THEMEN", "")
 # Wie viele Meldungen je Thema in den Beitrag kommen (Web, Presse, Feeds).
@@ -209,9 +224,31 @@ QUELLEN_KURZ: dict[str, str] = {
     "wetter": "das Wetter",
 }
 
+# Englische Fassung der Kurzformen (zweite Sprache, seit 2026-09-26).
+QUELLEN_KURZ_EN: dict[str, str] = {
+    "bbc": "the BBC",
+    "guardian": "the Guardian",
+    "npr": "NPR",
+    "aljazeera": "Al Jazeera",
+    "dw": "DW",
+    "wetter": "the weather",
+    "wikipedia": "Wikipedia",
+}
 
-def _kurzname(name: str) -> str:
+# Und so kuendigt der Moderator eine Quelle auf Englisch an (zweite Sprache).
+QUELLEN_ANSPRACHE_EN: dict[str, str] = {
+    "bbc": "From the BBC.",
+    "guardian": "From the Guardian.",
+    "npr": "From NPR.",
+    "aljazeera": "From Al Jazeera.",
+    "dw": "From DW.",
+}
+
+
+def _kurzname(name: str, sprache: str = "de") -> str:
     """Kurzform einer Quelle fuer den Sprechtext."""
+    if str(sprache or "de").lower() == "en":
+        return QUELLEN_KURZ_EN.get(name, str(name).capitalize())
     return QUELLEN_KURZ.get(name, str(name).capitalize())
 
 # WMO-Wettercodes (Open-Meteo) auf Deutsch
@@ -225,6 +262,20 @@ WETTER_WORTE: dict[int, str] = {
     77: "Schneegriesel", 80: "leichte Regenschauer", 81: "Regenschauer",
     82: "heftige Regenschauer", 85: "Schneeschauer", 86: "starke Schneeschauer",
     95: "Gewitter", 96: "Gewitter mit leichtem Hagel", 99: "Gewitter mit Hagel",
+}
+
+# WMO-Wettercodes (Open-Meteo) auf Englisch (zweite Sprache, 2026-09-26)
+WETTER_WORTE_EN: dict[int, str] = {
+    0: "clear", 1: "mostly clear", 2: "partly cloudy", 3: "overcast",
+    45: "foggy", 48: "foggy with rime", 51: "light drizzle",
+    53: "drizzle", 55: "heavy drizzle", 56: "freezing drizzle",
+    57: "heavy freezing drizzle", 61: "light rain", 63: "rain",
+    65: "heavy rain", 66: "freezing rain", 67: "heavy freezing rain",
+    71: "light snowfall", 73: "snowfall", 75: "heavy snowfall",
+    77: "snow grains", 80: "light rain showers", 81: "rain showers",
+    82: "violent rain showers", 85: "snow showers", 86: "heavy snow showers",
+    95: "thunderstorms", 96: "thunderstorms with light hail",
+    99: "thunderstorms with hail",
 }
 
 
@@ -241,6 +292,9 @@ class Recherche(BaseModel):
     # Stimme der Ansage: "deine-stimme" = Moderationsstimme, leer = Standardstimme
     # (Betreiber-Wahl 2026-09-25).
     stimme: str = ""
+    # Sprache der Nachricht (zweite Sprache, seit 2026-09-26): "de" oder "en".
+    # Sie bestimmt die Inhalte (Quellen, Texte) UND die Ansagestimme.
+    sprache: str = "de"
 
 
 # ------------------------------------------------------------------ Hilfsmittel
@@ -303,17 +357,20 @@ def _text_von_html(roh: str, grenze: int = 400) -> str:
     return s
 
 
-def _feed_adresse(wort: str) -> str:
+def _feed_adresse(wort: str, sprache: str = "de") -> str:
     """Feed-Adresse aus Kurzname oder direkter Adresse."""
+    en = str(sprache or "de").lower() == "en"
+    liste = FEEDS_EN if en else FEEDS
+    standard = NACHRICHTEN_FEED_EN if en else NACHRICHTEN_FEED
     kurz = (wort or "").strip()
     if not kurz:
-        return NACHRICHTEN_FEED
-    if kurz.lower() in FEEDS:
-        return FEEDS[kurz.lower()]
+        return standard
+    if kurz.lower() in liste:
+        return liste[kurz.lower()]
     if kurz.lower().startswith(("http://", "https://")):
         return kurz
     # Stichwort statt Adresse: bekannten Feed danach durchsuchen
-    return NACHRICHTEN_FEED
+    return standard
 
 
 def _feed_lesen(feed_url: str, anzahl: int = 3, grenze: int = 400) -> list[dict[str, str]]:
@@ -354,13 +411,16 @@ def _feed_lesen(feed_url: str, anzahl: int = 3, grenze: int = 400) -> list[dict[
 
 # ------------------------------------------------------------------- Recherchen
 
-def _wetter(ort: str) -> dict[str, str]:
-    """Wetter fuer einen Ort (Open-Meteo, ohne Schluessel)."""
+def _wetter(ort: str, sprache: str = "de") -> dict[str, str]:
+    """Wetter fuer einen Ort (Open-Meteo, ohne Schluessel). Zweisprachig:
+    bei sprache=en kommen englische Texte und Wetterworte zurueck."""
+    en = str(sprache or "de").lower() == "en"
     suche = (ort or "").strip()
     if not suche:
         raise HTTPException(status_code=400, detail="Kein Ort angegeben (Feld 'wort').")
     geo = _json_holen("https://geocoding-api.open-meteo.com/v1/search?"
-                      + urllib.parse.urlencode({"name": suche, "count": 1, "language": "de",
+                      + urllib.parse.urlencode({"name": suche, "count": 1,
+                                                "language": "en" if en else "de",
                                                 "format": "json"}))
     treffer = (geo or {}).get("results") or []
     if not treffer:
@@ -370,7 +430,7 @@ def _wetter(ort: str) -> dict[str, str]:
     verwaltung = str(o.get("admin1") or "").strip()
     land = str(o.get("country") or "").strip()
     if verwaltung and name.lower() not in verwaltung.lower():
-        anzeige = f"{name} in {verwaltung}"
+        anzeige = f"{name}, {verwaltung}" if en else f"{name} in {verwaltung}"
     else:
         anzeige = name
 
@@ -385,7 +445,8 @@ def _wetter(ort: str) -> dict[str, str]:
     jetzt = (daten.get("current") or {})
     tag = (daten.get("daily") or {})
     code = int(jetzt.get("weather_code") or 0)
-    lage = WETTER_WORTE.get(code, "wechselhaft")
+    lage = (WETTER_WORTE_EN if en else WETTER_WORTE).get(
+        code, "mixed" if en else "wechselhaft")
 
     def zahl(feld: str, stelle: int = 0) -> str:
         werte = tag.get(feld) or []
@@ -393,35 +454,52 @@ def _wetter(ort: str) -> dict[str, str]:
             return "?"
         return f"{float(werte[0]):.{stelle}f}"
 
-    teile = [f"In {anzeige} sind es aktuell {float(jetzt.get('temperature_2m') or 0):.0f} Grad, "
-             f"dazu {lage}."]
-    if tag.get("temperature_2m_max"):
-        teile.append(f"Heute werden bis {zahl('temperature_2m_max')} Grad erreicht, "
-                     f"in der Nacht kühlt es auf {zahl('temperature_2m_min')} Grad ab.")
-    if tag.get("precipitation_probability_max"):
-        teile.append(f"Die Regenwahrscheinlichkeit liegt bei "
-                     f"{zahl('precipitation_probability_max')} Prozent.")
-    if jetzt.get("wind_speed_10m") is not None:
-        teile.append(f"Der Wind weht mit "
-                     f"{float(jetzt.get('wind_speed_10m') or 0):.0f} Kilometern pro Stunde.")
+    if en:
+        teile = [f"In {anzeige} it is currently {float(jetzt.get('temperature_2m') or 0):.0f} "
+                 f"degrees with {lage}."]
+        if tag.get("temperature_2m_max"):
+            teile.append(f"Today temperatures reach up to {zahl('temperature_2m_max')} degrees, "
+                         f"dropping to {zahl('temperature_2m_min')} degrees at night.")
+        if tag.get("precipitation_probability_max"):
+            teile.append(f"The chance of rain is "
+                         f"{zahl('precipitation_probability_max')} percent.")
+        if jetzt.get("wind_speed_10m") is not None:
+            teile.append(f"Wind is coming in at "
+                         f"{float(jetzt.get('wind_speed_10m') or 0):.0f} kilometres per hour.")
+        titel = f"Weather for {anzeige}"
+    else:
+        teile = [f"In {anzeige} sind es aktuell {float(jetzt.get('temperature_2m') or 0):.0f} Grad, "
+                 f"dazu {lage}."]
+        if tag.get("temperature_2m_max"):
+            teile.append(f"Heute werden bis {zahl('temperature_2m_max')} Grad erreicht, "
+                         f"in der Nacht kühlt es auf {zahl('temperature_2m_min')} Grad ab.")
+        if tag.get("precipitation_probability_max"):
+            teile.append(f"Die Regenwahrscheinlichkeit liegt bei "
+                         f"{zahl('precipitation_probability_max')} Prozent.")
+        if jetzt.get("wind_speed_10m") is not None:
+            teile.append(f"Der Wind weht mit "
+                         f"{float(jetzt.get('wind_speed_10m') or 0):.0f} Kilometern pro Stunde.")
+        titel = f"Wetter {anzeige}"
     text = " ".join(teile)
-    return {"titel": f"Wetter {anzeige}", "text": text,
+    return {"titel": titel, "text": text,
             "url": f"https://open-meteo.com/", "ort": anzeige}
 
 
-def _nachrichten(wort: str) -> dict[str, str]:
+def _nachrichten(wort: str, sprache: str = "de") -> dict[str, str]:
     """Die oberste Meldung eines Nachrichten-Feeds; 'wort' filtert optional."""
-    feed = _feed_adresse(wort)
+    en = str(sprache or "de").lower() == "en"
+    feed = _feed_adresse(wort, sprache)
     eintraege = _feed_lesen(feed, anzahl=8)
     stichwort = (wort or "").strip().lower()
-    if stichwort and stichwort not in FEEDS and not stichwort.startswith("http"):
+    if stichwort and stichwort not in FEEDS and stichwort not in FEEDS_EN \
+            and not stichwort.startswith("http"):
         passende = [e for e in eintraege
                     if stichwort in (e["titel"] + " " + e["text"]).lower()]
         eintraege = passende or eintraege
     if not eintraege:
         raise HTTPException(status_code=404, detail="Keine Meldung im Feed gefunden.")
     neueste = eintraege[0]
-    titel = neueste["titel"] or "Meldung aus den Nachrichten"
+    titel = neueste["titel"] or ("News item" if en else "Meldung aus den Nachrichten")
     text = neueste["text"] or titel
     if neueste["titel"] and neueste["titel"].lower() not in text.lower():
         trenn = "" if neueste["titel"].endswith(("?", "!", ".")) else "."
@@ -429,14 +507,17 @@ def _nachrichten(wort: str) -> dict[str, str]:
     return {"titel": titel[:90], "text": text, "url": neueste["url"]}
 
 
-def _rss(wort: str) -> dict[str, str]:
+def _rss(wort: str, sprache: str = "de") -> dict[str, str]:
     """Ein beliebiger Feed (Adresse oder Kurzname), oberster Eintrag."""
-    adresse = _feed_adresse(wort)
-    if adresse == NACHRICHTEN_FEED and (wort or "").strip().lower() not in FEEDS:
+    en = str(sprache or "de").lower() == "en"
+    liste = FEEDS_EN if en else FEEDS
+    standard = NACHRICHTEN_FEED_EN if en else NACHRICHTEN_FEED
+    adresse = _feed_adresse(wort, sprache)
+    if adresse == standard and (wort or "").strip().lower() not in liste:
         if not (wort or "").strip().startswith("http"):
             raise HTTPException(status_code=400,
                                 detail="Fuer einen Feed bitte die Adresse angeben "
-                                       f"(oder einen Kurznamen: {', '.join(sorted(FEEDS))}).")
+                                       f"(oder einen Kurznamen: {', '.join(sorted(liste))}).")
     eintraege = _feed_lesen(adresse, anzahl=3)
     if not eintraege:
         raise HTTPException(status_code=404, detail="Keine Eintraege im Feed.")
@@ -449,13 +530,14 @@ def _rss(wort: str) -> dict[str, str]:
     return {"titel": titel[:90], "text": text, "url": neueste["url"]}
 
 
-def _wiki_titel(thema: str) -> str:
+def _wiki_titel(thema: str, sprache: str = "de") -> str:
     """Ueber die Wikipedia-Suche den richtigen Artikeltitel finden.
 
     Noetig, weil die Einleitungs-Schnittstelle den Titel genau braucht:
     "kuenstliche intelligenz" liefert 404, "Kuenstliche Intelligenz" nicht.
     """
-    adresse = ("https://de.wikipedia.org/w/api.php?" + urllib.parse.urlencode(
+    wiki = "en" if str(sprache or "de").lower() == "en" else "de"
+    adresse = (f"https://{wiki}.wikipedia.org/w/api.php?" + urllib.parse.urlencode(
         {"action": "query", "list": "search", "srsearch": thema, "srlimit": 1,
          "format": "json", "utf8": 1}))
     try:
@@ -466,9 +548,10 @@ def _wiki_titel(thema: str) -> str:
     return str(treffer[0].get("title") or "") if treffer else ""
 
 
-def _wiki_kurzinfo(titel: str) -> dict[str, str]:
+def _wiki_kurzinfo(titel: str, sprache: str = "de") -> dict[str, str]:
     """Einleitung eines Artikels holen (genauer Titel noetig)."""
-    adresse = ("https://de.wikipedia.org/api/rest_v1/page/summary/"
+    wiki = "en" if str(sprache or "de").lower() == "en" else "de"
+    adresse = (f"https://{wiki}.wikipedia.org/api/rest_v1/page/summary/"
                + urllib.parse.quote(titel.replace(" ", "_")))
     daten = _json_holen(adresse)
     # Begriffsklaerungen sind als Hintergrund wertlos ("KI steht fuer: sumerische
@@ -483,7 +566,7 @@ def _wiki_kurzinfo(titel: str) -> dict[str, str]:
             "url": ((daten.get("content_urls") or {}).get("desktop") or {}).get("page", "")}
 
 
-def _wikipedia(wort: str) -> dict[str, str]:
+def _wikipedia(wort: str, sprache: str = "de") -> dict[str, str]:
     """Kurzinfo zu einem Stichwort (Wikipedia-Einleitung)."""
     thema = (wort or "").strip()
     if not thema:
@@ -494,50 +577,55 @@ def _wikipedia(wort: str) -> dict[str, str]:
     fehler: HTTPException | None = None
     for versuch in dict.fromkeys(kandidaten):
         try:
-            return _wiki_kurzinfo(versuch)
+            return _wiki_kurzinfo(versuch, sprache)
         except HTTPException as grund:
             fehler = grund
-    titel = _wiki_titel(thema)
+    titel = _wiki_titel(thema, sprache)
     if titel:
         try:
-            return _wiki_kurzinfo(titel)
+            return _wiki_kurzinfo(titel, sprache)
         except HTTPException as grund:
             fehler = grund
     raise fehler or HTTPException(status_code=404,
                                   detail=f"Keinen Artikel zu '{thema}' gefunden.")
 
 
-def _quellen_aufloesen(text: str) -> list[tuple[str, str]]:
-    """Quellen aus einem Text lesen: "heise und spiegel", "tagesschau, heise" oder "alle".
+def _quellen_aufloesen(text: str, sprache: str = "de") -> list[tuple[str, str]]:
+    """Quellen aus einem Text lesen: "heise und spiegel", "bbc and guardian" oder "alle".
 
     Erst wird genau gesucht, dann unscharf (Kurzformen). Das ist wichtig, seit es
     aehnliche Namen gibt: "heise" darf nicht auf "heise-security" fallen.
     """
+    en = str(sprache or "de").lower() == "en"
+    liste = FEEDS_EN if en else FEEDS
+    standard = UEBERBLICK_QUELLEN_EN if en else UEBERBLICK_QUELLEN
     roh_text = str(text or "").strip().lower()
-    if re.fullmatch(r"(alle|alles|all|komplett|gesamt|saemtliche|sämtliche)", roh_text):
-        return list(FEEDS.items())
+    if re.fullmatch(r"(alle|alles|all|komplett|gesamt|saemtliche|sämtliche|everything|every)",
+                    roh_text):
+        return list(liste.items())
     roh = re.sub(r"\b(und|sowie|plus|aus|dem|der|die|das|den|vom|alle[nm]?|alles|standard|"
-                 r"uebliche|ueblichen|quellen?)\b", " ", roh_text)
+                 r"uebliche|ueblichen|quellen?|and|from|the|with|sources?|source)\b",
+                 " ", roh_text)
     namen = [w for w in re.split(r"[\s,;+/]+\s*", roh) if len(w) > 1]
     if not namen:
-        namen = [n.strip() for n in UEBERBLICK_QUELLEN.split(",") if n.strip()]
+        namen = [n.strip() for n in standard.split(",") if n.strip()]
 
     gewaehlt: list[tuple[str, str]] = []
     for name in namen:
         treffer = None
-        if name in FEEDS:
+        if name in liste:
             treffer = name
         else:
-            for kurz in sorted(FEEDS, key=len):   # kurze Namen zuerst
+            for kurz in sorted(liste, key=len):   # kurze Namen zuerst
                 if len(name) >= 4 and len(kurz) >= 4 \
                         and (kurz.startswith(name[:5]) or name.startswith(kurz[:5])):
                     treffer = kurz
                     break
-        if treffer and (treffer, FEEDS[treffer]) not in gewaehlt:
-            gewaehlt.append((treffer, FEEDS[treffer]))
+        if treffer and (treffer, liste[treffer]) not in gewaehlt:
+            gewaehlt.append((treffer, liste[treffer]))
     if not gewaehlt:   # nichts erkannt: Standardquellen nehmen
-        gewaehlt = [(n.strip(), FEEDS[n.strip()]) for n in UEBERBLICK_QUELLEN.split(",")
-                    if n.strip() in FEEDS]
+        gewaehlt = [(n.strip(), liste[n.strip()]) for n in standard.split(",")
+                    if n.strip() in liste]
     return gewaehlt
 
 
@@ -546,15 +634,17 @@ def _themen_aufloesen(text: str) -> list[str]:
     roh = str(text or "").strip() or UEBERBLICK_THEMEN
     if not roh:
         return []
-    teile = re.split(r"\s*(?:,|;|\+|\bund\b|\bsowie\b|\bthemen\b|\bthema\b)\s*", roh, flags=re.I)
+    teile = re.split(r"\s*(?:,|;|\+|\bund\b|\band\b|\bsowie\b|\bthemen\b|\bthema\b|\btopics?\b)\s*",
+                     roh, flags=re.I)
     sauber: list[str] = []
     for teil in teile:
         t = teil.strip(" .:-–")
         t = re.sub(r"^(zum|zur|den|dem|der|die|das|ein|eine|einen|themen?|thema|ueber|über|zu|"
-                   r"nachrichten|news)\s+", "", t, flags=re.I)
+                   r"nachrichten|news|the|about|on|for|topics?)\s+", "", t, flags=re.I)
         # Alte Zeitangaben ("3 minuten") ignorieren - die Laenge ergibt sich aus
         # dem, was gefunden wird.
-        t = re.sub(r"\b\d{1,2}\s*(min|minute|minuten|sek|sekunden)\b", " ", t, flags=re.I)
+        t = re.sub(r"\b\d{1,2}\s*(min|minute|minuten|sek|sekunden|minutes?|seconds?)\b",
+                   " ", t, flags=re.I)
         t = re.sub(r"\s+", " ", t).strip()
         if len(t) >= 2 and t.lower() not in [s.lower() for s in sauber]:
             sauber.append(t)
@@ -693,7 +783,7 @@ def _bing_ziel(verweis: str) -> str:
     return verweis
 
 
-def _websuche(thema: str, anzahl: int = 4) -> list[dict[str, str]]:
+def _websuche(thema: str, anzahl: int = 4, sprache: str = "de") -> list[dict[str, str]]:
     """Websuche - findet auch normale Internetseiten ohne Feed.
 
     Reihenfolge: eigene Suchmaschine (SearXNG, `RECHERCHE_SEARX_URL`), dann
@@ -704,7 +794,7 @@ def _websuche(thema: str, anzahl: int = 4) -> list[dict[str, str]]:
     Presse, Wikipedia und die Feeds tragen den Beitrag.
     """
     if SEARX_URL:
-        treffer = _searx(thema, anzahl)
+        treffer = _searx(thema, anzahl, sprache)
         if treffer:
             return treffer
 
@@ -730,8 +820,10 @@ def _websuche(thema: str, anzahl: int = 4) -> list[dict[str, str]]:
 
     if not treffer:   # zweiter Weg: Bing
         try:
+            en = str(sprache or "de").lower() == "en"
             roh = _holen("https://www.bing.com/search?" + urllib.parse.urlencode(
-                {"q": thema, "setlang": "de", "cc": "DE"}), kopf=WEB_KOPF)
+                {"q": thema, "setlang": "en" if en else "de",
+                 "cc": "US" if en else "DE"}), kopf=WEB_KOPF)
             for block in re.findall(r'<li class="b_algo".*?</li>', roh, re.S)[:anzahl]:
                 m = re.search(r'<h2[^>]*>\s*<a[^>]+href="([^"]+)"[^>]*>(.*?)</a>', block, re.S)
                 if not m:
@@ -745,11 +837,12 @@ def _websuche(thema: str, anzahl: int = 4) -> list[dict[str, str]]:
     return treffer
 
 
-def _searx(thema: str, anzahl: int = 4) -> list[dict[str, str]]:
+def _searx(thema: str, anzahl: int = 4, sprache: str = "de") -> list[dict[str, str]]:
     """Websuche ueber eine eigene SearXNG-Instanz (JSON-Schnittstelle)."""
     try:
         adresse = SEARX_URL + "/search?" + urllib.parse.urlencode(
-            {"q": thema, "format": "json", "language": "de-DE"})
+            {"q": thema, "format": "json",
+             "language": "en-US" if str(sprache or "de").lower() == "en" else "de-DE"})
         daten = _json_holen(adresse)
     except (HTTPException, ValueError, json.JSONDecodeError) as fehler:
         print(f"Websuche (SearXNG) '{thema}': {fehler}", flush=True)
@@ -765,14 +858,16 @@ def _searx(thema: str, anzahl: int = 4) -> list[dict[str, str]]:
     return treffer
 
 
-def _google_news(thema: str, anzahl: int = 4) -> list[dict[str, str]]:
+def _google_news(thema: str, anzahl: int = 4, sprache: str = "de") -> list[dict[str, str]]:
     """Presse-Suche je Thema ueber Google News (RSS) - liefert die Quelle mit.
 
     Draht- und Werbe-Meldungen ("EQS-News: ...", Boersen-Portale) fliegen raus:
     sie klingen im Radio wie Reklame und tragen keinen Nachrichteninhalt.
     """
+    en = str(sprache or "de").lower() == "en"
     adresse = ("https://news.google.com/rss/search?" + urllib.parse.urlencode(
-        {"q": thema, "hl": "de", "gl": "DE", "ceid": "DE:de"}))
+        {"q": thema, "hl": "en" if en else "de", "gl": "US" if en else "DE",
+         "ceid": "US:en" if en else "DE:de"}))
     try:
         roh = _holen(adresse)
         baum = ET.fromstring(roh)
@@ -815,20 +910,23 @@ def _google_news(thema: str, anzahl: int = 4) -> list[dict[str, str]]:
     return treffer
 
 
-def _feeds_holen(quellen: list[tuple[str, str]]) -> tuple[list[tuple[str, list[dict[str, str]]]],
-                                                        list[str]]:
+def _feeds_holen(quellen: list[tuple[str, str]],
+                 sprache: str = "de") -> tuple[list[tuple[str, list[dict[str, str]]]],
+                                              list[str]]:
     """Einmal alle genannten Quellen lesen (Wetter ueber Open-Meteo).
 
     Gibt die gelesenen Bloecke und die Namen der Quellen zurueck, die NICHT
     erreichbar waren (das ist etwas anderes als "hatte nichts zum Thema").
     """
+    en = str(sprache or "de").lower() == "en"
     bloecke: list[tuple[str, list[dict[str, str]]]] = []
     fehlend: list[str] = []
     for name, adresse in quellen:
         if name == "wetter":
             try:
-                w = _wetter(UEBERBLICK_WETTER_ORT)
-                bloecke.append((name, [{"titel": "Wetter", "text": w["text"],
+                w = _wetter(UEBERBLICK_WETTER_ORT, sprache)
+                bloecke.append((name, [{"titel": "Weather" if en else "Wetter",
+                                        "text": w["text"],
                                         "url": w.get("url", "")}]))
             except HTTPException as fehler:
                 print(f"Ueberblick: Wetter nicht lesbar: {fehler.detail}", flush=True)
@@ -879,28 +977,36 @@ def _stueck(titel: str, text: str, grenze: int = 300) -> str:
     return anfang
 
 
-def _meldet(name: str) -> str:
+def _meldet(name: str, sprache: str = "de") -> str:
     """Quellenangabe als Satz fuer den Sprechtext ("Das meldet die Tagesschau.")."""
     name = _saeubern(name).strip(" .,;:-")
-    return f"Das meldet {name}." if name else ""
+    if not name:
+        return ""
+    if str(sprache or "de").lower() == "en":
+        return f"{name[:1].upper() + name[1:]} reports."
+    return f"Das meldet {name}."
 
 
-def _ueberblick(themen_text: str = "", quellen_text: str = "") -> dict[str, Any]:  # noqa: C901
+def _ueberblick(themen_text: str = "", quellen_text: str = "",  # noqa: C901
+                sprache: str = "de") -> dict[str, Any]:
     """Themen sammeln: Websuche, Presse-Suche und die Feeds der Quelle.
 
     Eine feste Laenge gibt es nicht mehr: der Beitrag waechst mit dem, was zu den
     Themen gefunden wird (Sicherheitsgrenze: RECHERCHE_UEBERBLICK_MAX_ZEICHEN bzw.
     die Laengengrenze einer Ansage). Ohne Themen kommen die neuesten Meldungen der
-    genannten Quellen.
+    genannten Quellen. Bei sprache=en laeuft alles ueber die englischen Quellen.
     """
+    en = str(sprache or "de").lower() == "en"
+    liste = FEEDS_EN if en else FEEDS
     themen = _themen_aufloesen(themen_text)
     if not quellen_text.strip():
-        quellen_text = UEBERBLICK_QUELLEN_THEMEN if themen else UEBERBLICK_QUELLEN
-    quellen = _quellen_aufloesen(quellen_text)
+        quellen_text = (UEBERBLICK_QUELLEN_THEMEN if themen
+                        else (UEBERBLICK_QUELLEN_EN if en else UEBERBLICK_QUELLEN))
+    quellen = _quellen_aufloesen(quellen_text, sprache)
     if not quellen and not themen:
         raise HTTPException(status_code=400,
-                            detail="Keine Quelle. Bekannt: " + ", ".join(sorted(FEEDS)))
-    bloecke, nicht_erreichbar = _feeds_holen(quellen)
+                            detail="Keine Quelle. Bekannt: " + ", ".join(sorted(liste)))
+    bloecke, nicht_erreichbar = _feeds_holen(quellen, sprache)
     grenze = UEBERBLICK_MAX_ZEICHEN or meldungen.MAX_ZEICHEN
     grenze = min(grenze, meldungen.MAX_ZEICHEN)
 
@@ -934,14 +1040,14 @@ def _ueberblick(themen_text: str = "", quellen_text: str = "") -> dict[str, Any]
 
             # 1) Presse-Suche: was schreiben die Zeitungen dazu?
             if PRESSE_SUCHE:
-                for t in _google_news(thema, 4):
+                for t in _google_news(thema, 4, sprache):
                     if presse_hier >= presse_max or len(stuecke) >= THEMA_MELDUNGEN:
                         break
                     # Google liefert in der Beschreibung oft eine Mischung aus mehreren
                     # Schlagzeilen. Fuer den Sprechtext ist die Ueberschrift allein
                     # sauberer - Inhalt kommt aus Seite und Feeds.
                     stuecke.append((_stueck(t.get("titel", ""), "", 200),
-                                    _quellenname(t.get("quelle"))))
+                                    _quellenname(t.get("quelle"), sprache)))
                     presse_hier += 1
 
             # 2) Wikipedia: auf Wunsch nur noch, wenn RECHERCHE_THEMA_WIKI=1
@@ -950,7 +1056,7 @@ def _ueberblick(themen_text: str = "", quellen_text: str = "") -> dict[str, Any]
                 wiki_daten = None
                 for versuch in (thema, thema[:1].upper() + thema[1:]):
                     try:
-                        wiki_daten = _wikipedia(versuch)
+                        wiki_daten = _wikipedia(versuch, sprache)
                         break
                     except HTTPException as fehler:
                         print(f"Wikipedia '{versuch}': {fehler.detail}", flush=True)
@@ -962,7 +1068,7 @@ def _ueberblick(themen_text: str = "", quellen_text: str = "") -> dict[str, Any]
             # 3) Websuche: findet auch Seiten ohne Feed - und liest die erste.
             #    Nur Seiten bekannter Nachrichten-Anbieter (Werbeseiten aussen vor).
             if WEBSUCHE and web_hier < THEMA_WEB and len(stuecke) < THEMA_MELDUNGEN:
-                for t in _websuche(thema, 4):
+                for t in _websuche(thema, 4, sprache):
                     if web_hier >= THEMA_WEB or len(stuecke) >= THEMA_MELDUNGEN:
                         break
                     ziel = t.get("url") or ""
@@ -982,11 +1088,11 @@ def _ueberblick(themen_text: str = "", quellen_text: str = "") -> dict[str, Any]
                             seite_gelesen = True
                             stuecke.append((_stueck(seite.get("titel", ""),
                                                     seite.get("text", ""), 500),
-                                            _seitenname(ziel)))
+                                            _seitenname(ziel, sprache)))
                             web_hier += 1
                             continue
                     stuecke.append((_stueck(t.get("titel", ""), t.get("text", "")),
-                                    _seitenname(ziel)))
+                                    _seitenname(ziel, sprache)))
                     web_hier += 1
 
             # 4) Die eigenen Feeds: passende Meldungen zum Thema.
@@ -997,7 +1103,7 @@ def _ueberblick(themen_text: str = "", quellen_text: str = "") -> dict[str, Any]
                 if not passend:
                     continue
                 e = passend[0]
-                stuecke.append((_stueck(e["titel"], e["text"], 300), _kurzname(name)))
+                stuecke.append((_stueck(e["titel"], e["text"], 300), _kurzname(name, sprache)))
                 feed_hier += 1
                 if name not in genutzt:
                     genutzt.append(name)
@@ -1005,12 +1111,13 @@ def _ueberblick(themen_text: str = "", quellen_text: str = "") -> dict[str, Any]
             # Ein Thema ohne Fund wird nicht angekuendigt (sonst eine leere Ansage).
             if not stuecke:
                 continue
-            anhaengen(f"Zum Thema {_thema_name(thema)}.")
+            anhaengen(f"On the topic of {_thema_name(thema)}." if en
+                      else f"Zum Thema {_thema_name(thema)}.")
             gesagte_quelle = ""
             for stueck, quelle in stuecke:
                 anhaengen(stueck)
                 if quelle and quelle != gesagte_quelle:
-                    anhaengen(_meldet(quelle))
+                    anhaengen(_meldet(quelle, sprache))
                     gesagte_quelle = quelle
                 if laenge >= grenze:
                     break
@@ -1024,7 +1131,8 @@ def _ueberblick(themen_text: str = "", quellen_text: str = "") -> dict[str, Any]
                 break
             if not eintraege:
                 continue
-            anhaengen(QUELLEN_ANSPRACHE.get(name, f"Aus {name}."))
+            ansprache = (QUELLEN_ANSPRACHE_EN if en else QUELLEN_ANSPRACHE)
+            anhaengen(ansprache.get(name, f"From {name}." if en else f"Aus {name}."))
             e = eintraege[0]
             anhaengen(_stueck(e["titel"], e["text"], 400))
             if name not in genutzt:
@@ -1046,12 +1154,13 @@ def _ueberblick(themen_text: str = "", quellen_text: str = "") -> dict[str, Any]
             continue
         gelesen.append(adresse)
         anhaengen(_stueck(seite.get("titel", ""), seite.get("text", ""), 500))
-        anhaengen(_meldet(_seitenname(adresse)))
+        anhaengen(_meldet(_seitenname(adresse, sprache), sprache))
 
     fehlend = nicht_erreichbar
     text = re.sub(r"\s+", " ", " ".join(t for t in teile if t)).strip()
     text = meldungen.kuerzen(text, grenze)
-    return {"titel": "Überblick über die Nachrichtenlage", "text": text, "url": "",
+    return {"titel": "News roundup" if en else "Überblick über die Nachrichtenlage",
+            "text": text, "url": "",
             "quellen": genutzt, "themen": themen,
             "minuten": round(len(text) / ZEICHEN_JE_MINUTE, 1),
             "presse": presse_anzahl, "web": web_anzahl, "wiki": wiki_anzahl,
@@ -1079,6 +1188,16 @@ PRESSE_NAMEN: dict[str, str] = {
     "heise": "Heise", "heise online": "Heise", "heise.de": "Heise",
 }
 
+# Englische Erzeugernamen fuer den Sprechtext (zweite Sprache, seit 2026-09-26).
+PRESSE_NAMEN_EN: dict[str, str] = {
+    "bbc": "the BBC", "bbc news": "the BBC", "guardian": "the Guardian",
+    "the guardian": "the Guardian", "npr": "NPR", "al jazeera": "Al Jazeera",
+    "reuters": "Reuters", "ap": "the Associated Press",
+    "associated press": "the Associated Press", "dw": "DW",
+    "deutsche welle": "DW", "new york times": "the New York Times",
+    "the new york times": "the New York Times", "cnn": "CNN",
+}
+
 # Werbe- und Draht-Portale, die nicht in den Nachrichten-Ueberblick gehoeren.
 PRESSE_VERBOTEN = ("eqs", "dgap", "boerse", "finanzen.net", "wallstreet", "ariva",
                    "aktiencheck", "tradegate", "godmode", "der aktionär", "ots")
@@ -1087,7 +1206,7 @@ PRESSE_VERBOTEN_TITEL = ("eqs-news", "eqs:", "dgap-news", "dgap:", "ots:",
                          "pressemitteilung", "unternehmensmitteilung")
 
 
-def _quellenname(name: str) -> str:
+def _quellenname(name: str, sprache: str = "de") -> str:
     """Den Namen eines Presse-Erzeugers sprechbar machen.
 
     Google News liefert hier mal "DIE ZEIT", mal "SZ" oder "heise online".
@@ -1095,6 +1214,17 @@ def _quellenname(name: str) -> str:
     kryptische Angaben fallen weg - dann steht nur die Schlagzeile im Beitrag.
     """
     s = re.sub(r"\s+", " ", str(name or "")).strip(" .-–")
+    if str(sprache or "de").lower() == "en":
+        if s.lower() in PRESSE_NAMEN_EN:
+            return PRESSE_NAMEN_EN[s.lower()]
+        for alt in (" online", ".de", ".com", " news", " breaking news"):
+            if s.lower().endswith(alt):
+                s = s[: -len(alt)]
+        if s.lower() in PRESSE_NAMEN_EN:
+            return PRESSE_NAMEN_EN[s.lower()]
+        if len(s) < 2 or re.fullmatch(r"[A-Za-z]{1,2}\.?", s):
+            return ""          # ohne Namen lieber nur die Schlagzeile sprechen
+        return s[:28]
     if s.lower() in PRESSE_NAMEN:
         return PRESSE_NAMEN[s.lower()]
     for alt in (" online", ".de", ".com"):
@@ -1107,7 +1237,7 @@ def _quellenname(name: str) -> str:
     return s[:28]
 
 
-def _seitenname(url: str) -> str:
+def _seitenname(url: str, sprache: str = "de") -> str:
     """Ein sprechbarer Name fuer eine Adresse: \"heise.de\" -> \"Heise\"."""
     try:
         wirt = urllib.parse.urlparse(url).netloc.lower()
@@ -1134,24 +1264,33 @@ def _seitenname(url: str) -> str:
              "scinexx": "Scinexx", "ingenieur": "der Ingenieur", "deutschlandfunk": "der Deutschlandfunk",
              "wikipedia": "Wikipedia", "github": "GitHub", "bund": "Der Bund",
              "bmftr": "das Bundesministerium", "europarl": "das Europäische Parlament"}
+    if str(sprache or "de").lower() == "en":
+        namen_en = {"bbc": "the BBC", "bbci": "the BBC", "theguardian": "the Guardian",
+                    "guardian": "the Guardian", "npr": "NPR", "aljazeera": "Al Jazeera",
+                    "dw": "DW", "wikipedia": "Wikipedia", "github": "GitHub",
+                    "reuters": "Reuters", "apnews": "the Associated Press",
+                    "nytimes": "the New York Times", "cnn": "CNN"}
+        for teil in reversed(teile):
+            if teil in namen_en:
+                return namen_en[teil]
     return namen.get(haupt, haupt.capitalize() if haupt else "")
 
 
 def recherchieren(art: str, wort: str, quellen: str = "",
-                  themen: str = "") -> dict[str, Any]:
+                  themen: str = "", sprache: str = "de") -> dict[str, Any]:
     """Holt die Daten und gibt Titel, Text und Quelle zurueck."""
     gewaehlt = (art or "wetter").lower()
     if gewaehlt == "wetter":
-        return _wetter(wort)
+        return _wetter(wort, sprache)
     if gewaehlt in ("nachrichten", "news"):
-        return _nachrichten(wort)
+        return _nachrichten(wort, sprache)
     if gewaehlt in ("rss", "feed"):
-        return _rss(wort)
+        return _rss(wort, sprache)
     if gewaehlt in ("wikipedia", "info", "kurzinfo"):
-        return _wikipedia(wort)
+        return _wikipedia(wort, sprache)
     if gewaehlt in ("ueberblick", "ueberblick!", "overview", "rundschau", "rundumblick",
                     "themen", "themenueberblick"):
-        return _ueberblick(themen or wort, quellen)
+        return _ueberblick(themen or wort, quellen, sprache)
     raise HTTPException(status_code=400,
                         detail="art muss wetter, nachrichten, rss, wikipedia oder ueberblick sein.")
 
@@ -1167,7 +1306,9 @@ def recherche(anfrage: Recherche,
     vorlegen), `trocken: true` erzeugt nur das Audio der Ansage.
     """
     meldungen._pruefen(x_meldung_schluessel)  # noqa: SLF001 - gleicher Dienst
-    ergebnis = recherchieren(anfrage.art, anfrage.wort, anfrage.quellen, anfrage.themen)
+    ergebnis = recherchieren(anfrage.art, anfrage.wort, anfrage.quellen, anfrage.themen,
+                             anfrage.sprache)
+    en = str(anfrage.sprache or "de").lower() == "en"
 
     art = {"feed": "rss", "news": "nachrichten", "info": "wikipedia",
            "kurzinfo": "wikipedia", "overview": "ueberblick",
@@ -1177,7 +1318,7 @@ def recherche(anfrage: Recherche,
     eintrag = meldungen.aufnehmen(quelle=anfrage.quelle or anfrage.art, art=art,
                                   titel=ergebnis.get("titel", ""), text=ergebnis.get("text", ""),
                                   wichtig=bool(anfrage.wichtig), von="recherche",
-                                  url=ergebnis.get("url", ""))
+                                  url=ergebnis.get("url", ""), sprache=anfrage.sprache)
 
     antwort: dict[str, Any] = {
         "ok": True, "id": eintrag["id"], "art": eintrag["art"], "titel": eintrag["titel"],
@@ -1196,7 +1337,8 @@ def recherche(anfrage: Recherche,
         antwort["ausgefallen"] = ergebnis.get("ausgefallen") or []
     if anfrage.ansagen:
         ansage = meldungen.ansage_machen(eintrag["id"], trocken=anfrage.trocken,
-                                        stimme=anfrage.stimme, speed=1.0)
+                                        stimme=anfrage.stimme, speed=1.0,
+                                        sprache=anfrage.sprache)
         antwort["gesagt"] = not anfrage.trocken
         antwort["dauer_sekunden"] = ansage.get("dauer_sekunden")
         antwort["gesprochen"] = ansage.get("gesprochen") or antwort["sprechtext"]
@@ -1204,23 +1346,40 @@ def recherche(anfrage: Recherche,
             dauer = ansage.get("dauer_sekunden") or 0
             themen = ergebnis.get("themen") or []
             quellen = ergebnis.get("quellen") or []
-            wo = ("Themen " + ", ".join(themen)) if themen else ("Quellen " + ", ".join(quellen[:6]))
-            extra = []
-            if ergebnis.get("presse"):
-                extra.append(f"{ergebnis['presse']} aus der Presse")
-            if ergebnis.get("wiki"):
-                extra.append("mit Hintergrund")
-            if ergebnis.get("web"):
-                extra.append(f"{ergebnis['web']} aus dem Netz")
-            antwort["antwort"] = (f"Überblick "
-                                  f"{'gesagt' if antwort['gesagt'] else 'vorbereitet'} "
-                                  f"({dauer / 60:.1f} Min, {wo}"
-                                  + ((", " + ", ".join(extra)) if extra else "") + ")")
+            if en:
+                wo = (("topics " + ", ".join(themen)) if themen
+                      else ("sources " + ", ".join(quellen[:6])))
+                extra = []
+                if ergebnis.get("presse"):
+                    extra.append(f"{ergebnis['presse']} from the press")
+                if ergebnis.get("wiki"):
+                    extra.append("with background")
+                if ergebnis.get("web"):
+                    extra.append(f"{ergebnis['web']} from the web")
+                antwort["antwort"] = (f"Roundup "
+                                      f"{'spoken' if antwort['gesagt'] else 'prepared'} "
+                                      f"({dauer / 60:.1f} min, {wo}"
+                                      + ((", " + ", ".join(extra)) if extra else "") + ")")
+            else:
+                wo = ("Themen " + ", ".join(themen)) if themen else ("Quellen " + ", ".join(quellen[:6]))
+                extra = []
+                if ergebnis.get("presse"):
+                    extra.append(f"{ergebnis['presse']} aus der Presse")
+                if ergebnis.get("wiki"):
+                    extra.append("mit Hintergrund")
+                if ergebnis.get("web"):
+                    extra.append(f"{ergebnis['web']} aus dem Netz")
+                antwort["antwort"] = (f"Überblick "
+                                      f"{'gesagt' if antwort['gesagt'] else 'vorbereitet'} "
+                                      f"({dauer / 60:.1f} Min, {wo}"
+                                      + ((", " + ", ".join(extra)) if extra else "") + ")")
         else:
             antwort["antwort"] = ansage.get("antwort") or (
                 f"{eintrag['titel']}: {antwort['gesprochen'][:160]}")
     else:
-        antwort["antwort"] = (f"Abgelegt: {eintrag['titel']} "
+        antwort["antwort"] = (f"Stored: {eintrag['titel']} "
+                              f"({len(eintrag['text'])} characters)" if en else
+                              f"Abgelegt: {eintrag['titel']} "
                               f"({len(eintrag['text'])} Zeichen)")
     return antwort
 
@@ -1228,9 +1387,12 @@ def recherche(anfrage: Recherche,
 @router.get("/recherche/feeds")
 def recherche_feeds() -> dict[str, Any]:
     """Die bekannten Quellen, Arten und Einstellungen des Ueberblicks."""
-    return {"feeds": FEEDS, "nachrichten": NACHRICHTEN_FEED,
+    return {"feeds": FEEDS, "feeds_en": FEEDS_EN, "nachrichten": NACHRICHTEN_FEED,
+            "nachrichten_en": NACHRICHTEN_FEED_EN,
+            "sprachen": ["de", "en"],
             "arten": ["wetter", "nachrichten", "rss", "wikipedia", "ueberblick"],
             "ueberblick": {"quellen": UEBERBLICK_QUELLEN,
+                            "quellen_en": UEBERBLICK_QUELLEN_EN,
                             "quellen_mit_themen": UEBERBLICK_QUELLEN_THEMEN,
                             "themen": UEBERBLICK_THEMEN,
                             "thema_meldungen": THEMA_MELDUNGEN,

@@ -14,7 +14,9 @@ holen kann.
 > englisch, **ohne fremde Stimme und ohne Stimmdaten**).
 >
 > **Zweisprachig:** der Bot versteht **deutsche und englische** Nachrichten in
-> einem Chat und antworten in der Sprache der Frage.
+> einem Chat und antwortet in der Sprache der Frage — seit 2026-09-26 folgen auch
+> **Inhalte und Ansage** ihr (englische Quellen und englische Stimme `en_lessac`
+> bei englischen Nachrichten; siehe `DOKU/HANDBUCH.md` §1.3).
 >
 > **Webseite:** <https://www.deadlinedriven.dev/>
 >
@@ -214,16 +216,16 @@ steht Schritt für Schritt in **`NACHBAU/zugangsdaten.md`**.
 > **Hinweis:** Zugangswerte nie in ein Repository, eine Cloud oder einen Chat
 > kopieren — die Arbeitsfassung hält sie unter `NACHBAU/zugangsdaten/` (700/600).
 
-| Zugang | Datei (Arbeitsordner) |
+| Zugang | Beispieldatei (in deinem Zugangsordner) |
 | --- | --- |
-| Telegram-Bot-Token | `zugangsdaten/telegram-bot-token.txt` |
-| Betreiber-Chat-IDs | `zugangsdaten/telegram-chat-ids.txt` |
-| Postfach-Schlüssel (`X-Meldung-Schluessel`) | `zugangsdaten/meldung-schluessel.txt` (+ `…-container.txt`) |
-| Schlüssel des Testeingangs | `zugangsdaten/bot-test-schluessel.txt` |
-| AzuraCast: Web-Login, Stream, DJ-Zugang, API-Schlüssel | `zugangsdaten/azuracast-zugang.txt` (+ `api_key.txt`, `dj_passwort.txt`, `bot_streamer_passwort.txt`) |
-| Dienst-Konfiguration (DJ-Hafen, Lautstärke) | `zugangsdaten/geheim.env` |
-| n8n-Oberfläche, Projektkennung | `zugangsdaten/n8n-zugang.txt` |
-| SSH-Verwaltungszugang (Datenserver/Container) | `zugangsdaten/ssh/` |
+| Telegram-Bot-Token | `telegram-bot-token.txt` |
+| Betreiber-Chat-IDs | `telegram-chat-ids.txt` |
+| Postfach-Schlüssel (`X-Meldung-Schluessel`) | `meldung-schluessel.txt` (+ `…-container.txt`) |
+| Schlüssel des Testeingangs | `bot-test-schluessel.txt` |
+| AzuraCast: Web-Login, Stream, DJ-Zugang, API-Schlüssel | `azuracast-zugang.txt` (+ `api_key.txt`, `dj_passwort.txt`, `bot_streamer_passwort.txt`) |
+| Dienst-Konfiguration (DJ-Hafen, Lautstärke) | `geheim.env` |
+| n8n-Oberfläche, Projektkennung | `n8n-zugang.txt` |
+| SSH-Verwaltungszugang (Datenserver/Container) | `ssh/` |
 
 Zusätzlich enthält `NACHBAU/ablaeufe-laufend/` die **Exporte der laufenden
 Abläufe** — in dieser Fassung mit Platzhaltern (`DEIN-…`) statt der Zugangswerte. Sie

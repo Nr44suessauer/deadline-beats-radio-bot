@@ -233,6 +233,30 @@ zum Nachbauen für jede Serie** in `STIMME.md`.
   CUDA-Zwischenspeicher freigegeben, ein Speicherfehler wird **einmal wiederholt**
   (2 s Pause). Nach CT 111 ausgerollt, drei Proben grün (HTTP 200, 1,5–2,0 s).
 
+#### 3.10 26. September — Zweisprachige Inhalte und Ansagen (v29)
+
+* **v29** `radio-v29-2026-09-26-zweisprachige-inhalte`: Der Bot **antwortet nicht nur**
+  in der Sprache der Frage — auch die **Inhalte und die Ansage** folgen ihr.
+  * **Dienst** (`suche.py`, `meldungen.py`): Feld `sprache` (de/en)
+    an `/recherche`, `/ansage/text` und `/ansage/meldung`; englische Wettertexte
+    (Open-Meteo `language=en`, `WETTER_WORTE_EN`), englische Quellen `FEEDS_EN`
+    (**bbc, guardian, npr, aljazeera, dw**), englisches Wikipedia, Google News
+    (`hl=en, gl=US`), Websuche (SearXNG/Bing je Sprache), englische
+    Vorspann-/Schlusszeilen (`VORSPANN_EN`/`NACHSPANN_EN`); jede Meldung trägt ihre
+    Sprache mit.
+  * **Stimme:** `en_US-lessac-medium` (Kurzname `en_lessac`) im Stimmenordner
+    (`/opt/radio-tts/voices`); ohne Stimmenwunsch wählt
+    `sprache=en` die englische Stimme (`TTS_EN_VOICE`), `stimme=deine-stimme` hat Vorrang.
+  * **Abläufe:** `Befehle lesen` setzt `sprache` an jeden Befehl;
+    Werkzeug-Schemas (`meldungen`, `recherche`) tragen das Feld; die Dienstaufrufe
+    geben es mit (Recherche, freie Ansage, Meldungs-Ansage, Stufe-0-Überblick);
+    Ausführungs-Prompt erweitert.
+  * **Prüfungen:** Status und Wetter je Sprache, Trockenläufe (`trocken: true`),
+    englischer Überblick (Presse bbc/guardian, „News roundup“), englische Ansage
+    **auf Sendung** (Protokoll: `Stimme: en_lessac`),
+    deutsche Gegenprobe unverändert.
+  * **Sicherung:** `radio-v29-2026-09-26-zweisprachige-inhalte` (Abläufe, Dienstquellen, n8n-Datenbank).
+
 ---
 
 ### 4. Was jede Schicht macht (Kurzüberblick)

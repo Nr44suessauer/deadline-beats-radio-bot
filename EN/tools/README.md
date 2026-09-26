@@ -21,7 +21,7 @@ every change, run `version-save.sh` - it stores to
 | `agent-wf-build.py` | the **generator**: builds configuration, agent and the three tool workflows as JSON (`/tmp/...`) |
 | `agent-patch.sh` | fetches the running version, rebuilds and applies changes surgically -> `/tmp/radio-agent-neu.json` |
 | `agent-import-only.sh` | imports configuration + agent + tools into n8n and restarts n8n |
-| `konfiguration-import.sh`, `config-check.py` | import and check the central "Configuration - all values" workflow |
+| `config-import.sh`, `config-check.py` | import and check the central "Configuration - all values" workflow |
 | `service-import.sh` | copies the modules from `../service/` into the container, rebuilds and restarts the service |
 | `version-save.sh` | creates a version backup (workflows + modules + n8n database + description), outside the project folder |
 | `german-texts.py` | fixes umlauts in the displayed texts of the workflows (runs as part of the build path) |

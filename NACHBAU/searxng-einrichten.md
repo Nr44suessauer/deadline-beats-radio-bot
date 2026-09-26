@@ -183,7 +183,7 @@ enthält die Adressen).
 
 ```bash
 # Trockenlauf (spricht nicht, zeigt nur Zahlen und Text)
-MK=$(cat <dokuordner>/NACHBAU/zugangsdaten/meldung-schluessel.txt)
+MK=$(cat <dein-zugangsordner>/meldung-schluessel.txt)
 curl -s -X POST http://192.168.178.53:8881/recherche -H 'Content-Type: application/json' \
   -H "X-Meldung-Schluessel: $MK" \
   -d '{"art":"ueberblick","themen":"künstliche intelligenz","trocken":true}' \

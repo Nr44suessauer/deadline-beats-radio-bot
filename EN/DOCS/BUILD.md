@@ -115,7 +115,7 @@ The n8n interface has been expanded to a **self-explanatory document**:
 
 #### 3.5 September 22 — Template and Central Configuration
 
-* **Central Configuration:** new workflow `Konfiguration` with **all** addresses, keys, model values, and model texts (3 system instructions, 8 tool descriptions). The four workflows retrieve it via a sub-workflow node. Testing tools: `config-check.py` (5 tests), `konfiguration-import.sh`; template mode `VORLAGE=1` generates a fresh installation without private values (`REBUILD/template.md`).
+* **Central Configuration:** new workflow `Konfiguration` with **all** addresses, keys, model values, and model texts (3 system instructions, 8 tool descriptions). The four workflows retrieve it via a sub-workflow node. Testing tools: `config-check.py` (5 tests), `config-import.sh`; template mode `VORLAGE=1` generates a fresh installation without private values (`REBUILD/template.md`).
 * **Measured n8n Rule** (discovered during the rebuild): `{{ … }}` in the middle of a string **is not** resolved — it must be `={{ … + '/pfad' }}`.
 
 #### 3.6 September 23 — Speech Recognition on the MI50
@@ -166,6 +166,32 @@ The big day: From the own media stock, the **voice announcement "YOUR-VOICE"** w
   (source `REBUILD/own-voice/`):** the CUDA cache is released before and after every
   conversion, and a memory failure is **retried once** (2 s pause). Deployed to CT 111,
   three probes green (HTTP 200, 1.5–2.0 s).
+
+#### 3.10 26 September — Bilingual content and announcements (v29)
+
+* **v29** `radio-v29-2026-09-26-zweisprachige-inhalte`: The bot **does not only
+  answer** in the language of the request — **content and announcement** follow it
+  as well.
+  * **Service** (`suche.py`, `meldungen.py`): field `sprache`
+    (de/en) on `/recherche`, `/ansage/text` and `/ansage/meldung`; English weather
+    texts (Open-Meteo `language=en`, `WETTER_WORTE_EN`), English sources `FEEDS_EN`
+    (**bbc, guardian, npr, aljazeera, dw**), English Wikipedia, Google News
+    (`hl=en, gl=US`), web search (SearXNG/Bing per language), English
+    lead-in/closing lines (`VORSPANN_EN`/`NACHSPANN_EN`); every message carries
+    its language.
+  * **Voice:** `en_US-lessac-medium` (short name `en_lessac`) in the voices folder
+    (`/opt/radio-tts/voices`); without a voice request,
+    `sprache=en` selects the English voice (`TTS_EN_VOICE`), `stimme=deine-stimme` takes
+    priority.
+  * **Workflows:** “Befehle lesen” sets `sprache` on every command;
+    tool schemas (`meldungen`, `recherche`) carry the field; the service calls pass
+    it on (research, free announcement, message announcement, stage-0 overview);
+    execution prompt extended.
+  * **Checks:** status and weather per language, dry runs (`trocken: true`),
+    English overview (press bbc/guardian, “News roundup”), English announcement
+    **on air** (log: `Stimme: en_lessac`), German control runs
+    unchanged.
+  * **Backup:** `radio-v29-2026-09-26-zweisprachige-inhalte` (workflows, service sources, n8n database).
 
 ---
 
@@ -236,7 +262,7 @@ You are in `tools/` (Development) — here are the most important ones:
 | `layout-check.py`, `layout-docs.sh` | checks the drawing surface (goal: 0 findings); writes `APPENDIX/LAYOUT.md` |
 | `code-pruefen.py` | checks the JS code of the nodes |
 | `short-test.sh`, `answer-test.sh` | Stage 0 (19 sentences) and response logic (20 samples) — directly from the generator |
-| `config-check.py`, `konfiguration-import.sh` | checks and plays the central unit (5 checks) |
+| `config-check.py`, `config-import.sh` | checks and plays the central unit (5 checks) |
 | `version-save.sh` | creates a version (flows, modules, n8n-DB, description) |
 | `service-import.sh` | rolls out the service modules, rebuilds, checks itself |
 | `bot-test.sh`, `ask.sh`, `knopf.sh` | test suite and individual messages through the test input |
@@ -244,7 +270,7 @@ You are in `tools/` (Development) — here are the most important ones:
 | `news/*`, `playlist/*` | area checks (inbox/announcements, list paths) |
 | `imageplan.py`, `module-images-plan.py`, `image-crop.py`, `image-stitch.py`, `n8n-docs-build.py` | generate the image guide (`APPENDIX/n8n-interface.html`) |
 | `note-old-versions.py`, `archive-frame.py` | notes for archive and old versions |
-| **Voice** (workshop, `docs/projects/VoiceAssistent/` + `REBUILD/own-voice/`) | `setup-voice-service.sh`, `voice-service.py`, `cluster-samples.sh`, `deine-stimme_sammeln3/4/5.py`, `rvc-train.sh`, `speech-service.py`, `tg-voice-message.sh` |
+| **Voice** (workshop, `docs/projects/VoiceAssistent/` + `REBUILD/own-voice/`) | `setup-voice-service.sh`, `voice-service.py`, `cluster-samples.sh`, `check-voice.py`/`collect-voice.py`/`extend-voice.py`, `rvc-train.sh`, `speech-service.py`, `tg-voice-message.sh` |
 
 ---
 

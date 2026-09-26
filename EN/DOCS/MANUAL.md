@@ -912,7 +912,7 @@ flowchart LR
 
 All addresses used or offered by the bot. As of 2026-09-21 (version 11).
 
-**Basic Rule:** Everything that changes needs the header `X-Meldung-Schluessel` (value in `<dokuordner>/REBUILD/credentials/meldung-schluessel.txt`). Only
+**Basic Rule:** Everything that changes needs the header `X-Meldung-Schluessel` (value in `<your-credentials-folder>/meldung-schluessel.txt`). Only
 status addresses and public sender addresses come without a key.
 
 ---
@@ -952,17 +952,26 @@ need a time span of at least 15 minutes (set up in the bot). An
 | `POST /news/angeboten` | `{ids:[…]}` | mark as presented (no second offer) |
 | `POST /news/erledigt` | `{ids:[…], grund: gesagt\|verworfen\|abgelaufen]` | conclude; response contains Telegram text and keyboard |
 | `POST /news/aufraeumen` | — | remove old messages |
-| `POST /ansage/meldung` | `{id, trocken, stimme, speed}` | speak message live (`trocken: true` = only generate) |
-| `POST /ansage/text` | `{text, trocken, stimme, speed}` | speak free text live |
+| `POST /ansage/meldung` | `{id, trocken, stimme, sprache, speed}` | speak message live (`trocken: true` = only generate); `sprache` empty = language of the message |
+| `POST /ansage/text` | `{text, trocken, stimme, sprache, speed}` | speak free text live; `sprache: "en"` selects the English voice (`en_lessac`) |
 | `GET /ansage/status` | — | last announcements |
 
 #### 1.3 Research (Weather, News, Feeds, Short Info)
 
 | Address | Input | Effect |
 | --- | --- | --- |
-| `POST /research` | `{art: wetter\|nachrichten\|rss\|wikipedia\|ueberblick, wort, themen, quellen, ansagen, wichtig, trocken, quelle}` | fetches the information, deposits it as a message, and speaks it immediately at `ansagen: true` |
+| `POST /research` | `{art: wetter\|nachrichten\|rss\|wikipedia\|ueberblick, wort, themen, quellen, ansagen, wichtig, trocken, quelle, sprache}` | fetches the information, deposits it as a message, and speaks it immediately at `ansagen: true`; `sprache: "de"\|"en"` determines content **and** voice |
 | `POST /research` with `art=ueberblick` | `{art: "ueberblick", themen: "ki, raumfahrt", quellen: "heise golem", ansagen: true}` | searches for **each topic** headlines (Google News), background (Wikipedia), web search **hits** (page is opened) and matching messages from **21 feeds**; length depends on material, safety limit `RECHERCHE_UEBERBLICK_MAX_ZEICHEN` (default 6000). Without `themen` the latest messages from the sources are provided |
 | `GET /recherche/feeds` | — | all sources, types, and overview settings (`quellen`, `quellen_mit_themen`, `themen`, `thema_presse/web/wiki/feed`, `websuche`, `searx_url`, `webseiten`, `wetter_ort`) |
+
+**Bilingual (since 2026-09-26):** the field `sprache` (`de` default / `en`)
+determines **content and voice**: with `en` the research uses English sources
+(`FEEDS_EN`: bbc, guardian, npr, aljazeera, dw), English weather texts (Open-Meteo
+`language=en`), Wikipedia from `en.wikipedia.org`, press via Google News
+(`hl=en, gl=US`), web search with English language preference; the announcement
+uses the English Piper voice `en_lessac` (`TTS_EN_VOICE`) unless a voice request
+(`stimme=deine-stimme`) is given. `GET /recherche/feeds` additionally reports `feeds_en`,
+`nachrichten_en`, `quellen_en` and `sprachen`.
 
 Response: `ok, id, art, titel, text, sprechtext, gesagt, dauer_sekunden, antwort`.
 Unknown location → **404**, unknown type → **422** (with clear message).

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Downloads the four Piper voices of the bot into a target directory.
+# Downloads the Piper voices of the bot (German and English) into a target directory.
 #
 # The voices consist of two files: <name>.onnx and <name>.onnx.json.
 # Source is the Piper voice collection (rhasspy/piper-voices).
@@ -16,6 +16,7 @@ STIMMEN=(
   "de_kerstin:de_DE-kerstin-low:de/de_DE/kerstin/low"
   "de_ramona:de_DE-ramona-low:de/de_DE/ramona/low"
   "de_eva:de_DE-eva_k-x_low:de/de_DE/eva_k/x_low"
+  "en_lessac:en_US-lessac-medium:en/en_US/lessac/medium"
 )
 
 mkdir -p "$ZIEL"

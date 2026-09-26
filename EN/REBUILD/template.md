@@ -93,7 +93,7 @@ python3 tools/config-check.py     # 5 checks (names, references,
                                                # expressions, reachability, secrets)
 python3 tools/layout-check.py /tmp/radio-konfiguration.json \
         /tmp/radio-werkzeuge.json /tmp/radio-agent.json      # must report 0 findings
-bash tools/konfiguration-import.sh     # imports and enables all five
+bash tools/config-import.sh     # imports and enables all five
 ```
 
 **Important for future tool runs:** `agent-patch.sh` retrieves the access values today

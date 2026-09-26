@@ -27,6 +27,10 @@ background job). The voice is chosen in two places:
   it works without any custom GPU service).
 * **Piper voices:** live as `.onnx` (+ `.json`) in `VOICE_DIR` (default `/voices`).
   Short names like `de_kerstin` map to file names inside the service.
+* **English announcements:** For English messages (`sprache=en`) the English Piper
+  voice **`en_lessac`** speaks since `radio-v29-2026-09-26-zweisprachige-inhalte`
+  (`TTS_EN_VOICE`, file `en_US-lessac-medium.onnx` in the voices folder); an explicit
+  voice request takes priority.
 * **Own voice (optional):** a **voice service of your own** that `radio-tts` calls via
   `EIGENE_STIMME_URL` (section 3.8). If it is unreachable, the fallback voice
   `EIGENE_STIMME_ERSATZ` speaks — an announcement never fails.
@@ -205,7 +209,7 @@ curl -s -X POST http://127.0.0.1:8881/v1/audio/speech -H 'Content-Type: applicat
 docker logs --tail 20 radio-tts | grep "Stimme:"
 ```
 
-### 3.11 Pitfalls (learned while building)
+### 3.11 Pitfalls
 
 * **Sharing the GPU:** if a language model (Ollama etc.) runs on the same card, your
   speech service can run out of memory (`CUDA out of memory`, HTTP 500). Then the

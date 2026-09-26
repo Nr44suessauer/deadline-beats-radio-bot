@@ -178,7 +178,7 @@ contains the addresses).
 
 ```bash
 # dry run (does not speak, shows only numbers and text)
-MK=$(cat <dokuordner>/REBUILD/credentials/meldung-schluessel.txt)
+MK=$(cat <your-credentials-folder>/meldung-schluessel.txt)
 curl -s -X POST http://192.168.178.53:8881/recherche -H 'Content-Type: application/json' \
   -H "X-Meldung-Schluessel: $MK" \
   -d '{"type":"overview","topics":"artificial intelligence","dry":true}' \

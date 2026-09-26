@@ -13,7 +13,7 @@ Der Dienst nutzt **Piper** (`piper-tts`), jede Stimme besteht aus zwei Dateien:
 `<name>.onnx` (Modell) und `<name>.onnx.json` (Konfiguration). Ablage: `/opt/radio-tts/voices`
 (im Container `/voices`).
 
-**Installiert (Original, 201 MB):**
+**Installiert (Original, 264 MB):**
 
 | Kurzname in `main.py` | Datei | Größe | Download (Piper-Stimmen, HuggingFace) |
 | --- | --- | --- | --- |
@@ -21,15 +21,18 @@ Der Dienst nutzt **Piper** (`piper-tts`), jede Stimme besteht aus zwei Dateien:
 | `de_kerstin` | `de_DE-kerstin-low.onnx` | 63 MB | `…/de/de_DE/kerstin/low/…` |
 | `de_ramona` | `de_DE-ramona-low.onnx` | 63 MB | `…/de/de_DE/ramona/low/…` |
 | `de_eva` | `de_DE-eva_k-x_low.onnx` | 21 MB | `…/de/de_DE/eva_k/x_low/…` |
+| `en_lessac` (englisch, `sprache=en`) | `en_US-lessac-medium.onnx` | 63 MB | `…/en/en_US/lessac/medium/…` |
 
-Basis-URL: `https://huggingface.co/rhasspy/piper-voices/resolve/main/` (die drei
+Basis-URL: `https://huggingface.co/rhasspy/piper-voices/resolve/main/` (die
 Beispieladressen wurden am 2026-09-20 mit HTTP 200 geprüft).
 
-**Vorgabe der Ansagen ist seit 2026-09-23 die eigene Stimme `deine-stimme`** (Abschnitt 2) —
-Piper-Stimmen bleiben über `voice`/`stimme` wählbar und dienen als Ersatz (`EIGENE_STIMME_ERSATZ`).
+**Vorgabe der Ansagen ist seit 2026-09-25 `de_thorsten`** (`TTS_DEFAULT_VOICE`);
+bei englischen Nachrichten spricht `en_lessac` (`TTS_EN_VOICE`). Die eigene Stimme
+`deine-stimme` erklingt nur auf ausdrücklichen Wunsch (Abschnitt 2) — Piper-Stimmen bleiben
+über `voice`/`stimme` wählbar und dienen als Ersatz (`EIGENE_STIMME_ERSATZ`).
 
 ```bash
-# alle vier holen (legt sie in das Zielverzeichnis)
+# alle Stimmen holen (legt sie in das Zielverzeichnis)
 bash NACHBAU/stimmen-holen.sh /opt/radio-tts/voices
 ```
 

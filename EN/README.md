@@ -4,7 +4,7 @@
 
 Complete documentation of the bot that controls the internet radio station **Deadline Beats** via Telegram, moderates the ongoing program, and can fetch content from the internet.
 
-**Bilingual:** the bot understands **German and English** messages in one chat and answers in the language of the request — shortcuts, tool lists, model replies and announcements. Content (news, weather) remains German.
+**Bilingual:** the bot understands **German and English** messages in one chat and answers in the language of the request — since 2026-09-26 **content and announcement** follow it as well (English sources and the English voice `en_lessac` for English messages; see `DOCS/MANUAL.md` section 1.3).
 
 > **Date:** 2026-09-25 · The station and bot are running continuously.
 > **Everything lives in this folder** — documentation, service sources
@@ -192,16 +192,16 @@ step in **`REBUILD/credentials.md`**.
 > **Note:** never copy access values into a repository, cloud, or chat — the working
 > copy keeps them under `REBUILD/credentials/` (700/600).
 
-| Access | File (working copy) |
+| Access | Example file (in your credentials folder) |
 | --- | --- |
-| Telegram bot token | `credentials/telegram-bot-token.txt` |
-| Operator chat IDs | `credentials/telegram-chat-ids.txt` |
-| inbox key (`X-News-Key`) | `credentials/meldung-schluessel.txt` (+ `…-container.txt`) |
-| Key of test input | `credentials/bot-test-schluessel.txt` |
-| AzuraCast: web login, stream, DJ access, API key | `credentials/azuracast-zugang.txt` (+ `api_key.txt`, `dj_passwort.txt`, `bot_streamer_passwort.txt`) |
-| Service configuration (DJ port, volume) | `credentials/secret.env` |
-| n8n interface, project ID | `credentials/n8n-zugang.txt` |
-| SSH management access (Datenserver/Container) | `credentials/ssh/` |
+| Telegram bot token | `telegram-bot-token.txt` |
+| Operator chat IDs | `telegram-chat-ids.txt` |
+| inbox key (`X-News-Key`) | `meldung-schluessel.txt` (+ `…-container.txt`) |
+| Key of test input | `bot-test-schluessel.txt` |
+| AzuraCast: web login, stream, DJ access, API key | `azuracast-zugang.txt` (+ `api_key.txt`, `dj_passwort.txt`, `bot_streamer_passwort.txt`) |
+| Service configuration (DJ port, volume) | `secret.env` |
+| n8n interface, project ID | `n8n-zugang.txt` |
+| SSH management access (Datenserver/Container) | `ssh/` |
 
 In addition, `REBUILD/running-workflows/` contains the **exports of the running
 processes** — with placeholders (`DEIN-…`) instead of the access values in this edition.

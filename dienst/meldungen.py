@@ -63,6 +63,10 @@ MAX_ANSAGEN = int(os.environ.get("ANSAGEN_MAX", "100"))
 # uebernommen: ein Befehl
 # sprach erst die Nachrichten und danach noch einen 1,4-Minuten-Ueberblick).
 ANSAGE_SPERRE_SEK = int(os.environ.get("ANSAGE_SPERRE_SEK", "90"))
+# Zweite Sprache (2026-09-26): Ansagen folgen dem Feld "sprache" - bei "en"
+# spricht die englische Piper-Stimme (Kurzname "en_lessac", Datei
+# en_US-lessac-medium), solange der Betreiber keine eigene Stimme (deine-stimme) verlangt.
+EN_STIMME = os.environ.get("TTS_EN_VOICE", "en_lessac")
 
 SPERRE = threading.Lock()
 
@@ -91,6 +95,29 @@ NACHSPANN: dict[str, str] = {
     "hinweis": "",
     "musik": "",
     "ueberblick": "Das war der Überblick - und jetzt wieder Musik für euch.",
+    "sonstiges": "",
+}
+
+# Englischer Vorspann/Schluss (zweite Sprache, seit 2026-09-26): derselbe Ton
+# wie oben, nur auf Englisch - wird bei sprache=en gesprochen.
+VORSPANN_EN: dict[str, str] = {
+    "wetter": "And now a look at the sky - I had a little look for you.",
+    "nachrichten": "A quick look at the news - I listened closely.",
+    "rss": "Fresh from the web - picked out for you.",
+    "verkehr": "Stay with me a moment - a traffic note.",
+    "hinweis": "A quick note in our own matter.",
+    "musik": "",
+    "ueberblick": "",
+    "sonstiges": "I have a message for you.",
+}
+NACHSPANN_EN: dict[str, str] = {
+    "wetter": "That was the weather - and now back to the music for you.",
+    "nachrichten": "",
+    "rss": "",
+    "verkehr": "And back to the music.",
+    "hinweis": "",
+    "musik": "",
+    "ueberblick": "That was the roundup - and now back to the music for you.",
     "sonstiges": "",
 }
 
@@ -285,8 +312,9 @@ def moderationstext(meldung: dict[str, Any]) -> str:
     art = str(meldung.get("art") or "sonstiges").lower()
     if art not in VORSPANN:
         art = "sonstiges"
-    vorspann = VORSPANN.get(art, "")
-    nachspann = NACHSPANN.get(art, "")
+    en = str(meldung.get("sprache") or "").lower() == "en"
+    vorspann = (VORSPANN_EN if en else VORSPANN).get(art, "")
+    nachspann = (NACHSPANN_EN if en else NACHSPANN).get(art, "")
     titel = sprechbar(meldung.get("titel") or "")
     inhalt = sprechbar(meldung.get("text") or "")
     stuecke = [sprechbar(vorspann)]
@@ -313,6 +341,9 @@ class Meldung(BaseModel):
     wichtig: bool = False
     von: str = ""
     bis: str = ""
+    # Sprache der Meldung ("de"/"en") - sie steuert Vorspann UND Ansagestimme
+    # (zweite Sprache, seit 2026-09-26).
+    sprache: str = "de"
 
 
 class Meldungsliste(BaseModel):
@@ -332,6 +363,8 @@ class AnsageMeldung(BaseModel):
     id: str
     trocken: bool = False
     stimme: str = ""
+    # Leer = Sprache der Meldung (siehe Meldung.sprache); "de"/"en" erzwingt.
+    sprache: str = ""
     speed: float = Field(default=1.0, ge=0.3, le=3.0)
 
 
@@ -339,6 +372,8 @@ class AnsageText(BaseModel):
     text: str
     trocken: bool = False
     stimme: str = ""
+    # Sprache des freien Textes ("de"/"en") - bestimmt die Standardstimme.
+    sprache: str = "de"
     speed: float = Field(default=1.0, ge=0.3, le=3.0)
 
 
@@ -361,6 +396,7 @@ def _aufnehmen(neu: Meldung, daten: dict[str, Any]) -> dict[str, Any]:
         "wichtig": bool(neu.wichtig),
         "von": (neu.von or "").strip(),
         "bis": (neu.bis or "").strip(),
+        "sprache": (str(neu.sprache or "de").strip().lower() or "de"),
         "status": "offen",
         "gesagt_am": None,
         "angeboten_am": None,
@@ -372,11 +408,12 @@ def _aufnehmen(neu: Meldung, daten: dict[str, Any]) -> dict[str, Any]:
 
 
 def aufnehmen(quelle: str = "", art: str = "sonstiges", titel: str = "", text: str = "",
-              wichtig: bool = False, von: str = "", url: str = "", bis: str = "") -> dict[str, Any]:
+              wichtig: bool = False, von: str = "", url: str = "", bis: str = "",
+              sprache: str = "de") -> dict[str, Any]:
     """Legt eine Meldung ab - ohne Schluesselpruefung, fuer andere Module im Dienst
     (z. B. die Recherche in suche.py). Der Endpunkt prueft den Schluessel selbst."""
     eintrag = Meldung(quelle=quelle, art=art, titel=titel, text=text, wichtig=wichtig,
-                      von=von, url=url, bis=bis)
+                      von=von, url=url, bis=bis, sprache=sprache)
     if not eintrag.text.strip():
         raise HTTPException(status_code=400, detail="Meldung ohne Text.")
     with SPERRE:
@@ -566,7 +603,15 @@ def _live_funktion():
         ) from fehler
 
 
-def _ansage_bauen(text: str, stimme: str, speed: float) -> dict[str, Any]:
+def stimmwahl(sprache: str, stimme: str) -> str:
+    """Wunschstimme hat Vorrang; ohne Wunsch entscheidet die Sprache:
+    sprache=en -> englische Standardstimme (EN_STIMME), sonst die Dienst-Vorgabe."""
+    if (stimme or "").strip():
+        return stimme.strip()
+    return EN_STIMME if str(sprache or "").strip().lower() == "en" else ""
+
+
+def _ansage_bauen(text: str, stimme: str, speed: float, sprache: str = "") -> dict[str, Any]:
     """Ruft /live auf - ohne zu senden, wenn trocken. Gibt das Ergebnis zurueck."""
     live_funktion = _live_funktion()
     from main import LiveAnfrage  # type: ignore  # noqa: PLC0415
@@ -578,18 +623,20 @@ def _ansage_bauen(text: str, stimme: str, speed: float) -> dict[str, Any]:
             detail="Der DJ-Zugang fehlt: LIVE_HOST, LIVE_USER und LIVE_PASSWORD setzen "
                    "(geheim.env des Dienstes).",
         )
-    anfrage = LiveAnfrage(text=text, voice=stimme, speed=speed, host=host)
+    voice = stimmwahl(sprache, stimme)
+    anfrage = LiveAnfrage(text=text, voice=voice, speed=speed, host=host)
     if os.environ.get("LIVE_TROCKEN", "0") == "1":
-        anfrage = LiveAnfrage(text=text, voice=stimme, speed=speed, host="", user="", password="")
+        anfrage = LiveAnfrage(text=text, voice=voice, speed=speed, host="", user="", password="")
     return live_funktion(anfrage)
 
 
-def _trocken_text(text: str, stimme: str, speed: float) -> dict[str, Any]:
+def _trocken_text(text: str, stimme: str, speed: float,
+                  sprache: str = "") -> dict[str, Any]:
     """Erzeugt nur das Audio und nennt Laenge und Groesse."""
     from main import erzeuge_audio_gewaehlt  # type: ignore  # noqa: PLC0415
 
     with SPERRE:
-        wav, _, gewaehlt = erzeuge_audio_gewaehlt(text, stimme, speed, "wav")
+        wav, _, gewaehlt = erzeuge_audio_gewaehlt(text, stimmwahl(sprache, stimme), speed, "wav")
     try:
         with wave.open(io.BytesIO(wav), "rb") as w:
             dauer = round(w.getnframes() / float(w.getframerate() or 1), 1)
@@ -604,14 +651,15 @@ def _ansage_merken(daten: dict[str, Any], eintrag: dict[str, Any]) -> None:
 
 
 def ansage_machen(kennung: str, trocken: bool = False, stimme: str = "",
-                 speed: float = 1.0) -> dict[str, Any]:
+                 speed: float = 1.0, sprache: str = "") -> dict[str, Any]:
     """Spricht eine abgelegte Meldung (oder erzeugt sie trocken).
 
     Ohne Schluesselpruefung - fuer andere Module im Dienst (suche.py). Der
-    Endpunkt /ansage/meldung prueft den Schluessel davor.
+    Endpunkt /ansage/meldung prueft den Schluessel davor. `sprache` leer =
+    Sprache der Meldung.
     """
     return _ansage_meldung_arbeit(AnsageMeldung(id=kennung, trocken=trocken, stimme=stimme,
-                                               speed=speed))
+                                               speed=speed, sprache=sprache))
 
 
 @router.post("/ansage/meldung")
@@ -631,15 +679,21 @@ def _ansage_meldung_arbeit(anfrage: AnsageMeldung) -> dict[str, Any]:
     text = moderationstext(meldung)
     if not text:
         raise HTTPException(status_code=400, detail="Die Meldung hat keinen Text.")
+    # Sprache: ausdruecklicher Wunsch schlaegt die Sprache der Meldung.
+    sprache = str(anfrage.sprache or meldung.get("sprache") or "de").lower()
+    en = sprache == "en"
     if meldung.get("status") == "gesagt" and not anfrage.trocken:
+        antwort = (f'"{meldung["titel"] or meldung["id"]}" has already been announced.'
+                   if en else
+                   f"\u201e{meldung['titel'] or meldung['id']}\u201c wurde schon gesagt.")
         return {"ok": False, "grund": "schon_gesagt", "id": meldung["id"],
                 "gesagt_am": meldung.get("gesagt_am"),
-                "antwort": f"\u201e{meldung['titel'] or meldung['id']}\u201c wurde schon gesagt."}
+                "antwort": antwort}
 
     if anfrage.trocken:
-        ergebnis = _trocken_text(text, anfrage.stimme, anfrage.speed)
+        ergebnis = _trocken_text(text, anfrage.stimme, anfrage.speed, sprache)
     else:
-        ergebnis = _ansage_bauen(text, anfrage.stimme, anfrage.speed)
+        ergebnis = _ansage_bauen(text, anfrage.stimme, anfrage.speed, sprache)
 
     if not anfrage.trocken:
         with SPERRE:
@@ -660,9 +714,10 @@ def _ansage_meldung_arbeit(anfrage: AnsageMeldung) -> dict[str, Any]:
     dauer = ergebnis.get("dauer_sekunden")
     titel = meldung.get("titel") or meldung["id"]
     if anfrage.trocken:
-        antwort = f"Trockenlauf: {dauer} s - gesprochen wuerde: {text[:200]}"
+        antwort = (f"Dry run: {dauer} s - this is what would be spoken: {text[:200]}" if en
+                   else f"Trockenlauf: {dauer} s - gesprochen wuerde: {text[:200]}")
     else:
-        antwort = f"Gesagt ({dauer} s): {titel}"
+        antwort = (f"Spoken ({dauer} s): {titel}" if en else f"Gesagt ({dauer} s): {titel}")
     return {"ok": True, "id": meldung["id"], "art": meldung.get("art"),
             "titel": titel, "gesprochen": text, "dauer_sekunden": dauer,
             "trocken": bool(anfrage.trocken), "antwort": antwort,
@@ -693,6 +748,7 @@ def ansage_text(anfrage: AnsageText,
                 x_meldung_schluessel: str | None = Header(default=None)) -> dict[str, Any]:
     """Spricht freien Text live in den Sender (oder trocken)."""
     _pruefen(x_meldung_schluessel)
+    en = str(anfrage.sprache or "de").strip().lower() == "en"
     text = sprechbar(anfrage.text)
     if not text:
         raise HTTPException(status_code=400, detail="Kein Text uebergeben.")
@@ -701,12 +757,14 @@ def ansage_text(anfrage: AnsageText,
     if not anfrage.trocken and _vor_kurzem_gesprochen(text):
         return {"ok": True, "gesprochen": text, "wiederholt": False,
                 "dauer_sekunden": 0,
-                "antwort": "Diese Ansage lief gerade eben schon - "
-                           "ich habe sie nicht wiederholt."}
+                "antwort": ("This announcement was already played just now - "
+                            "I did not repeat it." if en else
+                            "Diese Ansage lief gerade eben schon - "
+                            "ich habe sie nicht wiederholt.")}
     if anfrage.trocken:
-        ergebnis = _trocken_text(text, anfrage.stimme, anfrage.speed)
+        ergebnis = _trocken_text(text, anfrage.stimme, anfrage.speed, anfrage.sprache)
     else:
-        ergebnis = _ansage_bauen(text, anfrage.stimme, anfrage.speed)
+        ergebnis = _ansage_bauen(text, anfrage.stimme, anfrage.speed, anfrage.sprache)
         with SPERRE:
             daten = _laden()
             _ansage_merken(daten, {"zeit": _jetzt(), "weg": "text", "id": "",
@@ -716,8 +774,11 @@ def ansage_text(anfrage: AnsageText,
     dauer = ergebnis.get("dauer_sekunden")
     return {"ok": True, "gesprochen": text, "dauer_sekunden": dauer,
             "trocken": bool(anfrage.trocken),
-            "antwort": (f"Trockenlauf: {dauer} s" if anfrage.trocken
-                        else f"Ansage gesprochen ({dauer} s): {text[:120]}")}
+            "antwort": ((f"Dry run: {dauer} s" if anfrage.trocken
+                         else f"Announcement spoken ({dauer} s): {text[:120]}")
+                        if en else
+                        (f"Trockenlauf: {dauer} s" if anfrage.trocken
+                         else f"Ansage gesprochen ({dauer} s): {text[:120]}"))}
 
 
 # ------------------------------------------------------------------- Status

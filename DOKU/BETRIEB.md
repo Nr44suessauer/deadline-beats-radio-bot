@@ -78,6 +78,7 @@ In `/opt/radio-tts/geheim.env` (im LXC 103 auf dem ai-server), danach
 | `TTS_KOMPRESSOR_SCHWELLE_DB` / `TTS_KOMPRESSOR_VERHAELTNIS` | Verdichtung | −19 / 3.0 |
 | `TTS_BEGRENZER_DB` / `TTS_BEGRENZER_FREIGABE_MS` | Spitzendecke / Freigabe | −1.0 / 40 |
 | `TTS_HOCHPASS_HZ`, `TTS_DEFAULT_VOICE` | Tiefenfilter, Stimme | 80, `de_thorsten` (Standard; DEINE-STIMME auf Wunsch: „… mit eigener Stimme“) |
+| `TTS_EN_VOICE` | englische Standardstimme (bei `sprache=en`) | `en_lessac` (`en_US-lessac-medium`; Datei liegt in `/voices`) |
 | `EIGENE_STIMME_URL` | Stimmendienst (CT 111) | `http://192.168.178.116:10205/tts` |
 | `EIGENE_STIMME_ERSATZ` | Ersatzstimme, wenn der Stimmendienst nicht erreichbar ist (leer = dann keine Ersatzstimme) | `de_thorsten` |
 | `EIGENE_STIMME_ZEITABLAUF` | Zeitgrenze der Stimmerzeugung (Sekunden) | 600 |
@@ -334,6 +335,18 @@ gestoppt und auf Handbetrieb gestellt (seit dem Umzug der Spracherkennung auf di
 nicht mehr verdrahtet; Start bei Bedarf `systemctl start whisper-stt`), `sprechdienst` gibt
 nach jeder Ansage seinen CUDA-Zwischenspeicher frei und läuft mit
 `PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True`. Reserve im Betrieb: rund 2,6 GB.
+
+---
+
+**Zweisprachige Inhalte und Ansagen (seit 2026-09-26):** Englische Nachrichten werden
+seitdem auch **englisch beantwortet und angesagt** — das Feld `sprache` reist vom
+Eingang über den Befehl bis in den Dienst. Bei `en` liefert die Recherche englische
+Quellen (**bbc, guardian, npr, aljazeera, dw**; `GET /recherche/feeds` → `feeds_en`),
+englische Wettertexte und englische Wikipedia-Einträge; die Ansage spricht die
+englische Stimme `en_lessac` (`TTS_EN_VOICE`). `stimme=deine-stimme` bleibt der ausdrückliche
+Wunschstimmen-Fall und hat Vorrang. **Prüfen:** `docker logs radio-tts | grep 'Stimme:'`
+(zeigt `en_lessac` bei englischen Ansagen) und Trockenläufe über `POST /recherche`
+mit `"sprache":"en", "trocken":true` — dabei wird nichts gesendet.
 
 ---
 
@@ -648,7 +661,7 @@ bash kontext-test.sh / bash kontext2-test.sh    # Deutung mehrerer Aufträge, Me
 bash stimme-pruefen.sh                          # sucht eine Sprachprobe, die der Erkenner sauber versteht
 
 ## Ueberblick trocken pruefen (keine Ansage im Sender, nur Text und Dauer):
-MK=$(cat <dokuordner>/NACHBAU/zugangsdaten/meldung-schluessel.txt)
+MK=$(cat <dein-zugangsordner>/meldung-schluessel.txt)
 curl -s -X POST http://192.168.178.53:8881/recherche -H 'Content-Type: application/json' \
   -H "X-Meldung-Schluessel: $MK" -d '{"art":"ueberblick","themen":"ki, raumfahrt","trocken":true}' \
   | python3 -c "import json,sys; d=json.load(sys.stdin); print(d['dauer_sekunden'], d['themen'], d['presse'], d['wiki'], d['web'], d['quellen'], d['ausgefallen'])"
@@ -815,6 +828,9 @@ PY
 ### 42. Stimmenwahl — Standard und DEINE-STIMME auf Wunsch (seit 2026-09-25)
 
 Der Bot spricht **standardmäßig mit `de_thorsten`** (Piper, läuft immer, keine GPU).
+Englische Nachrichten (`sprache=en`) sprechen mit der englischen Piper-Stimme
+**`en_lessac`** (`TTS_EN_VOICE`, Datei `en_US-lessac-medium.onnx` in `/voices`) —
+Einzelheiten in Abschnitt 17 („Zweisprachige Inhalte“).
 Die eigene Moderationsstimme **„DEINE-STIMME"** wird **nur auf ausdrücklichen Wunsch** verwendet:
 
 * **Wunsch im Telegram:** „sag durch: … **mit eigener Stimme**“, „… **in der eigenen Stimme**“,

@@ -1,0 +1,132 @@
+#!/usr/bin/env python3
+"""Takes over the tempo changes into the running Radio workflow.
+
+Instead of rebuilding the workflow completely (the Telegram identifier is
+missing for that), only the nodes are replaced that have really changed in the
+producer. The identifier is taken from the running version so that the
+comparison does not fail because of the Telegram addresses.
+
+Call:
+    python3 03-tempo-patchen-fehlerhaft.py.bak <running.json> <new-gebaut.json> <output.json> [erlaubteIds]
+"""
+import json
+import re
+import sys
+
+# Nodes where a change is expected - anything else would be an error.
+ERWARTET = {"Short?", "Commands and locations", "Plan", "Pruefen"}
+
+# Deviations that only originate from the newer n8n version and are consciously
+# NOT adopted: the producer sets the fields "name" (model name of the tool) and
+# "source" in the tool nodes. They are missing in the running version, there the
+# node names count as tool names. Adopting them would rename the tools for the
+# model - this does not belong to this change.
+BEKANNT_HARMLOS = {
+    "Search for tool titles", "Search for tool direction", "Tool What is running",
+    "Tool Azura addresses", "Tool Azura call", "Tool Azura overview",
+}
+
+
+def kennung_aus(text: str) -> str | None:
+    treffer = re.search(r"https://api\.telegram\.org/bot([A-Za-z0-9:_-]+)/", text)
+    return treffer.group(1) if treffer else None
+
+
+def normalisieren(obj):
+    """Hide random values and n8n default fields that are recreated with every
+    build: node IDs, colours, positions and fields that n8n adds when saving but
+    the producer does not set."""
+    WEGFELDER = {
+        "id", "color", "hasOutputParser", "method", "position", "webhookId",
+        "batchSize", "source", "mode", "parameterType", "alwaysOutputData",
+    }
+    if isinstance(obj, dict):
+        return {k: normalisieren(v) for k, v in obj.items() if k not in WEGFELDER}
+    if isinstance(obj, list):
+        return [normalisieren(x) for x in obj]
+    return obj
+
+
+def main() -> int:
+    laufend_datei, gebaut_datei, ziel_datei = sys.argv[1:4]
+    erlaubte = sys.argv[4] if len(sys.argv) > 4 else None
+
+    laufend_text = open(laufend_datei, encoding="utf-8").read()
+    gebaut_text = open(gebaut_datei, encoding="utf-8").read()
+
+    kennung = kennung_aus(laufend_text)
+    if not kennung:
+        print("ERROR: no Telegram identifier found in the running version")
+        return 1
+
+    # The producer writes a single object, the export a list.
+    # Before the comparison, all access values are replaced by the same marker -
+    # the running version contains the real values, the rebuild "dummy".
+    laufend_text = laufend_text.replace(kennung, "<GEHEIM>")
+    schluessel = re.search(r"[0-9a-f]{16}:[0-9a-f]{32}", laufend_text)
+    if schluessel:
+        laufend_text = laufend_text.replace(schluessel.group(0), "<GEHEIM>")
+    gebaut_text = gebaut_text.replace("dummy", "<GEHEIM>")
+
+    laufend_daten = json.loads(laufend_text)
+    laufend = laufend_daten[0] if isinstance(laufend_daten, list) else laufend_daten
+    gebaut_daten = json.loads(gebaut_text)
+    gebaut = gebaut_daten[0] if isinstance(gebaut_daten, list) else gebaut_daten
+
+    alt = {n["name"]: n for n in laufend["nodes"]}
+    neu = {n["name"]: n for n in gebaut["nodes"]}
+
+    fehlend = sorted(set(neu) - set(alt))
+    if fehlend:
+        print(f"ERROR: new nodes in the rebuild that do not exist in the running version: {fehlend}")
+        return 1
+
+    unterschiede, unbekannt = [], []
+    for name in alt:
+        if json.dumps(normalisieren(alt[name].get("parameters")), sort_keys=True, ensure_ascii=False) \
+                != json.dumps(normalisieren(neu[name].get("parameters")), sort_keys=True, ensure_ascii=False):
+            unterschiede.append(name)
+            if name not in ERWARTET and name not in BEKANNT_HARMLOS:
+                unbekannt.append(name)
+
+    print("Nodes running/new:", len(alt), len(neu))
+    print("Connections unchanged:", laufend.get("connections") == gebaut.get("connections"))
+    print("Differences:", ", ".join(unterschiede) if unterschiede else "(none)")
+    if unbekannt:
+        print(f"ERROR: unexpected changes in {unbekannt} - abort")
+        return 1
+    fehlend_erwartet = ERWARTET - set(unterschiede)
+    if fehlend_erwartet:
+        print(f"ERROR: expected change missing in {sorted(fehlend_erwartet)} - abort")
+        return 1
+
+    # Only adopt the wanted nodes, leave the harmless ones unchanged.
+    zu_tauschen = [n for n in unterschiede if n in ERWARTET]
+    print("Adopted:", ", ".join(zu_tauschen))
+    if unterschiede != zu_tauschen:
+        print("Left unchanged (only newer n8n defaults):",
+              ", ".join(n for n in unterschiede if n not in ERWARTET))
+
+    for name in zu_tauschen:
+        alt[name]["parameters"] = neu[name]["parameters"]
+        alt[name]["notes"] = neu[name].get("notes", alt[name].get("notes"))
+
+    # Include test identifiers for trial runs in the operator list
+    if erlaubte:
+        daten = laufend.get("staticData")
+        if isinstance(daten, str):
+            daten = json.loads(daten or "{}")
+        glob = daten.setdefault("global", {})
+        vorher = list(glob.get("erlaubte") or [])
+        glob["erlaubte"] = sorted({str(x) for x in vorher} | {str(x) for x in erlaubte.split(",")})
+        laufend["staticData"] = daten
+        print("Allowed identifiers:", vorher, "->", glob["erlaubte"])
+
+    with open(ziel_datei, "w", encoding="utf-8") as f:
+        json.dump([laufend], f, ensure_ascii=False, indent=2)
+    print("written:", ziel_datei)
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

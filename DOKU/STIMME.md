@@ -28,6 +28,10 @@ spricht es im Sendetakt live in den DJ-Hafen des Senders (Ansagen laufen also ni
   Piper-Stimme — sie funktioniert ohne eigene GPU-Dienste).
 * **Piper-Stimmen:** liegen als `.onnx` (+ `.json`) im Ordner `VOICE_DIR`
   (Vorgabe `/voices`). Kurznamen wie `de_kerstin` bildet der Dienst auf Dateinamen ab.
+* **Englische Ansagen:** Bei englischen Nachrichten (`sprache=en`) spricht seit
+  `radio-v29-2026-09-26-zweisprachige-inhalte` die englische Piper-Stimme **`en_lessac`**
+  (`TTS_EN_VOICE`, Datei `en_US-lessac-medium.onnx` im Stimmenordner); ein
+  ausdrücklicher Stimmenwunsch hat Vorrang.
 * **Eigene Stimme (optional):** ein **eigener Stimmendienst**, den `radio-tts` über
   `EIGENE_STIMME_URL` anspricht (Abschnitt 3.8). Ist er nicht erreichbar, greift die
   Ersatzstimme `EIGENE_STIMME_ERSATZ` — eine Ansage fällt nie aus.
@@ -210,7 +214,7 @@ curl -s -X POST http://127.0.0.1:8881/v1/audio/speech -H 'Content-Type: applicat
 docker logs --tail 20 radio-tts | grep "Stimme:"
 ```
 
-### 3.11 Fallstricke (aus dem Bau gelernt)
+### 3.11 Fallstricke
 
 * **GPU teilen:** Läuft auf derselben Karte ein Sprachmodell (Ollama o. Ä.), kann
   dem Sprechdienst der Speicher ausgehen (`CUDA out of memory`, HTTP 500). Dann

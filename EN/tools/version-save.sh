@@ -1,4 +1,4 @@
-##!/bin/bash
+#!/bin/bash
 # Creates a version backup of the running radio workflows.
 # <sicherungen>/<name>/workflows/  - Exports from n8n
 # <sicherungen>/<name>/bau/       - Producer, import and test scripts
@@ -37,12 +37,12 @@ ssh -F "$CFG" ai-server "pct exec 103 -- cat /tmp/n8n-data.sqlite" | gzip -9 > "
 printf ' %-18s %s Bytes\n' "n8n-data.sqlite.gz" "$(wc -c < "$ZIEL/n8n-data.sqlite.gz")"
 
 # --- Producer, import and test scripts (Radiotopf and list tasks)
-for F in agent-wf-build.py agent-deploy.sh agent-postprocess.py \
-         import-agent-prepare.py statische-data-patchen.py allowed-setzen.py \
-         code-check.py create-archive.py create-tag.py \
+for F in agent-wf-build.py agent-import.sh agent-postprocess.py \
+         import-agent-prepare.py static-data-patch.py erlaubte-setzen.py \
+         code-pruefen.py create-archive.py create-tag.py \
          bot-test.sh answers.js letzter.js one.js feld.js evaluation.py \
-         full-run.sh ausfuehrungen.sh version-sichern.sh \
-         agent-patch.py agent-patch.sh agent-deploy-only.sh service-deploy.sh; do
+         full-run.sh ausfuehrungen.sh version-save.sh \
+         agent-patch.py agent-patch.sh agent-import-only.sh service-import.sh; do
   [ -f "$TOOLS/$F" ] && cp "$TOOLS/$F" "$ZIEL/bau/"
 done
 mkdir -p "$ZIEL/bau/playlist" "$ZIEL/bau/news" "$ZIEL/bau/tempo"
@@ -71,20 +71,20 @@ chmod 600 "$ZIEL"/workflows/* "$ZIEL"/bau/* "$ZIEL"/bau/playlist/* "$ZIEL"/bau/n
   else
     echo "# version $NAME"
     echo
-    echo "Backup of running radio operations (current state $(date ’+%d.%m.%Y %H:%M’))."
+    echo "Backup of running radio operations (current state $(date '+%d.%m.%Y %H:%M'))."
   fi
   cat <<TEXT
 
 ## Content
 
-- \`workflows/\` – Exporte out n8n: RadioAgentBot, RadioWerkzeug, AzuraWerkzeug,
+- \`workflows/\` – exports from n8n: RadioAgentBot, RadioWerkzeug, AzuraWerkzeug,
   AI-Moderator (\`bjFSfXGqpLg7AAXw\`)
-- \`n8n-data.sqlite.gz\` – komplette n8n-Datenbank (Notfall)
+- \`n8n-data.sqlite.gz\` – complete n8n database (emergency)
 - \`bau/\` – builder, deploy and check scripts; \`bau/playlist/\` the playlist jobs,
   \`bau/news/\` the news inbox (search bot, announcements), \`bau/tempo/\` the
   tempo changes with their checks
-- \`dienste/\` – sources the Dienste (Katalog, Listen, Sprachausgabe) samt Dockerfile
-- \`README-the-Doku.md\`, \`ARCHITEKTUR-the-Doku.md\` – Doku-Abzug
+- \`dienste/\` – sources of the services (catalog, playlists, speech output) incl. Dockerfile
+- \`README-der-Doku.md\`, \`ARCHITEKTUR-der-Doku.md\` – doc copy
 
 ## Rollback path (restoring operations from this backup)
 

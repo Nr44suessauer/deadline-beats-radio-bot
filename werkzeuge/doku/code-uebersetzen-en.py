@@ -24,6 +24,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import os
 import re
 import subprocess
 import sys
@@ -35,12 +36,14 @@ from pathlib import Path
 PROJEKT = Path(__file__).resolve().parent.parent.parent
 ADRESS = "http://192.168.178.187:11434"
 MODELL = "qwen3-coder:30b"
-SPEICHER = PROJEKT / "werkzeuge" / "doku" / "uebersetzungen-code-en.json"
+# Für Parallelbetrieb lässt sich ein eigener Zwischenspeicher angeben
+# (UEBERSETZUNGSSPEICHER=…); die Inhalte werden danach zusammengeführt.
+SPEICHER = Path(os.environ["UEBERSETZUNGSSPEICHER"]) if "UEBERSETZUNGSSPEICHER" in os.environ else PROJEKT / "werkzeuge" / "doku" / "uebersetzungen-code-en.json"
 # Wörtliche Ersetzungen für Schnittstellen-Token (Schalter, Wege, Umfeldnamen):
 # sie stehen teils nackt in Skripten (ohne Anführungszeichen) und werden
 # deshalb am Ende auf jede erzeugte Datei angewandt.
 ROHTAUSCH_DATEI = PROJEKT / "werkzeuge" / "doku" / "rohtausch.json"
-ENDUNGEN = (".py", ".sh", ".js", ".service", ".vorlage", ".template", ".yml")
+ENDUNGEN = (".py", ".sh", ".js", ".mjs", ".service", ".vorlage", ".template", ".yml")
 UEBERSPRINGEN = {"EN", "DocOfficial", ".git", "__pycache__", "node_modules", "ANHANG"}
 
 # Englische Namen der EN-Fassung (Umstellung vom 2026-09-26):
@@ -53,6 +56,7 @@ EN_ORDNER = {
     "zugangsdaten": "credentials", "bilder": "images",
 }
 EN_DATEIEN = {
+    "stimmproben.mjs": "stimmproben.mjs",
     "ANORDNUNG.md": "LAYOUT.md", "n8n-oberflaeche.html": "n8n-interface.html",
     "gesamt-konfiguration-alle-werte.png": "overall-configuration-all-values.png",
     "gesamt-radio-ai-moderator.png": "overall-radio-ai-moderator.png",
@@ -100,6 +104,7 @@ EN_DATEIEN = {
     "daten-setzen.py": "data-set.py", "deutsch-texte.py": "german-texts.py",
     "dienst-einspielen.sh": "service-import.sh", "doku-notiz.py": "docs-note.py",
     "code-uebersetzen-en.py": "code-translate-en.py",
+    "dokumente-uebersetzen-en.py": "documents-translate-en.py",
     "doc-official-bauen.py": "doc-official-build.py",
     "doku-pruefen.py": "docs-check.py", "n8n-doku-bauen.py": "n8n-docs-build.py",
     "uebersetzungen-en.json": "translations-en.json",
@@ -418,6 +423,23 @@ def stelle_stuecke(zeilen: list[str], endung: str,
                     im_text = True
                     nimm_doku(nr, zeile, start + 3, len(zeile))
                 continue
+        if endung in (".js", ".mjs"):
+            # Zeilenkommentare (`//`) wie bei Shell (`#`) behandeln - sonst
+            # blieben die Kommentare der JavaScript-Dateien deutsch.
+            if streifen.startswith("//"):
+                marke = zeile.index("//") + 2
+                if passt(zeile[marke:]):
+                    stellen.append((nr, marke, len(zeile), ""))
+                continue
+            position = kommentar_position_js(zeile)
+            if position is not None and passt(zeile[position + 2:]):
+                stellen.append((nr, position + 2, len(zeile), ""))
+            for von, bis, anfuehrung in zeichenketten(zeile):
+                if position is not None and von > position:      # steht im Kommentar
+                    continue
+                if passt(zeile[von:bis]):
+                    stellen.append((nr, von, bis, anfuehrung))
+            continue
         if streifen.startswith("#"):
             marke = zeile.index("#") + 1
             if passt(zeile[marke:]):
@@ -473,6 +495,32 @@ def kommentar_position(zeile: str) -> int | None:
             in_doppelt = not in_doppelt
         elif z == "#" and not in_einfach and not in_doppelt:
             return i
+    return None
+
+
+def kommentar_position_js(zeile: str) -> int | None:
+    """Index des `//`, das einen Kommentar beginnt (nicht in Zeichenketten).
+
+    Zählt einfache, doppelte und Gravis-Anführung; ein Schrägstrich-Paar in
+    einer Zeichenkette (etwa in einer Adresse) ist damit kein Kommentar.
+    """
+    in_einfach = in_doppelt = in_gravis = False
+    i = 0
+    while i < len(zeile):
+        z = zeile[i]
+        if z == "\\":
+            i += 2
+            continue
+        if z == "'" and not in_doppelt and not in_gravis:
+            in_einfach = not in_einfach
+        elif z == '"' and not in_einfach and not in_gravis:
+            in_doppelt = not in_doppelt
+        elif z == "`" and not in_einfach and not in_doppelt:
+            in_gravis = not in_gravis
+        elif (z == "/" and i + 1 < len(zeile) and zeile[i + 1] == "/"
+              and not in_einfach and not in_doppelt and not in_gravis):
+            return i
+        i += 1
     return None
 
 
@@ -615,7 +663,8 @@ def _maskiere(zeile: str) -> str:
 
 def geruest_schlicht(quelle: str, endung: str) -> str:
     """Für Shell/JS: Kommentarzeilen weg, Anführungszeichen-Inhalte ersetzt."""
-    heiler = re.compile(r"#[^\n]*") if endung != ".js" else re.compile(r"//[^\n]*")
+    heiler = (re.compile(r"#[^\n]*") if endung not in (".js", ".mjs")
+              else re.compile(r"//[^\n]*"))
     teile = []
     for zeile in quelle.splitlines():
         # Erst die Anführungszeichen-Inhalte maskieren, DANN Kommentare entfernen:
@@ -637,7 +686,7 @@ def syntax_okatei(pfad: Path) -> tuple[bool, str]:
         befehl = [sys.executable, "-m", "py_compile", str(pfad)]
     elif endung == ".sh":
         befehl = ["bash", "-n", str(pfad)]
-    elif endung == ".js":
+    elif endung in (".js", ".mjs"):
         befehl = ["node", "--check", str(pfad)]
     else:
         return True, ""
@@ -661,11 +710,15 @@ def dateien(wurzel: Path) -> list[Path]:
 
 
 def uebersetze_datei(pfad: Path, speicher_datei: dict[str, str], nur_pruefen: bool,
-                     ohne_modell: bool = False) -> str:
+                     ohne_modell: bool = False, erzwingen: bool = False) -> str:
     rel = pfad.relative_to(PROJEKT)
     ziel = PROJEKT / "EN" / en_pfad(rel)
     zeilen = pfad.read_text(encoding="utf-8").splitlines()
-    if not ist_deutsche_datei("\n".join(zeilen)):
+    # Bei ausdrücklich genannten Dateien wird die grobe Spracherkennung
+    # übersprungen: wer sie nennt, weiß, dass sie deutschen Text tragen
+    # (viele Skripte schreiben „ae/oe/ue“ statt Umlaute - das erkennt
+    # `ist_deutsche_datei` nicht zuverlässig).
+    if not erzwingen and not ist_deutsche_datei("\n".join(zeilen)):
         return f"– {rel}: kein deutscher Text"
     stellen = stelle_stuecke(zeilen, pfad.suffix, speicher_datei)
     if not stellen:
@@ -823,7 +876,8 @@ def main() -> int:
     speicher_datei = speicher()
     gut = schlecht = offen = 0
     for p in ziele:
-        ergebnis = uebersetze_datei(p, speicher_datei, args.pruefen, args.ohne_modell)
+        ergebnis = uebersetze_datei(p, speicher_datei, args.pruefen, args.ohne_modell,
+                                    erzwingen=not args.alle)
         print(ergebnis, flush=True)
         if ergebnis.startswith("✗"):
             schlecht += 1

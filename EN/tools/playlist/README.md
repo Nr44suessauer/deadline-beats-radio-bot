@@ -17,7 +17,7 @@ bash 11-service-type-test.sh        # 2) check the switch (Telegram update -> de
 bash 08-service-import.sh       # 3) module into the service, rebuild the service
 bash 09-service-test.sh             # 4) all playlist paths without Telegram
 bash 13-playlists-patch.sh          # 5) rebuild the workflow, compare, patch
-bash 14-listen-import.sh       # 6) deploy the workflow and activate it
+bash 14-playlists-import.sh    # 6) deploy the workflow and activate it
 python3 15-bot-playlists-test.py      # 7) end to end via the bot
 ```
 
@@ -47,7 +47,7 @@ bash ../tempo/04-import.sh \
 | `11-dienst-art-test.{sh,js}` | sends real Telegram updates through **the real `INPUT_JS`** and then through the `SERVICE_TYPE_JS` switch (37 cases: playlist buttons, news buttons, texts) |
 | `12-rebuild-compare.py` | lists what a complete rebuild would change against the running version |
 | `13-listen-patchen.{sh,py}` | creates the rebuild and patches **only** the playlist nodes, `Input`, connections and positions into the running version (repeatable) |
-| `14-listen-import.sh` | imports the patched version, activates it, restarts n8n, checks the webhook |
+| `14-playlists-import.sh` | imports the patched version, activates it, restarts n8n, checks the webhook |
 | `15-bot-playlists-test.py` | end to end via the test input with real messages in the operator chat; `--spielen` additionally tests playing |
 | `16-executions.sh` | shows the latest runs of the bot workflow with node outputs (which branch ran) |
 

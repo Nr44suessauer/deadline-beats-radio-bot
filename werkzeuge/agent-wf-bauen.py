@@ -1308,6 +1308,12 @@ for (let i = 0; i < befehle.length; i += 1) {
   // uebernehmen, damit er nicht vom Sprachmodell abhaengt.
   const wunsch = String((($('Zugang').first().json || {}).stimmeWunsch) || '');
   if (wunsch && ['ansage', 'recherche'].includes(art)) b.stimme = wunsch;
+  // Sprache der Nachricht am Befehl festhalten - die Inhalts-Werkzeuge
+  // (recherche, meldungen) uebernehmen sie in den Dienstaufruf; der Dienst
+  // waehlt danach Inhalte und Ansagestimme (zweisprachig seit 2026-09-26).
+  try {
+    b.sprache = String((($('Eingabe').first().json || {}).sprache) || 'de');
+  } catch (e) { b.sprache = String(b.sprache || 'de'); }
   if (ausgabe.length >= AUFGABEN_MAX) { uebrig += 1; continue; }
   // Mehrere Musikwuensche in einer Nachricht: der ERSTE laeuft sofort, alle weiteren
   // werden eingereiht. Sonst schneidet jeder Wunsch den vorigen ab, und die Pruefung
@@ -1789,7 +1795,9 @@ Antworte NIE deutsch, wenn der Betreiber englisch geschrieben hat, auch wenn ein
 Werkzeug oder der Sender deutsch antwortet. Die internen Werte (art,
 auftrag, ansagen, bestaetigt ...) bleiben deutsch - sie sind nur fuer den Bot, nicht
 fuer den Betreiber. Werkzeugaufrufe der Musik (titel_suchen, richtung_suchen,
-was_laeuft) bekommen immer das Feld sprache (de oder en) mit.
+was_laeuft) bekommen immer das Feld sprache (de oder en) mit. Das gilt genauso
+fuer meldungen und recherche: uebernimm dort das Feld sprache aus dem Befehl -
+der Dienst liefert dann englische Inhalte und spricht mit englischer Stimme.
 
 STIMME
 Ohne Wunsch spricht der Bot mit der Standardstimme - dann bleibt das Feld
@@ -2170,8 +2178,8 @@ AUFGABEN_WERKZEUGE = {
     "azura_endpunkte": 'Schlaegt Adressen der Senderschnittstelle nach (Stichwort, z. B. playlist, user, backup, report, mount, webhook, storage, settings, media). Immer zuerst benutzen, wenn du eine Verwaltungsaufgabe am Sender hast - Adressen und Felder nie raten.',
     "azura_aufruf": 'Ruft eine Schnittstelle des Senders auf (AzuraCast). Eingaben: methode (GET liest, POST/PUT/DELETE aendern), pfad (voll, z. B. /api/station/1/playlists), koerper (JSON, nur beim Schreiben), bestaetigt (true, wenn der Betreiber das Aendern ausdruecklich erlaubt hat). Ohne bestaetigt=true passiert beim Schreiben nichts - dann kommt nur ein Trockenlauf zurueck.',
     "azura_ueberblick": 'Ueberblick ueber den Sender: Anlagen, ob Sendeteil und Ausgabe laufen, Wiedergabelisten mit Titelzahl. Fuer Verwaltungsfragen (Zustand, Listen), nicht fuer Musikwuensche.',
-    "meldungen": 'Postfach (Wetter, RSS-Feeds, Nachrichten) und Ansagen des Moderators. auftrag=anzeigen listet offene Meldungen auf - das ist KEINE Ansage. auftrag=lesen zeigt den Sprechtext einer Meldung (dann kennung angeben). auftrag=ansagen spricht die Meldung live in den Sender (dann kennung angeben, nur auf ausdruecklichen Wunsch). auftrag=verwerfen legt sie weg (dann kennung angeben). auftrag=text spricht freien Text (dann text angeben). Fuer jede Ansage gilt: stimme=deine-stimme NUR, wenn der Betreiber ausdruecklich die eigene Stimme verlangt (z. B. mit eigener Stimme, in der eigenen Stimme, in eigener Stimme) - sonst stimme leer lassen (Standardstimme). Der Zusatz mit eigener Stimme gehoert NUR in das Feld stimme und darf NICHT im vorgelesenen Text stehen. Rufe dieses Werkzeug hoechstens EINMAL je Befehl auf und wiederhole eine Ansage nie.',
-    "recherche": "Holt etwas NEUES aus dem Netz und legt es als Meldung ab - Wetter, Nachrichten, ein RSS-Feed, einen Ueberblick ueber Themen oder eine Kurzinfo. NICHT fuer Fragen nach dem Postfach benutzen (dafuer meldungen mit auftrag=anzeigen). art=wetter (dann wort=Ort, z. B. 'Marbach am Neckar'), art=nachrichten (aktuellste Nachricht), art=rss (dann wort=Feed-Adresse oder Kurzname wie tagesschau, heise, spiegel), art=wikipedia (dann wort=Stichwort), art=ueberblick (dann themen=die Themen, zu denen gesucht werden soll, z. B. 'ki, raumfahrt'; optional quellen=gewuenschte Quellen wie 'heise golem'). Der Ueberblick sucht zu jedem Thema in Presse, im Netz und in den Feeds und dauert so lange, wie das Gefundene braucht. ansagen=true spricht die Meldung sofort im Radio an - das ist gewuenscht, wenn der Betreiber sie hoeren will ('suche nach dem wetter fuer X'); bei 'nur suchen' oder 'zeig mir' ansagen=false setzen. Fuer die Ansage gilt: stimme='deine-stimme' NUR, wenn der Betreiber die eigene Stimme ausdruecklich verlangt (z. B. mit eigener Stimme, in der eigenen Stimme, in eigener Stimme) - sonst leer lassen (Standardstimme). Der Zusatz mit eigener Stimme gehoert NUR in das Feld stimme und darf NICHT im vorgelesenen Text stehen. Rufe dieses Werkzeug hoechstens EINMAL je Befehl auf und wiederhole eine Ansage nie.",
+    "meldungen": 'Postfach (Wetter, RSS-Feeds, Nachrichten) und Ansagen des Moderators. auftrag=anzeigen listet offene Meldungen auf - das ist KEINE Ansage. auftrag=lesen zeigt den Sprechtext einer Meldung (dann kennung angeben). auftrag=ansagen spricht die Meldung live in den Sender (dann kennung angeben, nur auf ausdruecklichen Wunsch). auftrag=verwerfen legt sie weg (dann kennung angeben). auftrag=text spricht freien Text (dann text angeben). Fuer jede Ansage gilt: stimme=deine-stimme NUR, wenn der Betreiber ausdruecklich die eigene Stimme verlangt (z. B. mit eigener Stimme, in der eigenen Stimme, in eigener Stimme) - sonst stimme leer lassen (Standardstimme). Der Zusatz mit eigener Stimme gehoert NUR in das Feld stimme und darf NICHT im vorgelesenen Text stehen. Rufe dieses Werkzeug hoechstens EINMAL je Befehl auf und wiederhole eine Ansage nie. Immer mitgeben: sprache (de oder en) - freie Ansagen laufen in dieser Sprache (bei en mit englischer Stimme).',
+    "recherche": "Holt etwas NEUES aus dem Netz und legt es als Meldung ab - Wetter, Nachrichten, ein RSS-Feed, einen Ueberblick ueber Themen oder eine Kurzinfo. NICHT fuer Fragen nach dem Postfach benutzen (dafuer meldungen mit auftrag=anzeigen). art=wetter (dann wort=Ort, z. B. 'Marbach am Neckar'), art=nachrichten (aktuellste Nachricht), art=rss (dann wort=Feed-Adresse oder Kurzname wie tagesschau, heise, spiegel), art=wikipedia (dann wort=Stichwort), art=ueberblick (dann themen=die Themen, zu denen gesucht werden soll, z. B. 'ki, raumfahrt'; optional quellen=gewuenschte Quellen wie 'heise golem'). Der Ueberblick sucht zu jedem Thema in Presse, im Netz und in den Feeds und dauert so lange, wie das Gefundene braucht. ansagen=true spricht die Meldung sofort im Radio an - das ist gewuenscht, wenn der Betreiber sie hoeren will ('suche nach dem wetter fuer X'); bei 'nur suchen' oder 'zeig mir' ansagen=false setzen. Fuer die Ansage gilt: stimme='deine-stimme' NUR, wenn der Betreiber die eigene Stimme ausdruecklich verlangt (z. B. mit eigener Stimme, in der eigenen Stimme, in eigener Stimme) - sonst leer lassen (Standardstimme). Der Zusatz mit eigener Stimme gehoert NUR in das Feld stimme und darf NICHT im vorgelesenen Text stehen. Rufe dieses Werkzeug hoechstens EINMAL je Befehl auf und wiederhole eine Ansage nie. Immer mitgeben: sprache (de oder en) - bei en kommen englische Quellen (bbc, guardian, npr, aljazeera, dw) und eine englische Ansagestimme zum Einsatz.",
 }
 
 # ======================================================================= der Bot
@@ -2578,6 +2586,7 @@ bot = [
             "value": {"auftrag": feld("auftrag", "anzeigen (offene Meldungen), lesen (Sprechtext), ansagen (live sprechen), verwerfen oder text (freier Text)", "string", "anzeigen"),
                       "kennung": feld("kennung", "Kennung der Meldung, z. B. m260920-0007 (bei lesen, ansagen, verwerfen)", "string", ""),
                       "text": feld("text", "Freier Ansagetext (nur bei auftrag=text)", "string", ""),
+                      "sprache": feld("sprache", "Sprache des Betreibers: de oder en. Immer mitgeben - freie Ansagen und Meldungen laufen dann in dieser Sprache (Inhalt und Stimme; bei en spricht die englische Stimme)", "string", "de"),
                       "stimme": feld("stimme", "deine-stimme = eigene Stimme (nur wenn der Betreiber sie ausdruecklich verlangt, z. B. 'mit eigener Stimme', 'in der eigenen Stimme', 'in eigener Stimme'), leer = Standardstimme. Der Zusatz mit eigener Stimme gehoert NUR hierher, nicht in den vorgelesenen Text", "string", "")},
             "matchingColumns": [],
             "schema": [{"id": "auftrag", "displayName": "auftrag", "required": False,
@@ -2587,6 +2596,9 @@ bot = [
                         "defaultMatch": False, "display": True, "type": "string",
                         "canBeUsedToMatch": True, "removed": False},
                        {"id": "text", "displayName": "text", "required": False,
+                        "defaultMatch": False, "display": True, "type": "string",
+                        "canBeUsedToMatch": True, "removed": False},
+                       {"id": "sprache", "displayName": "sprache", "required": False,
                         "defaultMatch": False, "display": True, "type": "string",
                         "canBeUsedToMatch": True, "removed": False},
                        {"id": "stimme", "displayName": "stimme", "required": False,
@@ -2607,6 +2619,7 @@ bot = [
                       "themen": feld("themen", "Nur beim Ueberblick: Themen, zu denen Meldungen gesucht werden, z. B. 'ki, raumfahrt' (leer = stehende Themen des Senders bzw. die neuesten Meldungen)", "string", ""),
                       "quellen": feld("quellen", "Nur beim Ueberblick: gewuenschte Quellen, z. B. 'heise golem' oder 'alle' (leer = Standard)", "string", ""),
                       "ansagen": feld("ansagen", "true = sofort im Radio ansagen, false = nur ablegen und im Telegram zeigen", "boolean", True),
+                      "sprache": feld("sprache", "Sprache des Betreibers: de oder en. Immer mitgeben - bei en kommen englische Quellen (bbc, guardian, npr, aljazeera, dw) und eine englische Ansagestimme zum Einsatz", "string", "de"),
                       "stimme": feld("stimme", "deine-stimme = eigene Stimme (nur wenn der Betreiber sie ausdruecklich verlangt, z. B. 'mit eigener Stimme', 'in der eigenen Stimme', 'in eigener Stimme'), leer = Standardstimme. Der Zusatz mit eigener Stimme gehoert NUR hierher, nicht in den vorgelesenen Text", "string", "")},
             "matchingColumns": [],
             "schema": [{"id": "art", "displayName": "art", "required": False,
@@ -2623,6 +2636,9 @@ bot = [
                         "canBeUsedToMatch": True, "removed": False},
                        {"id": "ansagen", "displayName": "ansagen", "required": False,
                         "defaultMatch": False, "display": True, "type": "boolean",
+                        "canBeUsedToMatch": True, "removed": False},
+                       {"id": "sprache", "displayName": "sprache", "required": False,
+                        "defaultMatch": False, "display": True, "type": "string",
                         "canBeUsedToMatch": True, "removed": False},
                        {"id": "stimme", "displayName": "stimme", "required": False,
                         "defaultMatch": False, "display": True, "type": "string",
@@ -2698,7 +2714,9 @@ bot = [
         "sendBody": True, "specifyBody": "json",
         "jsonBody": ("={{ JSON.stringify({ art: 'ueberblick',"
                      " quellen: String($json.befehl.quellen || ''),"
-                     " themen: String($json.befehl.themen || ''), ansagen: true }) }}"),
+                     " themen: String($json.befehl.themen || ''),"
+                     " sprache: String($json.befehl.sprache || 'de'),"
+                     " ansagen: true }) }}"),
         "options": {"timeout": 900000},
     }, onError="continueRegularOutput",
        notes="Holt zu den Themen Meldungen aus Presse, Netz und Feeds und spricht sie "
@@ -3724,6 +3742,7 @@ werkzeuge.append(werkzeug_arbeit(W_MELDUNGEN, W_MELDUNGEN_NAME, [
                         {"name": "themen", "type": "string"},
                         {"name": "quellen", "type": "string"},
                         {"name": "ansagen", "type": "boolean"},
+                        {"name": "sprache", "type": "string"},
                         {"name": "stimme", "type": "string"}]),
 
     # --- Zweig: Recherche (Wetter, Nachrichten, Feed, Kurzinfo)
@@ -3738,6 +3757,7 @@ werkzeuge.append(werkzeug_arbeit(W_MELDUNGEN, W_MELDUNGEN_NAME, [
                      " quellen: String($json.quellen || '').trim(),"
                      " themen: String($json.themen || '').trim(),"
                      " stimme: String($json.stimme || '').trim(),"
+                     " sprache: String($json.sprache || 'de').trim(),"
                      " ansagen: $json.ansagen === undefined ? true : $json.ansagen === true }) }}"),
         "options": {"timeout": 900000},
     }, onError="continueRegularOutput",
@@ -3757,7 +3777,7 @@ werkzeuge.append(werkzeug_arbeit(W_MELDUNGEN, W_MELDUNGEN_NAME, [
         "method": "POST", "url": MELDUNGEN + "/ansage/text",
         "sendHeaders": True, "headerParameters": {"parameters": MELDUNG_KOPF},
         "sendBody": True, "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ text: String($json.text || '').trim(), stimme: String($json.stimme || '').trim() }) }}",
+        "jsonBody": "={{ JSON.stringify({ text: String($json.text || '').trim(), sprache: String($json.sprache || 'de').trim(), stimme: String($json.stimme || '').trim() }) }}",
         "options": {"timeout": 900000},
     }, onError="continueRegularOutput",
        notes="Spricht freien Text live in den Sender (Piper -> DJ-Hafen)."),
@@ -3765,7 +3785,7 @@ werkzeuge.append(werkzeug_arbeit(W_MELDUNGEN, W_MELDUNGEN_NAME, [
         "method": "POST", "url": MELDUNGEN + "/ansage/meldung",
         "sendHeaders": True, "headerParameters": {"parameters": MELDUNG_KOPF},
         "sendBody": True, "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ id: String($json.kennung || '').trim(), stimme: String($json.stimme || '').trim() }) }}",
+        "jsonBody": "={{ JSON.stringify({ id: String($json.kennung || '').trim(), sprache: String($json.sprache || '').trim(), stimme: String($json.stimme || '').trim() }) }}",
         "options": {"timeout": 900000},
     }, onError="continueRegularOutput",
        notes="Spricht die Meldung live in den Sender - dauert so lange wie die Ansage."),

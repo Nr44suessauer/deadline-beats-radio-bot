@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Laedt die vier Piper-Stimmen des Bots in ein Zielverzeichnis.
+# Laedt die Piper-Stimmen des Bots (deutsch und englisch) in ein Zielverzeichnis.
 #
 # Die Stimmen bestehen aus zwei Dateien: <name>.onnx und <name>.onnx.json.
 # Quelle ist die Piper-Stimmsammlung (rhasspy/piper-voices).
@@ -16,6 +16,7 @@ STIMMEN=(
   "de_kerstin:de_DE-kerstin-low:de/de_DE/kerstin/low"
   "de_ramona:de_DE-ramona-low:de/de_DE/ramona/low"
   "de_eva:de_DE-eva_k-x_low:de/de_DE/eva_k/x_low"
+  "en_lessac:en_US-lessac-medium:en/en_US/lessac/medium"
 )
 
 mkdir -p "$ZIEL"

@@ -930,7 +930,7 @@ flowchart LR
 Alle Adressen, die der Bot benutzt oder anbietet. Stand 2026-09-21 (Fassung 11).
 
 **Grundregel:** Alles, was verändert, braucht die Kopfzeile `X-Meldung-Schluessel`
-(Wert in `<dokuordner>/NACHBAU/zugangsdaten/meldung-schluessel.txt`). Nur die
+(Wert in `<dein-zugangsordner>/meldung-schluessel.txt`). Nur die
 Statusadressen und die öffentlichen Senderadressen kommen ohne Schlüssel aus.
 
 ---
@@ -971,17 +971,26 @@ begrenzt.
 | `POST /meldungen/angeboten` | `{ids:[…]}` | als vorgelegt merken (kein zweites Angebot) |
 | `POST /meldungen/erledigt` | `{ids:[…], grund: gesagt\|verworfen\|abgelaufen]` | abschließen; Antwort enthält Telegram-Text und Tastatur |
 | `POST /meldungen/aufraeumen` | — | alte Meldungen entfernen |
-| `POST /ansage/meldung` | `{id, trocken, stimme, speed}` | Meldung live sprechen (`trocken: true` = nur erzeugen) |
-| `POST /ansage/text` | `{text, trocken, stimme, speed}` | freien Text live sprechen |
+| `POST /ansage/meldung` | `{id, trocken, stimme, sprache, speed}` | Meldung live sprechen (`trocken: true` = nur erzeugen); `sprache` leer = Sprache der Meldung |
+| `POST /ansage/text` | `{text, trocken, stimme, sprache, speed}` | freien Text live sprechen; `sprache: "en"` wählt die englische Stimme (`en_lessac`) |
 | `GET /ansage/status` | — | letzte Ansagen |
 
 #### 1.3 Recherche (Wetter, Nachrichten, Feeds, Kurzinfos)
 
 | Adresse | Eingabe | Wirkung |
 | --- | --- | --- |
-| `POST /recherche` | `{art: wetter\|nachrichten\|rss\|wikipedia\|ueberblick, wort, themen, quellen, ansagen, wichtig, trocken, quelle}` | holt die Information, legt sie als Meldung ab und spricht sie bei `ansagen: true` sofort |
+| `POST /recherche` | `{art: wetter\|nachrichten\|rss\|wikipedia\|ueberblick, wort, themen, quellen, ansagen, wichtig, trocken, quelle, sprache}` | holt die Information, legt sie als Meldung ab und spricht sie bei `ansagen: true` sofort; `sprache: "de"\|"en"` bestimmt Inhalt **und** Stimme |
 | `POST /recherche` mit `art=ueberblick` | `{art: "ueberblick", themen: "ki, raumfahrt", quellen: "heise golem", ansagen: true}` | sucht zu **jedem Thema** Schlagzeilen (Google News), Hintergrund (Wikipedia), Treffer der **Websuche** (Seite wird geöffnet) und passende Meldungen der **21 Feeds**; Länge nach Material, Sicherheitsgrenze `RECHERCHE_UEBERBLICK_MAX_ZEICHEN` (Vorgabe 6000). Ohne `themen` kommen die neuesten Meldungen der Quellen |
 | `GET /recherche/feeds` | — | alle Quellen, Arten und die Überblick-Einstellungen (`quellen`, `quellen_mit_themen`, `themen`, `thema_presse/web/wiki/feed`, `websuche`, `searx_url`, `webseiten`, `wetter_ort`) |
+
+**Zweisprachig (seit 2026-09-26):** Das Feld `sprache` (`de` Vorgabe / `en`)
+bestimmt **Inhalt und Stimme**: bei `en` holt die Recherche englische Quellen
+(`FEEDS_EN`: bbc, guardian, npr, aljazeera, dw), Wettertexte englisch (Open-Meteo
+`language=en`), Wikipedia aus `en.wikipedia.org`, Presse über Google News
+(`hl=en, gl=US`), Websuche mit englischer Sprachwahl; die Ansage spricht die
+englische Piper-Stimme `en_lessac` (`TTS_EN_VOICE`), sofern kein Stimmenwunsch
+(`stimme=deine-stimme`) vorliegt. `GET /recherche/feeds` nennt zusätzlich `feeds_en`,
+`nachrichten_en`, `quellen_en` und `sprachen`.
 
 Antwort: `ok, id, art, titel, text, sprechtext, gesagt, dauer_sekunden, antwort`.
 Unbekannter Ort → **404**, unbekannte Art → **422** (mit klarer Meldung).

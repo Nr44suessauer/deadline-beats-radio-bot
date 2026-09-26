@@ -13,7 +13,7 @@ The service uses **Piper** (`piper-tts`), each voice consists of two files:
 `<name>.onnx` (Model) and `<name>.onnx.json` (Configuration). Storage: `/opt/radio-tts/voices`
 (in container `/voices`).
 
-**Installed (Original, 201 MB):**
+**Installed (Original, 264 MB):**
 
 | Short name in `main.py` | File | Size | Download (Piper voices, HuggingFace) |
 | --- | --- | --- | --- |
@@ -21,15 +21,18 @@ The service uses **Piper** (`piper-tts`), each voice consists of two files:
 | `de_kerstin` | `de_DE-kerstin-low.onnx` | 63 MB | `…/de/de_DE/kerstin/low/…` |
 | `de_ramona` | `de_DE-ramona-low.onnx` | 63 MB | `…/de/de_DE/ramona/low/…` |
 | `de_eva` | `de_DE-eva_k-x_low.onnx` | 21 MB | `…/de/de_DE/eva_k/x_low/…` |
+| `en_lessac` (English, `sprache=en`) | `en_US-lessac-medium.onnx` | 63 MB | `…/en/en_US/lessac/medium/…` |
 
 Base URL: `https://huggingface.co/rhasspy/piper-voices/resolve/main/` (the three
 example addresses were checked with HTTP 200 on 2026-09-20).
 
-**Announcement voice is since 2026-09-23 the own voice `deine-stimme`** (Section 2) —
-Piper voices remain selectable via `voice`/`stimme` and serve as a fallback (`EIGENE_STIMME_ERSATZ`).
+**Announcement default is since 2026-09-25 `de_thorsten`** (`TTS_DEFAULT_VOICE`);
+English messages speak with `en_lessac` (`TTS_EN_VOICE`). The own voice `deine-stimme` is
+used only on explicit request (Section 2) — Piper voices remain selectable via
+`voice`/`stimme` and serve as a fallback (`EIGENE_STIMME_ERSATZ`).
 
 ```bash
-# fetch all four (puts them into the target directory)
+# fetch all voices (puts them into the target directory)
 bash REBUILD/fetch-voices.sh /opt/radio-tts/voices
 ```
 

@@ -77,6 +77,7 @@ In `/opt/radio-tts/secret.env` (in LXC 103 on the ai-server), then
 | `TTS_KOMPRESSOR_SCHWELLE_DB` / `TTS_KOMPRESSOR_VERHAELTNIS` | Compression | -19 / 3.0 |
 | `TTS_BEGRENZER_DB` / `TTS_BEGRENZER_FREIGABE_MS` | Peak limit / release | -1.0 / 40 |
 | `TTS_HOCHPASS_HZ`, `TTS_DEFAULT_VOICE` | Low-pass filter, voice | 80, `de_thorsten` (default; YOUR-VOICE on request: "… with your own voice") |
+| `TTS_EN_VOICE` | English default voice (when `sprache=en`) | `en_lessac` (`en_US-lessac-medium`; file lives in `/voices`) |
 | `EIGENE_STIMME_URL` | Voting Service (CT 111) | `http://192.168.178.116:10205/tts` |
 | `EIGENE_STIMME_ERSATZ` | Backup voice if the Voting Service is unreachable (empty = no backup voice) | `de_thorsten` |
 | `EIGENE_STIMME_ZEITABLAUF` | Time limit for voice generation (seconds) | 600 |
@@ -287,6 +288,19 @@ simultaneously Ollama (18.7 GB — loaded directly before each bot announcement)
 YOUR-VOICE service — together more than fits in. **Fixed:** `whisper-stt` (LXC 105) is
 stopped and set to manual operation (not wired since the move of speech recognition to the MI50; start on demand `systemctl start whisper-stt`), `sprechdienst` frees its CUDA intermediate storage after each announcement and runs with
 `PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True`. Reserve in operation: around 2.6 GB.
+
+---
+
+**Bilingual content and announcements (since 2026-09-26):** English messages are
+now also **answered and announced in English** — the field `sprache` travels from
+the input via the command into the service. With `en` the research delivers
+English sources (**bbc, guardian, npr, aljazeera, dw**; `GET /recherche/feeds` →
+`feeds_en`), English weather texts and English Wikipedia entries; the announcement
+speaks with the English voice `en_lessac` (`TTS_EN_VOICE`). `stimme=deine-stimme` remains
+the explicit voice-request case and has priority. **Verify:**
+`docker logs radio-tts | grep 'Stimme:'` (shows `en_lessac` for English
+announcements) and dry runs via `POST /recherche` with `"sprache":"en",
+"trocken":true` — nothing is broadcast during a dry run.
 
 ---
 
@@ -514,7 +528,7 @@ bash context-test.sh / bash context2-test.sh    # interpretation of multiple com
 bash voice-check.sh                          # finds a speech sample that the recognizer understands cleanly
 
 ## check the overview dry (no announcement on air, text and duration only):
-MK=$(cat <dokuordner>/REBUILD/credentials/meldung-schluessel.txt)
+MK=$(cat <your-credentials-folder>/meldung-schluessel.txt)
 curl -s -X POST http://192.168.178.53:8881/recherche -H 'Content-Type: application/json' \
   -H "X-Meldung-Schluessel: $MK" -d '{"art":"ueberblick","themen":"ki, raumfahrt","trocken":true}' \
   | python3 -c "import json,sys; d=json.load(sys.stdin); print(d['dauer_sekunden'], d['themen'], d['presse'], d['wiki'], d['web'], d['quellen'], d['ausgefallen'])"
@@ -681,6 +695,9 @@ PY
 ### 41. Voice Selection — Default and YOUR-VOICE on Request (since 2026-09-25)
 
 The bot speaks **with `de_thorsten` by default** (Piper, always available, no GPU).
+English messages (`sprache=en`) speak with the English Piper voice **`en_lessac`**
+(`TTS_EN_VOICE`, file `en_US-lessac-medium.onnx` in `/voices`) — details in
+section 17 (“Bilingual content”).
 The own moderation voice **"YOUR-VOICE"** is used **only on explicit request**:
 
 * **Request in Telegram:** "sag durch: … **with your own voice**", "… **in your own voice**"
