@@ -22,10 +22,11 @@ Complete documentation of the bot that controls the internet radio station **Dea
 > operation.
 >
 > **License:** MIT — anyone may use, modify and redistribute this bot and its
-> documentation (see `../../LICENSE`). The training material of the own voice is excluded
-> (see `DOCS/VOICE.md`, section 14). The English copies of the seven n8n workflows (display texts translated,
-> provided for reading and as a template) are in `REBUILD/running-workflows/`;
-> the illustrated guide with English screenshots is `APPENDIX/n8n-interface.html`.
+> documentation (see `../LICENSE`). The training material of the own voice is excluded
+> (see `DOCS/VOICE.md`, section 14). The English edition carries copies of **five** of the seven n8n workflows
+> (display texts translated, for reading and as a template) in `REBUILD/running-workflows/`
+> — the central Configuration and the earlier AI moderator exist only in the German
+> original. The illustrated guide with English screenshots is `APPENDIX/n8n-interface.html`.
 
 ---
 
@@ -51,7 +52,7 @@ This project is organised so that for the rebuild you only need to follow **one 
 4. **Import the workflows** — builder creates bot + 3 tools (`tools/`)
 5. **Set up the station** — AzuraCast, DJ harbour (`REBUILD/station-setup.md`)
 6. **Import the music archive** — pull tracks into the station
-7. **Run the checks** — test runs (`DOCS/OPERATIONS.md` and `REBUILD/README.md` §4)
+7. **Run the checks** — test runs (`DOCS/OPERATIONS.md` and `REBUILD/README.md`, step 7)
 8. **Own announcer voice (optional)** — `REBUILD/own-voice/`
 
 Prerequisites, order, all commands: **`REBUILD/README.md`**.
@@ -149,8 +150,8 @@ flowchart LR
 ## 5. Can the Bot be rebuilt from this folder?
 
 **Yes** — except for the music archive, the model and voice files, and the station database,
-which cannot be sensibly placed in a folder. The access credentials are now included
-(`REBUILD/credentials/`, Section 6).
+which cannot be sensibly placed in a folder. This edition ships **no access values**
+(the `REBUILD/credentials/` folder was removed — create your own, Section 6).
 Everything needed is in `REBUILD/`:
 
 | Required for rebuilding | Located in | Notes |
@@ -163,7 +164,7 @@ Everything needed is in `REBUILD/`:
 | Language model (Ollama) + Speech recognition (Whisper) | `REBUILD/voices-and-models.md` + `service/whisper/` | Models are loaded by their tools (17.7 GB / 3 GB) |
 | Setting up stations | `REBUILD/station-setup.md` | Station, Mount, Streamer, Wishes, Rotation |
 | Infrastructure (containers, ports, systemd) | `REBUILD/environment.md` | Roles, ports, unit files |
-| Credentials | `REBUILD/credentials/` (values) + `credentials.md` (instructions) | **now in the folder** — be careful when sharing |
+| Credentials | only the guide `REBUILD/credentials.md` | This edition contains **no values** — create your own |
 | Step-by-step instructions | `REBUILD/README.md` | from "empty machine" to "test" |
 
 **What cannot be in the folder:**
@@ -176,23 +177,22 @@ Everything needed is in `REBUILD/`:
    from an AzuraCast backup.
 
 **Files with identifiers** (e.g. `tools/moderator-import.json`,
-`agent-fassung-2026-09-19.json`) stay outside git for security reasons and live only
-on the disk (permissions 600) — for an exact copy of the **running** state, take them
-from there.
+`agent-fassung-2026-09-19.json`) carry placeholders in this edition; the working copy
+keeps them with the real values (permissions 600) — for an exact copy of the **running**
+state, take them from there.
 
 ---
 
-## 6. Where the credentials are located
+## 6. Where the credentials belong
 
-**They are in this folder:** `REBUILD/credentials/` (directory 700,
-files 600) with `OVERVIEW.md`, which file contains which value and where it belongs during
-rebuilding.
+**This edition contains no access values** — the `REBUILD/credentials/` folder was
+removed. What is needed, how it is created and where it belongs is described step by
+step in **`REBUILD/credentials.md`**.
 
-> **Note:** This folder contains secrets. Do not copy it to a public
-> repository, cloud, or chat. For sharing without secrets, omit `REBUILD/credentials/` — the instructions
-> for regenerating them are then in `REBUILD/credentials.md`.
+> **Note:** never copy access values into a repository, cloud, or chat — the working
+> copy keeps them under `REBUILD/credentials/` (700/600).
 
-| Access | File in folder |
+| Access | File (working copy) |
 | --- | --- |
 | Telegram bot token | `credentials/telegram-bot-token.txt` |
 | Operator chat IDs | `credentials/telegram-chat-ids.txt` |
@@ -204,13 +204,13 @@ rebuilding.
 | SSH management access (Datenserver/Container) | `credentials/ssh/` |
 
 In addition, `REBUILD/running-workflows/` contains the **exports of the running
-processes** — these include Telegram tokens and sender keys (therefore 600). They
-are the basis for the **exact** restoration; alternatively, `tools/agent-wf-build.py` reconstructs the processes
+processes** — with placeholders (`DEIN-…`) instead of the access values in this edition.
+They are the basis for the **exact** restoration; alternatively, `tools/agent-wf-build.py` reconstructs the processes
 with new access values.
 
 Not reconstructible (only hash stored): the password for the n8n interface and the
-AzuraCast web account — both can be reset, the commands are in
-`credentials/n8n-zugang.txt` and `credentials/OVERVIEW.md`.
+AzuraCast web account — both can be reset, the ways are in
+`REBUILD/credentials.md`.
 
 ---
 

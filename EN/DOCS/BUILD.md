@@ -255,7 +255,7 @@ You are in `tools/` (Development) — here are the most important ones:
 * `REBUILD/template.md` — template mode (fresh installation without private values).
 * `REBUILD/own-voice/` — rebuild the voice (scripts + guide);
   **general for each series:** `VOICE.md`.
-* `REBUILD/credentials/` — access values (700/600) plus `OVERVIEW.md`.
+* `REBUILD/credentials.md` — the guide to the access values (this edition contains none).
 
 ---
 

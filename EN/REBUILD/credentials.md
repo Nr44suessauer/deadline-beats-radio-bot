@@ -1,6 +1,8 @@
 # Access Data — What is Needed and How it is Created
 
-**The values are now in the folder `credentials/`** (directory 700, files 600, with `OVERVIEW.md`). This file here is the **guide**: what is needed, how it is created, and where it belongs — also for the case that the access data needs to be renewed (after a while, one should change Telegram tokens, sender keys, and DJ passwords).
+**This edition contains no access values** — the folder `REBUILD/credentials/` was
+removed (the working copy keeps the real values there, 700/600). This file is the
+**guide**: what is needed, how it is created, and where it belongs — also for the case that the access data needs to be renewed (after a while, one should change Telegram tokens, sender keys, and DJ passwords).
 
 ---
 
@@ -54,7 +56,7 @@ With this, the bot can: read (public), write (everything the API allows). The **
 2. Write to the bot in Telegram once (so the chat exists).
 3. Determine your own chat ID and enter it in the operator list:
    ```bash
-   cd werkzeuge && python3 erlaubte-setzen.py <chatId>
+   cd tools && python3 erlaubte-setzen.py <chatId>
    ```
 4. Command menu (optional): `bash telegram-menu.sh`.
 

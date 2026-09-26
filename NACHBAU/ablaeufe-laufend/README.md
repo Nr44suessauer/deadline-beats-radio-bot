@@ -10,6 +10,9 @@ n8n update:workflow --id=RadioAgentBot --active=true
 # danach n8n neu starten (sonst läuft die alte Fassung im Speicher)
 ```
 
+In einer frischen n8n das **Telegram-Konto** anlegen und am Trigger auswählen — die
+Konto-Kennung aus dem Export gehört zur Original-Installation.
+
 Die drei Werkzeuge (`RadioWerkzeug`, `AzuraWerkzeug`, `MeldungenWerkzeug`) genauso.
 Dazu kommen die beiden späteren Abläufe `Konfiguration.json` (die Zentrale
 „Konfiguration – alle Werte", aus der alle Abläufe ihre Adressen beziehen) und
@@ -19,14 +22,15 @@ aber zum Bestand.
 
 ---
 
-## Achtung: in der Arbeitsfassung stecken Zugangsdaten
+## Achtung: in dieser Fassung stehen Platzhalter
 
-In den HTTP-Knoten der **Arbeitsfassung** stehen der **Telegram-Bot-Token** und der
-**AzuraCast-Schlüssel** (deshalb sind die Dateien im Arbeitsordner auf `600` gesetzt).
-Dort gilt:
+Der **Telegram-Bot-Token** und der **AzuraCast-Schlüssel** tragen in den HTTP-Knoten
+hier **Platzhalter** (`DEIN-…`) — vor dem Einspielen ersetzen oder die Abläufe neu
+bauen (`../../werkzeuge/agent-wf-bauen.py`). Im Arbeitsordner stehen die echten Werte
+(Rechte `600`). Dort gilt:
 
 * Nicht weitergeben, nicht in ein Repository, nicht in eine Cloud.
-* Der Ordner `../zugangsdaten/` gehört dazu (dort stehen dieselben Werte in Klartext).
+* Im Arbeitsordner gehört der Ordner `../zugangsdaten/` dazu (dieselben Werte in Klartext).
 * **Nie maskierte Fassungen einspielen** (wenn zur Kontrolle Kennungen durch
   `<GEHEIM>` ersetzt wurden) — das killt den Bot, siehe `../../DOKU/BETRIEB.md`,
   Abschnitt 1.
@@ -37,7 +41,7 @@ Statt zu kopieren kann man die Abläufe auch **bauen** — dann tragen sie die e
 Zugangswerte:
 
 ```bash
-cd ../werkzeuge
+cd ../../werkzeuge
 export TG_TOKEN=…  AZ_KEY=…  MELDUNG_SCHLUESSEL=…
 python3 agent-wf-bauen.py                 # -> /tmp/radio-konfiguration.json, /tmp/radio-werkzeuge.json, /tmp/radio-agent.json
 python3 anordnung-pruefen.py /tmp/radio-agent.json     # 0 Befunde
@@ -49,5 +53,5 @@ Unterschied der beiden Wege:
 
 | Weg | Vorteil | Nachteil |
 | --- | --- | --- |
-| **Kopieren** (diese Dateien) | exakt derselbe Bot, in Minuten betriebsbereit | braucht die alten Zugangswerte; ein Modell-/Stimmenwechsel ändert nichts daran |
+| **Kopieren** (diese Dateien) | derselbe Bot, in Minuten betriebsbereit | Platzhalter `DEIN-…` ersetzen und in n8n das Telegram-Konto auswählen; ein Modell-/Stimmenwechsel ändert nichts daran |
 | **Bauen** (`werkzeuge/agent-wf-bauen.py`) | eigene Zugangswerte, alles nachvollziehbar | setzt an den Werkzeugknoten das Feld `name` (kosmetisch, ändert Werkzeugnamen gegenüber dem Modell) |

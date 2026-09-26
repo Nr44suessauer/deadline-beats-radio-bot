@@ -205,5 +205,5 @@ EN/                                  this English edition
 The earlier version backups (`fassungen/`, v1–v21) were removed and are collected
 outside the project under `<projektordner>/sicherungen/`.
 
-**Access data is deliberately not part of the documentation** — only the places where
-it is stored (see `README.md`, section 6 and `REBUILD/credentials/OVERVIEW.md`).
+**Access data is deliberately not part of the documentation** — this edition contains
+none; see `REBUILD/credentials.md` on how to create your own (`README.md`, section 6).

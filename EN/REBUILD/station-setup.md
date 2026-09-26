@@ -33,7 +33,7 @@ curl -s http://<station-ip>/api/nowplaying | head -c 120  # station, title, list
 
 Then continue with §1 (station, mount, streamers) and §7 (**create the API key**, format
 `identifier:checksum`) — the key is needed later as `AZ_KEY` in the service. Credentials
-and addresses belong in `credentials/OVERVIEW.md`.
+and addresses belong in your own access data (guide: `credentials.md`).
 
 ---
 

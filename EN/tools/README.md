@@ -70,8 +70,8 @@ the logic does not depend on them. Replace them and you have a runnable tool set
   longer used, but part of the development history.
 * `news/probe-stimme-roh.wav` is a raw recording; the loudness check uses it.
 * **Files with identifiers** (`moderator-import.json`, `agent-fassung-2026-09-19.json`)
-  are in the folder but **not in git** (mode 600) - they contain the Telegram key
-  and the station key.
+  carry placeholders in this edition; the working copy keeps them with the real values
+  (mode 600).
 * `../APPENDIX/LAYOUT.md` is the generated canvas overview; no copy is kept here
   any more (the generator writes it directly).
 

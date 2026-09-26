@@ -9,11 +9,11 @@ this folder; what **cannot** be in a folder is listed in section 6.
 | Area | In the folder? |
 | --- | --- |
 | Flows (Bot + 3 tools) | **yes, as creator** — will be rebuilt during setup (`tools/agent-wf-build.py`) |
-| Service `radio-tts` (Language, Announcements, Catalog, Lists, Mailbox, Research) | **yes** — `service/app/`, `service/Dockerfile`, `service/docker-compose.yml` |
+| Service `radio-tts` (Language, Announcements, Catalog, Lists, Mailbox, Research) | **yes** — `service/` (modules, `Dockerfile`, `docker-compose.yml`) |
 | Operation and test tools (over 100 scripts) | **yes** — `tools/` |
 | Voices and models | **Guide + download script** (`fetch-voices.sh`, `voices-and-models.md`) — the files themselves are 0.2–18 GB |
 | Own voice (RVC "YOUR-VOICE") | **yes** — `own-voice/`: all scripts + guide (`README.md`); dataset and model are generated from own media collection |
-| Access data | **yes** — `credentials/` with `OVERVIEW.md` (working copy: real values 700/600; published: placeholders); how they are created: `credentials.md` |
+| Access data | **guide** — `credentials.md` (this edition contains no values; create your own) |
 | Music archive | **no** — the content itself; the bot runs with any own archive |
 | Station configuration | **Guide** — `station-setup.md` |
 | Own search engine (SearXNG, LXC 108) | **Guide** — `searxng-setup.md` |
@@ -129,12 +129,14 @@ curl -s http://127.0.0.1:18790/health      # {"status":"ok","model":true,"device
 
 ### Step 3 — Start n8n (two ways)
 
-**Way A — exact copy** (fast, requires old access values):
-`running-workflows/*.json` import (**seven** files: the hub `Konfiguration`, the agent,
-three tools, the voices workflow and the former AI moderator), activate, restart n8n.
-Order: **first** `Konfiguration.json` (it holds the values for all others), then the
-tools, then the agent; the **five** workflows listed in `template.md` §4 are switched on.
-Guide in `running-workflows/README.md`.
+**Way A — exact copy** (fast; here with placeholders `DEIN-…` — replace them first):
+`running-workflows/*.json` import (**five** files in this edition: the agent, three
+tools and the voices workflow; the hub `Konfiguration` and the former AI moderator
+exist only in the German original), activate, restart n8n. Order of a full set:
+**first** `Konfiguration` (it holds the values for all others), then the tools, then
+the agent; the **five** workflows listed in `template.md` §4 are switched on. Guide in
+`running-workflows/README.md`. In a fresh n8n, create the **Telegram credential** and
+select it at the trigger — the account ID from the export belongs to the original setup.
 
 **Way B — rebuild** (own access values, traceable):
 
@@ -148,10 +150,10 @@ export NEWS_KEY="<inbox key>"
 export OLLAMA_URL="http://<GPU-Host>:11434"
 export WHISPER_URL="http://<GPU-Host>:18790/transcribe"
 
-cd werkzeuge
+cd tools
 python3 agent-wf-build.py            # writes /tmp/radio-konfiguration.json,
                                      # /tmp/radio-werkzeuge.json + /tmp/radio-agent.json
-python3 layout-check.py /tmp/radio-agent.json     # must report "0 Befunde"
+python3 layout-check.py /tmp/radio-agent.json     # must report "0 findings"
 python3 import-agent-prepare.py  # writes /tmp/radio-agent-import.json
                                      # + /tmp/radio-werkzeuge-import.json
 nano /tmp/radio-konfiguration.json   # put your own values in there (tokenizer, URLs)
@@ -161,14 +163,14 @@ nano /tmp/radio-konfiguration.json   # put your own values in there (tokenizer, 
 > the running bot — with one exception: a complete rebuild sets the field `name`
 > (e.g., `titel_suchen`) at the tool node. In the running system, the field is not set; there,
 > changes were always **surgically patched** (`tools/agent-patch.sh`). To exactly replicate the running bot,
-> take the exports from `running-workflows/` (step 3, way A — they contain the
-> access values, permissions 700/600); older version backups (`sicherungen/radio-fassungen/…`)
+> take the exports from `running-workflows/` (step 3, way A — placeholders here;
+> real values in the working copy, 700/600); older version backups (`sicherungen/radio-fassungen/…`)
 > are only in the operator's project folder.
 
 ### Step 4 — Integrate Workflows
 
 ```bash
-cd werkzeuge
+cd tools
 # adapt target host/project in agent-import-only.sh + import-agent-prepare.py
 bash agent-import-only.sh /tmp/radio-agent-import.json
 ```
@@ -217,7 +219,7 @@ bash short-test.sh          # 19 of 19
 bash answer-test.sh       # 20 ok
 bash playlist/11-service-type-test.sh          # 37 of 37
 python3 news/19-news-test.py       # 45 ok   (needs the service)
-python3 news/21-bot-news-test.py   # 6 ok    (braucht n8n + Testeingang)
+python3 news/21-bot-news-test.py   # 6 ok    (needs n8n + test entry)
 bash bot-test.sh "what is playing"                 # Antwort in ~1–2 s
 python3 news/24-live-level.py "Test of the volume."   # speaks on air
 ```
@@ -252,11 +254,12 @@ A **general** guide (each Serie/Stimme, all values and commands): `../DOCS/VOICE
 | `voices-and-models.md` | voices and models: sources, sizes, configuration |
 | `fetch-voices.sh` | loads the four Piper voices into a target directory |
 | `own-voice/` | **rebuild your own voice**: Extraction service (8890), collector (`deine-stimme_sammeln3/4/5.py`), training script, speech service (10205), test tools — guide in the folder |
-| `running-workflows/` | **the exports of the running workflows** (exact restoration; include access values, 700/600) |
-| `credentials/` | **the actual access values** (700/600; placeholders in the published copy) with `OVERVIEW.md`: Telegram token, chat IDs, mailbox and test keys, AzuraCast keys, DJ password, `secret.env`, n8n access, SSH keys |
+| `running-workflows/` | **the exports of the running workflows** (exact restoration; with placeholders in this edition) |
+| `credentials/` | in this edition **removed**; create your own access values following `credentials.md` (working copy: real values 700/600) |
 
-**Included but handle with care:** `credentials/` and
-`running-workflows/` — both contain the actual access values (permissions 700/600).
+**Included but handle with care:** in the working copy `credentials/` and
+`running-workflows/` (real values, 700/600). **This edition contains no values** —
+`credentials/` was removed, the exports carry placeholders.
 
 **Intentionally not included:** the music archive, the model binary files (too large) and
 the backups of the n8n database (`n8n-daten.sqlite.gz`, see
@@ -282,7 +285,7 @@ A rebuild is successful if:
 
 * **Voice**: The default is the **own speaker voice `deine-stimme`** (external, `own-voice/`);
   without voice service, set `TTS_DEFAULT_VOICE` to a Piper voice (short names in
-  `service/app/main.py`). If the voice service fails, `radio-tts` continues with
+  `service/main.py`). If the voice service fails, `radio-tts` continues with
   `EIGENE_STIMME_ERSATZ` (default `de_thorsten`).
 * **Model**: `OLLAMA_MODELL` — it must only handle tools (Function Calling).
   Tested are `qwen3.6:27b` (recommended) and `qwen2.5:14b` (less reliable).
@@ -299,11 +302,9 @@ A rebuild is successful if:
 
 ## 6. What **cannot** be in a folder
 
-> **The access data is now in the folder** — in `credentials/`
-> (directory 700, files 600, with `OVERVIEW.md`). Anyone who shares the folder
-> shares the bot: Telegram token, station key, DJ password,
-  inbox-/Testschlüssel and the SSH keys. For a release without secrets,
-  simply omit `credentials/`.
+> **This edition contains no access values** — the `credentials/` folder was removed
+> and the workflow exports carry placeholders. Create your own following
+> `credentials.md`; the working copy keeps the real values (700/600).
 
 1. **The music archive**. The bot needs it content-wise; the
    structure is free. → own backup.
@@ -334,5 +335,5 @@ A rebuild is successful if:
 | Speech output of test (`POST /v1/audio/speech`) | HTTP 200, 56 kB WAV |
 | Loading voices (`fetch-voices.sh`) and **checksums** comparison | 4 voices, md5 **identical** with the running system |
 
-This proves: the **build and runtime files are complete** and functional. Only the three things from Section 6 (access data, Modell-/Stimmendateien,
-music archive) are missing — all three with instructions.
+This proves: the **build and runtime files are complete** and functional. Only the things from Section 6 (Modell-/Stimmendateien, music archive)
+are missing — plus your own access values (`credentials.md`): all with instructions.

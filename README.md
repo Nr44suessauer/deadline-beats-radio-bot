@@ -24,7 +24,7 @@ holen kann.
 > englische Ablauf-Kopien (die deutschen Abläufe bleiben die im Betrieb).
 >
 > **Lizenz:** MIT — jeder darf diesen Bot und diese Dokumentation nutzen, ändern und
-> weitergeben (siehe `../LICENSE`). Ausgenommen bleibt das Trainingsmaterial der eigenen
+> weitergeben (siehe `LICENSE`). Ausgenommen bleibt das Trainingsmaterial der eigenen
 > Stimme (siehe `DOKU/STIMME.md`, Abschnitt 14).
 
 ---
@@ -51,7 +51,7 @@ Dieses Projekt ist so sortiert, dass du für den Nachbau **nur einem Ordner** fo
 4. **Abläufe einspielen** — Erzeuger bauen Bot + 3 Werkzeuge (`werkzeuge/`)
 5. **Sender einrichten** — AzuraCast, DJ-Hafen (`NACHBAU/sender-einrichten.md`)
 6. **Musikarchiv einlesen** — Titel in den Sender holen
-7. **Alles prüfen** — Prüfläufe (`DOKU/BETRIEB.md` und `NACHBAU/README.md` §4)
+7. **Alles prüfen** — Prüfläufe (`DOKU/BETRIEB.md` und `NACHBAU/README.md`, Schritt 7)
 8. **Eigene Sprecherstimme (optional)** — `NACHBAU/eigene-stimme/`
 
 Voraussetzungen, Reihenfolge, alle Befehle: **`NACHBAU/README.md`**.
@@ -172,8 +172,8 @@ Serie: `DOKU/STIMME.md`.
 ## 5. Kann man den Bot aus diesem Ordner nachbauen?
 
 **Ja** — bis auf das Musikarchiv, die Modell-/Stimmendateien und die Senderdatenbank,
-die man nicht sinnvoll in einen Ordner legen kann. Die Zugangsdaten liegen inzwischen mit
-drin (`NACHBAU/zugangsdaten/`, Abschnitt 6).
+die man nicht sinnvoll in einen Ordner legen kann. Die eigenen Zugangswerte legst du nach Abschnitt 6 an
+(`NACHBAU/zugangsdaten.md`) — in dieser Fassung ist nichts davon enthalten.
 Alles Nötige steht in `NACHBAU/`:
 
 | Für den Nachbau nötig | Liegt in | Anmerkung |
@@ -186,7 +186,7 @@ Alles Nötige steht in `NACHBAU/`:
 | Sprachmodell (Ollama) + Spracherkennung (Whisper) | `NACHBAU/stimmen-und-modelle.md` + `dienst/whisper/` | Modelle werden von ihren Werkzeugen geladen (17,7 GB / 3 GB) |
 | Sender einrichten | `NACHBAU/sender-einrichten.md` | Station, Mount, Streamer, Wünsche, Rotation |
 | Infrastruktur (Container, Ports, systemd) | `NACHBAU/umgebung.md` | Rollen, Ports, Unit-Dateien |
-| Zugangsdaten | `NACHBAU/zugangsdaten/` (Werte) + `zugangsdaten.md` (Anleitung) | **liegen jetzt im Ordner** — Vorsicht beim Weitergeben |
+| Zugangsdaten | nur die Anleitung `NACHBAU/zugangsdaten.md` | Diese Fassung enthält **keine** Werte — eigene anlegen |
 | Schritt-für-Schritt-Anleitung | `NACHBAU/README.md` | von „leere Maschine" bis „prüfen" |
 
 **Was nicht im Ordner sein kann:**
@@ -199,24 +199,22 @@ Alles Nötige steht in `NACHBAU/`:
    `sender-einrichten.md` neu aufbauen oder aus einer AzuraCast-Sicherung einspielen.
 
 **Dateien mit Kennungen** (z. B. `werkzeuge/moderator-import.json`,
-`agent-fassung-2026-09-19.json`) bleiben aus Sicherheitsgründen außerhalb des Git und
-liegen nur auf der Platte (Rechte 600) — wer den **laufenden** Zustand exakt kopieren
-will, nimmt sie von dort.
+`agent-fassung-2026-09-19.json`) tragen in dieser Fassung Platzhalter; im Arbeitsordner
+liegen sie mit den echten Werten (Rechte 600) — wer den **laufenden** Zustand exakt
+kopieren will, nimmt sie von dort.
 
 ---
 
-## 6. Wo die Zugangsdaten liegen
+## 6. Wo die Zugangsdaten hingehören
 
-**Sie liegen in diesem Ordner:** `NACHBAU/zugangsdaten/` (Verzeichnis 700,
-Dateien 600) mit `UEBERSICHT.md`, welche Datei welchen Wert enthält und wohin er beim
-Nachbau gehört.
+**Diese Fassung enthält keine Zugangswerte** — der Ordner `NACHBAU/zugangsdaten/`
+wurde entfernt. Welche Werte nötig sind, wie sie entstehen und wohin sie gehören,
+steht Schritt für Schritt in **`NACHBAU/zugangsdaten.md`**.
 
-> **Achtung:** damit enthält dieser Ordner Geheimnisse. Nicht in ein öffentliches
-> Repository, eine Cloud oder einen Chat kopieren. Für eine Weitergabe ohne
-> Geheimnisse `NACHBAU/zugangsdaten/` weglassen — die Anleitung zum Neuerzeugen
-> steht dann in `NACHBAU/zugangsdaten.md`.
+> **Hinweis:** Zugangswerte nie in ein Repository, eine Cloud oder einen Chat
+> kopieren — die Arbeitsfassung hält sie unter `NACHBAU/zugangsdaten/` (700/600).
 
-| Zugang | Datei im Ordner |
+| Zugang | Datei (Arbeitsordner) |
 | --- | --- |
 | Telegram-Bot-Token | `zugangsdaten/telegram-bot-token.txt` |
 | Betreiber-Chat-IDs | `zugangsdaten/telegram-chat-ids.txt` |
@@ -228,13 +226,13 @@ Nachbau gehört.
 | SSH-Verwaltungszugang (Datenserver/Container) | `zugangsdaten/ssh/` |
 
 Zusätzlich enthält `NACHBAU/ablaeufe-laufend/` die **Exporte der laufenden
-Abläufe** — auch darin stecken Telegram-Token und Sender-Schlüssel (deshalb 600). Sie
+Abläufe** — in dieser Fassung mit Platzhaltern (`DEIN-…`) statt der Zugangswerte. Sie
 sind die Grundlage für die **exakte** Wiederherstellung; alternativ baut
 `werkzeuge/agent-wf-bauen.py` die Abläufe mit eigenen Zugangswerten neu.
 
 Nicht rekonstruierbar (nur Hash gespeichert): das Passwort der n8n-Oberfläche und des
-AzuraCast-Webkontos — beides lässt sich zurücksetzen, die Befehle stehen in
-`zugangsdaten/n8n-zugang.txt` bzw. `zugangsdaten/UEBERSICHT.md`.
+AzuraCast-Webkontos — beides lässt sich zurücksetzen, die Wege stehen in
+`NACHBAU/zugangsdaten.md`.
 
 ---
 

@@ -217,5 +217,5 @@ EN/                                  dieselbe Sammlung auf Englisch
 Die früheren Versionssicherungen (`fassungen/`, v1–v21) wurden entfernt und liegen
 gesammelt außerhalb des Projekts unter `<projektordner>/sicherungen/`.
 
-**Zugangsdaten stehen bewusst nicht in der Dokumentation** — nur die Orte, an denen
-sie liegen (siehe `README.md`, Abschnitt 6 und `NACHBAU/zugangsdaten/UEBERSICHT.md`).
+**Zugangsdaten stehen bewusst nicht in der Dokumentation** — diese Fassung enthält keine; wie du eigene anlegst, steht in
+`NACHBAU/zugangsdaten.md` (`README.md`, Abschnitt 6).

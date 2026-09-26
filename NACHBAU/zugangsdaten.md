@@ -1,10 +1,10 @@
 # Zugangsdaten — was nötig ist und wie es entsteht
 
-**Die Werte liegen jetzt im Ordner `zugangsdaten/`** (Verzeichnis 700, Dateien 600,
-mit `UEBERSICHT.md`). Diese Datei hier ist die **Anleitung**: was nötig ist, wie es
-entsteht und wo es hingehört — auch für den Fall, dass die Zugangsdaten erneuert werden
-müssen (nach einer Weile sollte man Telegram-Token, Sender-Schlüssel und DJ-Passwort
-wechseln).
+**Diese Fassung enthält keine Zugangswerte** — der Ordner `NACHBAU/zugangsdaten/` wurde
+entfernt; im Arbeitsordner liegen dort die echten Werte (700/600). Diese Datei ist die
+**Anleitung**: was nötig ist, wie es entsteht und wo es hingehört — auch für den Fall,
+dass die Zugangsdaten erneuert werden müssen (nach einer Weile sollte man Telegram-Token,
+Sender-Schlüssel und DJ-Passwort wechseln).
 
 ---
 

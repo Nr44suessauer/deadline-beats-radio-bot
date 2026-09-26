@@ -321,7 +321,8 @@ Sie liegen in `werkzeuge/` (Entwicklung) — hier die wichtigsten:
 * `NACHBAU/vorlage.md` — Vorlagenmodus (frische Installation ohne private Werte).
 * `NACHBAU/eigene-stimme/` — die Stimme nachbauen (Skripte + Anleitung);
   **allgemein für jede Serie:** `STIMME.md`.
-* `NACHBAU/zugangsdaten/` — die Zugangswerte (700/600) samt `UEBERSICHT.md`.
+* `NACHBAU/zugangsdaten.md` — die Anleitung zu den Zugangswerten (diese Fassung
+  enthält keine Werte).
 
 ---
 

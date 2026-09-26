@@ -9,11 +9,11 @@ diesem Ordner; was **nicht** in einem Ordner liegen kann, steht in Abschnitt 6.
 | Bereich | Im Ordner? |
 | --- | --- |
 | Abläufe (Bot + 3 Werkzeuge) | **ja, als Erzeuger** — werden beim Aufbau neu gebaut (`werkzeuge/agent-wf-bauen.py`) |
-| Dienst `radio-tts` (Sprache, Ansage, Katalog, Listen, Postfach, Recherche) | **ja** — `dienst/app/`, `dienst/Dockerfile`, `dienst/docker-compose.yml` |
+| Dienst `radio-tts` (Sprache, Ansage, Katalog, Listen, Postfach, Recherche) | **ja** — `dienst/` (Module, `Dockerfile`, `docker-compose.yml`) |
 | Betriebs- und Prüfwerkzeuge (über 100 Skripte) | **ja** — `werkzeuge/` |
 | Stimmen und Modelle | **Anleitung + Download-Skript** (`stimmen-holen.sh`, `stimmen-und-modelle.md`) — die Dateien selbst sind 0,2–18 GB groß |
 | Eigene Sprecherstimme (RVC „DEINE-STIMME") | **ja** — `eigene-stimme/`: alle Skripte + Anleitung (`README.md`); Datensatz und Modell entstehen aus dem eigenen Medienbestand |
-| Zugangsdaten | **ja** — `zugangsdaten/` mit `UEBERSICHT.md` (Arbeitsordner: echte Werte 700/600; veröffentlicht: Platzhalter); Entstehung: `zugangsdaten.md` |
+| Zugangsdaten | **Anleitung** — `zugangsdaten.md` (diese Fassung enthält keine Werte; eigene anlegen) |
 | Musikarchiv | **nein** — der Inhalt selbst; der Bot läuft mit jedem eigenen Archiv |
 | Senderkonfiguration | **Anleitung** — `sender-einrichten.md` |
 | Eigene Suchmaschine (SearXNG, LXC 108) | **Anleitung** — `searxng-einrichten.md` |
@@ -132,12 +132,14 @@ curl -s http://127.0.0.1:18790/health      # {"status":"ok","model":true,"device
 
 ### Schritt 3 — n8n starten (zwei Wege)
 
-**Weg A — exakt kopieren** (schnell, braucht die alten Zugangswerte):
+**Weg A — exakt kopieren** (schnell, braucht ausgefüllte Zugangswerte (hier: Platzhalter `DEIN-…` — vorher ersetzen)):
 `ablaeufe-laufend/*.json` einspielen (**sieben** Dateien: die Zentrale `Konfiguration`,
 der Agent, drei Werkzeuge, der Stimmen-Ablauf und der frühere KI-Moderator), aktivieren,
 n8n neu starten. Reihenfolge: **zuerst** `Konfiguration.json` (dort stehen die Werte für
 alle anderen), dann die Werkzeuge, dann der Agent; eingeschaltet werden die **fünf**
-Abläufe laut `vorlage.md` §4. Anleitung in `ablaeufe-laufend/README.md`.
+Abläufe laut `vorlage.md` §4. Anleitung in `ablaeufe-laufend/README.md`. In einer
+frischen n8n das **Telegram-Konto** anlegen und am Trigger auswählen — die
+Konto-Kennung aus dem Export gehört zur Original-Installation.
 
 **Weg B — neu bauen** (eigene Zugangswerte, nachvollziehbar):
 
@@ -165,8 +167,8 @@ nano /tmp/radio-konfiguration.json   # dort die eigenen Werte eintragen (Tokeniz
 > Werkzeugknoten das Feld `name` (z. B. `titel_suchen`). Im laufenden System ist das
 > Feld nicht gesetzt; dort wurden Änderungen immer **chirurgisch gepatcht**
 > (`werkzeuge/agent-patchen.sh`). Wer den laufenden Bot exakt kopieren will, nimmt
-> die Exporte aus `ablaeufe-laufend/` (Schritt 3, Weg A — sie enthalten die
-> Zugangswerte, Rechte 700/600); ältere Fassungs-Sicherungen (`sicherungen/radio-fassungen/…`)
+> die Exporte aus `ablaeufe-laufend/` (Schritt 3, Weg A — hier mit Platzhaltern;
+> im Arbeitsordner mit den echten Werten, 700/600); ältere Fassungs-Sicherungen (`sicherungen/radio-fassungen/…`)
 > liegen nur im Projektordner des Betreibers.
 
 ### Schritt 4 — Abläufe einspielen
@@ -260,11 +262,12 @@ Eine **allgemeine** Anleitung (jede Serie/Stimme, alle Werte und Befehle):
 | `stimmen-und-modelle.md` | Stimmen und Modelle: Quellen, Größen, Konfiguration |
 | `stimmen-holen.sh` | lädt die vier Piper-Stimmen in ein Zielverzeichnis |
 | `eigene-stimme/` | **die eigene Sprecherstimme nachbauen**: Extraktions-Dienst (8890), Sammler (`deine-stimme_sammeln3/4/5.py`), Trainingsskript, Sprechdienst (10205), Prüf-Werkzeuge — Anleitung im Ordner |
-| `ablaeufe-laufend/` | die **Exporte der laufenden Abläufe** (exakte Wiederherstellung; enthalten die Zugangswerte, 700/600) |
-| `zugangsdaten/` | **die echten Zugangswerte** (700/600; in der veröffentlichten Fassung Platzhalter) mit `UEBERSICHT.md`: Telegram-Token, Chat-IDs, Postfach- und Testschlüssel, AzuraCast-Schlüssel, DJ-Passwort, `geheim.env`, n8n-Zugang, SSH-Schlüssel |
+| `ablaeufe-laufend/` | die **Exporte der laufenden Abläufe** (exakte Wiederherstellung; in dieser Fassung mit Platzhaltern) |
+| `zugangsdaten/` | in dieser Fassung **entfernt**; eigene Werte anlegen nach `zugangsdaten.md` (Arbeitsordner: echte Werte 700/600) |
 
-**Enthalten, aber mit Vorsicht zu behandeln:** `zugangsdaten/` und
-`ablaeufe-laufend/` — beide enthalten die echten Zugangswerte (Rechte 700/600).
+**Enthalten, aber mit Vorsicht zu behandeln:** im Arbeitsordner `zugangsdaten/` und
+`ablaeufe-laufend/` (echte Werte, 700/600). **Diese Fassung enthält keine Werte** —
+`zugangsdaten/` wurde entfernt, die Exporte tragen Platzhalter.
 
 **Bewusst nicht enthalten:** das Musikarchiv, die Modell-Binärdateien (zu groß) und
 die Sicherungen der n8n-Datenbank (`n8n-daten.sqlite.gz`, siehe
@@ -290,7 +293,7 @@ Ein Nachbau ist gelungen, wenn:
 
 * **Stimme**: Vorgabe ist die **eigene Sprecherstimme `deine-stimme`** (extern, `eigene-stimme/`);
   ohne Stimmendienst setzt man `TTS_DEFAULT_VOICE` auf eine Piper-Stimme (Kurznamen in
-  `dienst/app/main.py`). Fällt der Stimmendienst aus, spricht `radio-tts` mit
+  `dienst/main.py`). Fällt der Stimmendienst aus, spricht `radio-tts` mit
   `EIGENE_STIMME_ERSATZ` (Standard `de_thorsten`) weiter.
 * **Modell**: `OLLAMA_MODELL` — es muss nur Werkzeuge (Function Calling) beherrschen.
   Getestet sind `qwen3.6:27b` (Empfehlung) und `qwen2.5:14b` (unzuverlässiger).
@@ -307,11 +310,9 @@ Ein Nachbau ist gelungen, wenn:
 
 ## 6. Was **nicht** in einem Ordner liegen kann
 
-> **Die Zugangsdaten liegen inzwischen IM Ordner** — in `zugangsdaten/`
-> (Verzeichnis 700, Dateien 600, mit `UEBERSICHT.md`). Wer den Ordner weitergibt,
-> gibt damit den Bot weg: Telegram-Token, Sender-Schlüssel, DJ-Passwort,
-> Postfach-/Testschlüssel und die SSH-Schlüssel. Für eine Abgabe ohne Geheimnisse
-> einfach `zugangsdaten/` weglassen.
+> **Diese Fassung enthält keine Zugangswerte** — der Ordner `zugangsdaten/` wurde
+> entfernt, die Ablauf-Exporte tragen Platzhalter. Eigene Werte anlegen nach
+> `zugangsdaten.md`; im Arbeitsordner liegen die echten Werte (700/600).
 
 1. **Das Musikarchiv**. Der Bot braucht es inhaltlich; die
    Struktur ist frei. → eigenes Backup.
@@ -344,5 +345,5 @@ Ein Nachbau ist gelungen, wenn:
 | Stimmen laden (`stimmen-holen.sh`) und **Prüfsummen** vergleichen | 4 Stimmen, md5 **identisch** mit dem laufenden System |
 
 Damit ist belegt: die **Bau- und Laufzeitdateien sind vollständig** und lauffähig. Es
-fehlen nur die drei Dinge aus Abschnitt 6 (Zugangsdaten, Modell-/Stimmendateien,
-Musikarchiv) — alle drei mit Anleitung.
+fehlen nur die Dinge aus Abschnitt 6 (Modell-/Stimmendateien, Musikarchiv) —
+plus die eigenen Zugangswerte nach `zugangsdaten.md`: alles mit Anleitung.

@@ -22,7 +22,7 @@ Alle echten Zugangsdaten sind durch Platzhalter ersetzt - im Einzelnen:
 
 Die Platzhalter stehen in Grossbuchstaben, z. B. `DEIN-TELEGRAM-BOT-TOKEN`.
 Zum Nachschlagen, was gebraucht wird und wie es entsteht:
-`NACHBAU/zugangsdaten.md` und `NACHBAU/zugangsdaten/UEBERSICHT.md`.
+`NACHBAU/zugangsdaten.md`.
 
 ## Hinweise
 

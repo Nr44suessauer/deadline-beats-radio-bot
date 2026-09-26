@@ -73,8 +73,8 @@ die Logik ist davon unabhängig. Wer sie ersetzt, hat ein lauffähiges Werkzeugs
 * `meldungen/probe-stimme-roh.wav` ist eine rohe Aufnahme; die Lautstärke-Prüfung
   arbeitet damit.
 * **Dateien mit Kennungen** (`moderator-import.json`, `agent-fassung-2026-09-19.json`)
-  liegen im Ordner, sind aber **nicht im Git** (Rechte 600) — sie enthalten den
-  Telegram-Schlüssel bzw. den Sender-Schlüssel.
+  tragen in dieser Fassung Platzhalter; der Arbeitsordner hält sie mit den echten
+  Werten (Rechte 600).
 * `../ANHANG/ANORDNUNG.md` ist die erzeugte Zeichenflächen-Übersicht; hier im Ordner
   liegt keine Kopie mehr (der Erzeuger schreibt direkt dorthin).
 

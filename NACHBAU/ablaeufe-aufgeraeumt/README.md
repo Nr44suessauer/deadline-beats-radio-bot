@@ -6,8 +6,9 @@ Radiosender** — alte Ausgaben des Bots (Sender „Deadline Beats“) und die
 Einzel-Werkzeuge, die später im kombinierten Werkzeug `Werkzeug - Radio`
 aufgegangen sind.
 
-**Wichtig:** Die Dateien enthalten echte Schlüssel (AzuraCast, Telegram) —
-deshalb Rechte 600 und per `.gitignore` vom Git ausgeschlossen.
+**Wichtig:** Die Dateien tragen in dieser Fassung Platzhalter; im Arbeitsordner
+enthalten sie echte Schlüssel (AzuraCast, Telegram) — dort Rechte 600 und per
+`.gitignore` vom Git ausgeschlossen.
 
 Entfernt wurden sie auf Wunsch des Betreibers („räume die Bots, die nicht mehr
 aktuell sind, weg — auf die Radiosender bezogen“). Vorher geprüft: **kein**

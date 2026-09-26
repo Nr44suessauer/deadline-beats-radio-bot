@@ -35,7 +35,8 @@ curl -s http://<sender-ip>/api/nowplaying | head -c 120  # Sender, Titel, Hörer
 
 Danach §1 (Sender, Mount, Streamer) und §7 (**API-Schlüssel** anlegen, Format
 `kennung:prüfsumme`) — der Schlüssel wird später als `AZ_KEY` im Dienst gebraucht.
-Anmeldedaten und Adressen gehören in `zugangsdaten/UEBERSICHT.md`.
+Anmeldedaten und Adressen gehören in die eigenen Zugangsdaten (Anleitung:
+`zugangsdaten.md`).
 
 ---
 

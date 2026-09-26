@@ -10,21 +10,23 @@ n8n update:workflow --id=RadioAgentBot --active=true
 # then restart n8n (otherwise the old version stays in memory)
 ```
 
-The three tools (`RadioWerkzeug`, `AzuraWerkzeug`, `MeldungenWerkzeug`) are the same.
-Additionally, there are the two later workflows `Konfiguration.json` (the central
-"Configuration – all values", from which all workflows get their addresses) and
-`VoiceBot.json` ("Voices from movies" — Formular/Webhook for the voice service).
-`bjFSfXGqpLg7AAXw.json` is the earlier AI moderator — it is not used but is part of the set.
+The three tools (`RadioTool`, `AzuraTool`, `NewsTool`) and the agent are the same as the
+German originals. Additionally, `VoiceBot.json` ("Voices from movies" — form/webhook
+for the voice service). The central `Konfiguration` workflow and the earlier AI
+moderator (`bjFSfXGqpLg7AAXw`) are **not** among the English copies — both exist in
+the German original folder.
 
 ---
 
-## Note: in the working copy these files contain access data
+## Note: in this edition these files carry placeholders
 
-In the HTTP nodes of the **working copy** you find the **Telegram bot token** and the
-**AzuraCast key** (that is why the files in the working folder are set to `600`). There:
+The **Telegram bot token** and the **AzuraCast key** in the HTTP nodes are
+**placeholders** (`DEIN-…`) here — replace them before importing, or rebuild the
+workflows (`../../tools/agent-wf-build.py`). The working copy contains the real values
+(permissions `600`). There:
 
 * Do not share, do not put in a repository, do not upload to the cloud.
-* The folder `../credentials/` belongs to this (it contains the same values in plain text).
+* In the working copy the folder `../credentials/` belongs to this (same values in plain text).
 * **Never insert masked versions** (if identifiers were replaced by
   `<GEHEIM>` for verification) — this will kill the bot, see `../../DOCS/OPERATIONS.md`,
   section 1.
@@ -35,10 +37,10 @@ Instead of copying, the workflows can also be **built** — then they will conta
 access values:
 
 ```bash
-cd ../werkzeuge
+cd ../../tools
 export TG_TOKEN=…  AZ_KEY=…  MELDUNG_SCHLUESSEL=…
 python3 agent-wf-build.py                 # -> /tmp/radio-konfiguration.json, /tmp/radio-werkzeuge.json, /tmp/radio-agent.json
-python3 layout-check.py /tmp/radio-agent.json     # 0 Befunde
+python3 layout-check.py /tmp/radio-agent.json     # 0 findings
 python3 import-agent-prepare.py       # -> /tmp/radio-agent-import.json + /tmp/radio-werkzeuge-import.json
 bash agent-import-only.sh /tmp/radio-agent-import.json
 ```
@@ -47,5 +49,5 @@ Difference between the two approaches:
 
 | Approach | Advantage | Disadvantage |
 | --- | --- | --- |
-| **Copy** (these files) | exactly the same bot, operational in minutes | requires the old access values; a Modell-/Stimmenwechsel change does not affect it |
+| **Copy** (these files) | the same bot, operational in minutes | replace the placeholders `DEIN-…` and select the Telegram credential in n8n; a Modell-/Stimmenwechsel change does not affect it |
 | **Build** (`tools/agent-wf-build.py`) | own access values, fully traceable | sets the `name` field in the tool nodes (cosmetic, changes tool names compared to the model) |
