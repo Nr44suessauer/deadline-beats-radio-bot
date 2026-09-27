@@ -1,6 +1,6 @@
 # AI Radio Moderator Bot — "Deadline Beats"
 
-<img src="https://media1.giphy.com/media/v1.Y2lkPTc5MGI3NjExdzc2ejN4OGF5bjhxd2R5dTM3ZzRydXdvdGIxZngwbWZvaWRsb3o3YiZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/gZDLCqO7dPIzHmRrTh/giphy.gif" align="right" class="glfm-float-right" width="280" alt="AI Radio Moderator Bot (GIF)">
+<img src="https://media1.giphy.com/media/v1.Y2lkPTc5MGI3NjExdzc2ejN4OGF5bjhxd2R5dTM3ZzRydXdvdGIxZngwbWZvaWRsb3o3YiZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/gZDLCqO7dPIzHmRrTh/giphy.gif" align="right" class="glfm-float-right" width="280" alt="AI Radio Moderator Bot (GIF)"> <!-- markdownlint-disable-line MD033 -->
 
 Complete documentation of the bot that controls the internet radio station **Deadline Beats** via Telegram, moderates the ongoing program, and can fetch content from the internet.
 
@@ -70,12 +70,12 @@ Prerequisites, order, all commands: **`REBUILD/README.md`**.
 
 A Telegram bot that **handles everything** at the station:
 
-* **Music** — song requests, mood requests, queue, skip, pause, restart
-* **Moderation** — announcements in **live speech** directly into the ongoing broadcast (reading weather, news, feeds, short updates)
-* **Research** — weather, news feeds, RSS sources, Wikipedia on demand
-* **Playlists** — search, build, fill, rename, start, delete
-* **Station Management** — over 260 addresses of the AzuraCast interface (stations, users, roles, settings, reports, streamers, backups …)
-* **Voice Messages** — I speak, the bot system understands
+- **Music** — song requests, mood requests, queue, skip, pause, restart
+- **Moderation** — announcements in **live speech** directly into the ongoing broadcast (reading weather, news, feeds, short updates)
+- **Research** — weather, news feeds, RSS sources, Wikipedia on demand
+- **Playlists** — search, build, fill, rename, start, delete
+- **Station Management** — over 260 addresses of the AzuraCast interface (stations, users, roles, settings, reports, streamers, backups …)
+- **Voice Messages** — I speak, the bot system understands
 
 Everything runs on dedicated hardware, without cloud services (the speech models run on the local GPU, the internet search is handled by a **custom SearXNG instance** in LXC 108).
 

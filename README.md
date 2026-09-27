@@ -1,6 +1,6 @@
 # KI-Radio-Moderator-Bot — „Deadline Beats“
 
-<img src="https://media1.giphy.com/media/v1.Y2lkPTc5MGI3NjExdzc2ejN4OGF5bjhxd2R5dTM3ZzRydXdvdGIxZngwbWZvaWRsb3o3YiZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/gZDLCqO7dPIzHmRrTh/giphy.gif" align="right" class="glfm-float-right" width="280" alt="KI-Radio-Moderator-Bot (GIF)">
+<img src="https://media1.giphy.com/media/v1.Y2lkPTc5MGI3NjExdzc2ejN4OGF5bjhxd2R5dTM3ZzRydXdvdGIxZngwbWZvaWRsb3o3YiZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/gZDLCqO7dPIzHmRrTh/giphy.gif" align="right" class="glfm-float-right" width="280" alt="KI-Radio-Moderator-Bot (GIF)"> <!-- markdownlint-disable-line MD033 -->
 
 Vollständige Dokumentation des Bots, der den Internetradiosender **Deadline Beats**
 per Telegram steuert, im laufenden Programm moderiert und sich Inhalte aus dem Netz
@@ -71,14 +71,14 @@ Voraussetzungen, Reihenfolge, alle Befehle: **`NACHBAU/README.md`**.
 
 Ein Telegram-Bot, der **alles** am Sender übernimmt:
 
-* **Musik** — Titelwünsche, Stimmungswünsche, Warteschlange, skip, Pause, Neustart
-* **Moderation** — Ansagen in **echter Sprache** live in den laufenden Sendebetrieb
+- **Musik** — Titelwünsche, Stimmungswünsche, Warteschlange, skip, Pause, Neustart
+- **Moderation** — Ansagen in **echter Sprache** live in den laufenden Sendebetrieb
   (Vorlesen von Wetter, Nachrichten, Feeds, Kurzinfos)
-* **Recherche** — Wetter, Nachrichten-Feeds, RSS-Quellen, Wikipedia auf Zuruf
-* **Wiedergabelisten** — suchen, bauen, füllen, umbenennen, starten, löschen
-* **Senderverwaltung** — über 260 Adressen der AzuraCast-Schnittstelle (Anlagen,
+- **Recherche** — Wetter, Nachrichten-Feeds, RSS-Quellen, Wikipedia auf Zuruf
+- **Wiedergabelisten** — suchen, bauen, füllen, umbenennen, starten, löschen
+- **Senderverwaltung** — über 260 Adressen der AzuraCast-Schnittstelle (Anlagen,
   Nutzer, Rollen, Einstellungen, Berichte, Streamer, Sicherungen …)
-* **Sprachnachrichten** — ich spreche, das Bot-System versteht
+- **Sprachnachrichten** — ich spreche, das Bot-System versteht
 
 Alles läuft auf eigener Hardware, ohne Cloud-Dienste (die Sprachmodelle laufen auf
 der eigenen GPU, die Suche im Netz übernimmt eine **eigene SearXNG-Instanz** in LXC 108).
