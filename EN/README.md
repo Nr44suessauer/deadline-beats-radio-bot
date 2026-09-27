@@ -32,12 +32,10 @@ Complete documentation of the bot that controls the internet radio station **Dea
 
 ## Motivation
 
-One wish turned into several projects over time — and in the end into this one:
-
-- **A station of my own instead of Spotify and YouTube:** First I wanted to host a radio station of my own so that I no longer need Spotify or YouTube — that part is done and running.
-- **Bots, with and without LLM:** After that I spent a lot of time with bots — with and without a language model.
-- **Handing AzuraCast over:** Over time, configuring the station became too tedious for me — a bot should take that over. Now we are here.
-- **Cloning the voice:** My first attempt, and it is done — I wanted to know how close I could get to the original; above all, it was the technical challenge.
+- **Station:** first, simply being independent of Spotify and YouTube — up and running.
+- **Bots:** after that, a lot of time spent with bots — with and without LLM.
+- **Handover:** setting up AzuraCast myself became too tedious — the bot does that now.
+- **Voice:** cloning a voice for the first time; the question was: how close can I get to the original?
 
 ## Structure & Rebuild in Brief
 
