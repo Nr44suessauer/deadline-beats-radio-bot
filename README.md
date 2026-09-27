@@ -31,6 +31,15 @@ holen kann.
 
 ---
 
+## Motivation
+
+Aus einem Wunsch wurden mit der Zeit mehrere Projekte — und am Ende dieses hier:
+
+- **Eigener Sender statt Spotify und YouTube:** Zuerst wollte ich mir selbst einen Radiosender hosten, damit ich weder Spotify noch YouTube brauche — das steht und läuft.
+- **Bots, mit und ohne LLM:** Danach war ich viel mit Bots unterwegs — mit und ohne Sprachmodell.
+- **AzuraCast abgeben:** Mit der Zeit wurde mir das Einstellen am AzuraCast zu anstrengend — das sollte ein Bot übernehmen. Jetzt sind wir hier.
+- **Die Stimme klonen:** Mein erstes Mal, und umgesetzt — ich wollte wissen, wie nah ich ans Original herankomme; vor allem aber war es die technische Herausforderung.
+
 ## Aufbau & Nachbau in Kürze
 
 Dieses Projekt ist so sortiert, dass du für den Nachbau **nur einem Ordner** folgen musst:
